@@ -1,0 +1,394 @@
+﻿@model List<VDK_BookRental.Models.Book>
+
+@{
+    ViewData["Title"] = "Danh sách sách";
+
+    var educationBooks = Model.Where(b => b.Category != null && b.Category.Name == "Giáo dục").ToList();
+    var entertainmentBooks = Model.Where(b => b.Category != null && b.Category.Name == "Giải trí").ToList();
+    var sportBooks = Model.Where(b => b.Category != null && b.Category.Name == "Thể thao").ToList();
+}
+
+<section class="book-hero mb-5">
+    <h1>📚 VDK Book Rental</h1>
+    <p>Thuê sách online nhanh chóng, tiện lợi, giá sinh viên</p>
+
+    <div class="search-box">
+        <select id="categorySelect">
+            <option value="all">Tất cả danh mục</option>
+            <option value="Giáo dục">Giáo dục</option>
+            <option value="Giải trí">Giải trí</option>
+            <option value="Thể thao">Thể thao</option>
+        </select>
+
+        <input id="searchInput"
+               autocomplete="off"
+               placeholder="Nhập G, T hoặc tên sách cần tìm..." />
+
+        <button type="button" id="searchButton">Tìm kiếm</button>
+    </div>
+
+    <p id="searchHint" class="search-hint"></p>
+</section>
+
+<div class="container mb-5">
+
+    <div class="category-section" data-section="giáo dục">
+        <h2 class="fw-bold mb-4">📘 Sách Giáo dục</h2>
+
+        <div class="row g-4 mb-5">
+            @foreach (var book in educationBooks)
+            {
+                <div class="col-xl-3 col-lg-4 col-md-6 book-item"
+                     data-title="@book.Title.ToLower()"
+                     data-author="@book.Author.ToLower()"
+                     data-category="@book.Category!.Name.ToLower()">
+
+                    <div class="book-card">
+                        <div class="book-img-wrap">
+                            <img src="@(string.IsNullOrEmpty(book.ImageUrl) ? "/images/books/default-book.jpg" : book.ImageUrl)"
+                                 alt="@book.Title"
+                                 onerror="this.src='/images/books/default-book.jpg'" />
+                        </div>
+
+                        <div class="book-body">
+                            <span class="badge bg-info mb-2">@book.Category!.Name</span>
+                            <h5>@book.Title</h5>
+                            <p>@book.Author</p>
+                            <strong>@book.RentalPrice.ToString("N0") VNĐ / ngày</strong>
+
+                            <div class="d-grid gap-2 mt-3">
+                                <a class="btn btn-primary"
+                                       asp-controller="Books"
+                                       asp-action="Details"
+                                       asp-route-id="@book.Id">
+                                    Xem chi tiết
+                                </a>
+
+                                <a class="btn btn-outline-success">
+                                    Thuê sách
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="category-section" data-section="giải trí">
+        <h2 class="fw-bold mb-4">🎭 Sách Giải trí</h2>
+
+        <div class="row g-4 mb-5">
+            @foreach (var book in entertainmentBooks)
+            {
+                <div class="col-xl-3 col-lg-4 col-md-6 book-item"
+                     data-title="@book.Title.ToLower()"
+                     data-author="@book.Author.ToLower()"
+                     data-category="@book.Category!.Name.ToLower()">
+
+                    <div class="book-card">
+                        <div class="book-img-wrap">
+                            <img src="@(string.IsNullOrEmpty(book.ImageUrl) ? "/images/books/default-book.jpg" : book.ImageUrl)"
+                                 alt="@book.Title"
+                                 onerror="this.src='/images/books/default-book.jpg'" />
+                        </div>
+
+                        <div class="book-body">
+                            <span class="badge bg-warning text-dark mb-2">@book.Category!.Name</span>
+                            <h5>@book.Title</h5>
+                            <p>@book.Author</p>
+                            <strong>@book.RentalPrice.ToString("N0") VNĐ / ngày</strong>
+
+                            <div class="d-grid gap-2 mt-3">
+                                <a class="btn btn-primary"
+                                       asp-controller="Books"
+                                       asp-action="Details"
+                                       asp-route-id="@book.Id">
+                                    Xem chi tiết
+                                </a>
+
+                                <a class="btn btn-outline-success">
+                                    Thuê sách
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="category-section" data-section="thể thao">
+        <h2 class="fw-bold mb-4">⚽ Sách Thể thao</h2>
+
+        <div class="row g-4 mb-5">
+            @foreach (var book in sportBooks)
+            {
+                <div class="col-xl-3 col-lg-4 col-md-6 book-item"
+                     data-title="@book.Title.ToLower()"
+                     data-author="@book.Author.ToLower()"
+                     data-category="@book.Category!.Name.ToLower()">
+
+                    <div class="book-card">
+                        <div class="book-img-wrap">
+                            <img src="@(string.IsNullOrEmpty(book.ImageUrl) ? "/images/books/default-book.jpg" : book.ImageUrl)"
+                                 alt="@book.Title"
+                                 onerror="this.src='/images/books/default-book.jpg'" />
+                        </div>
+
+                        <div class="book-body">
+                            <span class="badge bg-danger mb-2">@book.Category!.Name</span>
+                            <h5>@book.Title</h5>
+                            <p>@book.Author</p>
+                            <strong>@book.RentalPrice.ToString("N0") VNĐ / ngày</strong>
+
+                            <div class="d-grid gap-2 mt-3">
+                                <a class="btn btn-primary"
+                                       asp-controller="Books"
+                                       asp-action="Details"
+                                       asp-route-id="@book.Id">
+                                    Xem chi tiết
+                                </a>
+
+                                <a class="btn btn-outline-success">
+                                    Thuê sách
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div id="noResult" class="alert alert-warning text-center d-none">
+        Không tìm thấy sách phù hợp.
+    </div>
+</div>
+
+<style>
+    .book-hero {
+        background: linear-gradient(135deg, #0d6efd, #111827);
+        border-radius: 24px;
+        padding: 70px 20px;
+        text-align: center;
+        color: white;
+    }
+
+        .book-hero h1 {
+            font-size: 48px;
+            font-weight: 800;
+        }
+
+        .book-hero p {
+            font-size: 20px;
+            opacity: .9;
+        }
+
+    .search-box {
+        max-width: 950px;
+        margin: 30px auto 0;
+        display: flex;
+        gap: 12px;
+    }
+
+        .search-box select,
+        .search-box input {
+            border-radius: 14px;
+            border: none;
+            padding: 16px 20px;
+            outline: none;
+            font-size: 16px;
+        }
+
+        .search-box select {
+            width: 190px;
+        }
+
+        .search-box input {
+            flex: 1;
+        }
+
+        .search-box button {
+            border: none;
+            border-radius: 14px;
+            padding: 0 35px;
+            background: #ffc107;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+            .search-box button:hover {
+                background: #ffca2c;
+            }
+
+    .search-hint {
+        margin-top: 15px;
+        font-size: 15px;
+        font-weight: 600;
+        min-height: 24px;
+    }
+
+    .hint-ok {
+        color: #e5e7eb;
+    }
+
+    .hint-error {
+        color: #ff4d4f;
+    }
+
+    .book-card {
+        background: #1f2937;
+        border-radius: 22px;
+        overflow: hidden;
+        height: 100%;
+        box-shadow: 0 12px 30px rgba(0,0,0,.25);
+        transition: .25s;
+    }
+
+        .book-card:hover {
+            transform: translateY(-8px);
+        }
+
+    .book-img-wrap {
+        background: white;
+        height: 320px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+    }
+
+        .book-img-wrap img {
+            max-height: 100%;
+            max-width: 100%;
+            object-fit: contain;
+        }
+
+    .book-body {
+        padding: 22px;
+    }
+
+        .book-body h5 {
+            color: white;
+            font-weight: 800;
+            min-height: 55px;
+        }
+
+        .book-body p {
+            color: #cbd5e1;
+            margin-bottom: 8px;
+        }
+
+        .book-body strong {
+            color: #38bdf8;
+        }
+</style>
+
+<script>
+    const searchInput = document.getElementById("searchInput");
+    const categorySelect = document.getElementById("categorySelect");
+    const searchButton = document.getElementById("searchButton");
+    const bookItems = document.querySelectorAll(".book-item");
+    const sections = document.querySelectorAll(".category-section");
+    const noResult = document.getElementById("noResult");
+    const searchHint = document.getElementById("searchHint");
+
+    function removeVietnameseTones(str) {
+        return str
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/đ/g, "d")
+            .replace(/Đ/g, "D")
+            .toLowerCase();
+    }
+
+    function showHint(keyword) {
+        const key = removeVietnameseTones(keyword.trim());
+
+        searchHint.classList.remove("hint-ok", "hint-error");
+
+        if (key === "") {
+            searchHint.innerText = "";
+            return;
+        }
+
+        if ("giao duc".startsWith(key) || "giai tri".startsWith(key)) {
+            searchHint.innerText = "Gợi ý: Giáo dục, Giải trí";
+            searchHint.classList.add("hint-ok");
+            return;
+        }
+
+        if ("the thao".startsWith(key)) {
+            searchHint.innerText = "Gợi ý: Thể thao";
+            searchHint.classList.add("hint-ok");
+            return;
+        }
+
+        const hasBookMatch = Array.from(bookItems).some(item => {
+            const title = removeVietnameseTones(item.dataset.title);
+            const author = removeVietnameseTones(item.dataset.author);
+            return title.includes(key) || author.includes(key);
+        });
+
+        if (hasBookMatch) {
+            searchHint.innerText = "";
+        } else {
+            searchHint.innerText = "❌ Vui lòng nhập từ khóa phù hợp!";
+            searchHint.classList.add("hint-error");
+        }
+    }
+
+    function filterBooks() {
+        const keyword = searchInput.value.trim();
+        const key = removeVietnameseTones(keyword);
+        const selectedCategory = removeVietnameseTones(categorySelect.value);
+
+        let visibleCount = 0;
+
+        showHint(keyword);
+
+        bookItems.forEach(item => {
+            const title = removeVietnameseTones(item.dataset.title);
+            const author = removeVietnameseTones(item.dataset.author);
+            const category = removeVietnameseTones(item.dataset.category);
+
+            const matchKeyword =
+                key === "" ||
+                title.includes(key) ||
+                author.includes(key) ||
+                category.includes(key);
+
+            const matchCategory =
+                selectedCategory === "all" ||
+                category === selectedCategory;
+
+            if (matchKeyword && matchCategory) {
+                item.classList.remove("d-none");
+                visibleCount++;
+            } else {
+                item.classList.add("d-none");
+            }
+        });
+
+        sections.forEach(section => {
+            const visibleBooks = section.querySelectorAll(".book-item:not(.d-none)");
+
+            if (visibleBooks.length === 0) {
+                section.classList.add("d-none");
+            } else {
+                section.classList.remove("d-none");
+            }
+        });
+
+        if (visibleCount === 0) {
+            noResult.classList.remove("d-none");
+        } else {
+            noResult.classList.add("d-none");
+        }
+    }
+
+    searchInput.addEventListener("input", filterBooks);
+    categorySelect.addEventListener("change", filterBooks);
+    searchButton.addEventListener("click", filterBooks);
+</script>

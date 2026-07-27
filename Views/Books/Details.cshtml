@@ -1,0 +1,169 @@
+﻿@model VDK_BookRental.Models.Book
+
+@{
+    ViewData["Title"] = "Chi tiết sách";
+}
+
+<div class="container mt-5 mb-5">
+
+    <div class="row">
+
+        <div class="col-lg-4">
+
+            <div class="card shadow border-0 rounded-4">
+
+                <img src="@(string.IsNullOrEmpty(Model.ImageUrl) ? "/images/books/default-book.jpg" : Model.ImageUrl)"
+                     class="card-img-top p-3"
+                     style="height:500px;object-fit:contain;"
+                     onerror="this.src='/images/books/default-book.jpg'" />
+
+            </div>
+
+        </div>
+
+        <div class="col-lg-8">
+
+            <h1 class="fw-bold mb-3">
+                @Model.Title
+            </h1>
+
+            <span class="badge bg-primary fs-6 mb-3">
+                @Model.Category?.Name
+            </span>
+
+            <hr />
+
+            <p>
+                <strong>Tác giả:</strong>
+                @Model.Author
+            </p>
+
+            <p>
+                <strong>Giá thuê:</strong>
+
+                <span class="text-success fw-bold fs-5">
+                    @Model.RentalPrice.ToString("N0") VNĐ / ngày
+                </span>
+            </p>
+
+            <p>
+                <strong>Số lượng còn:</strong>
+
+                @if (Model.Quantity > 0)
+                {
+                    <span class="badge bg-success">
+                        @Model.Quantity quyển
+                    </span>
+                }
+                else
+                {
+                    <span class="badge bg-danger">
+                        Hết sách
+                    </span>
+                }
+            </p>
+
+            <p>
+                <strong>Trạng thái:</strong>
+
+                @if (Model.Quantity > 0)
+                {
+                    <span class="badge bg-success">
+                        @Model.Status
+                    </span>
+                }
+                else
+                {
+                    <span class="badge bg-danger">
+                        Hết hàng
+                    </span>
+                }
+            </p>
+
+            <hr />
+
+            <h4>Mô tả sách</h4>
+
+            <p class="text-muted">
+                @(string.IsNullOrWhiteSpace(Model.Description)
+                    ? "Hiện chưa có mô tả cho quyển sách này."
+                    : Model.Description)
+            </p>
+
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-danger">
+                    @TempData["ErrorMessage"]
+                </div>
+            }
+
+            <hr />
+
+            <form asp-controller="Books"
+                  asp-action="Rent"
+                  method="post">
+
+                @Html.AntiForgeryToken()
+
+                <input type="hidden"
+                       name="bookId"
+                       value="@Model.Id" />
+
+                <div class="row">
+
+                    <div class="col-md-6">
+
+                        <label class="form-label fw-bold">
+                            Số ngày thuê
+                        </label>
+
+                        <input type="number"
+                               class="form-control"
+                               name="rentalDays"
+                               value="1"
+                               min="1"
+                               max="30"
+                               required />
+
+                    </div>
+
+                </div>
+
+                <div class="mt-4 d-flex gap-3 flex-wrap">
+
+                    @if (Model.Quantity > 0)
+                    {
+                        <button type="submit"
+                                class="btn btn-success btn-lg">
+
+                            📖 Thuê sách ngay
+
+                        </button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-danger btn-lg"
+                                disabled>
+
+                            Hết sách
+
+                        </button>
+                    }
+
+                    <a asp-controller="Books"
+                       asp-action="Index"
+                       class="btn btn-outline-secondary btn-lg">
+
+                        ← Quay lại
+
+                    </a>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>

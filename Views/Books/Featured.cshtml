@@ -1,0 +1,201 @@
+﻿@model IEnumerable<VDK_BookRental.Models.Book>
+
+@{
+    ViewData["Title"] = "Sách nổi bật";
+
+    var rentalCounts =
+        ViewBag.RentalCounts as Dictionary<int, int>
+        ?? new Dictionary<int, int>();
+
+    var ranking = 0;
+}
+
+<div class="container mt-5 mb-5">
+
+    <div class="text-center mb-5">
+
+        <h1 class="fw-bold">
+            🔥 Sách nổi bật
+        </h1>
+
+        <p class="text-muted fs-5">
+            Những quyển sách được thuê nhiều nhất trên hệ thống
+        </p>
+
+    </div>
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="alert alert-info text-center py-5">
+
+            <h4 class="mb-3">
+                Chưa có sách nổi bật
+            </h4>
+
+            <p class="mb-4">
+                Hiện hệ thống chưa có dữ liệu sách.
+            </p>
+
+            <a asp-controller="Books"
+               asp-action="Index"
+               class="btn btn-primary">
+
+                Xem danh sách sách
+
+            </a>
+
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+
+            @foreach (var book in Model)
+            {
+                ranking++;
+
+                var rentalCount = rentalCounts.ContainsKey(book.Id)
+                    ? rentalCounts[book.Id]
+                    : 0;
+
+                <div class="col-xl-3 col-lg-4 col-md-6">
+
+                    <div class="card h-100 border-0 shadow-sm rounded-4 position-relative">
+
+                        @if (ranking == 1)
+                        {
+                            <span class="position-absolute top-0 start-0 badge bg-warning text-dark m-3 fs-6">
+                                🥇 Top 1
+                            </span>
+                        }
+                        else if (ranking == 2)
+                        {
+                            <span class="position-absolute top-0 start-0 badge bg-secondary m-3 fs-6">
+                                🥈 Top 2
+                            </span>
+                        }
+                        else if (ranking == 3)
+                        {
+                            <span class="position-absolute top-0 start-0 badge bg-danger m-3 fs-6">
+                                🥉 Top 3
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="position-absolute top-0 start-0 badge bg-primary m-3">
+                                Top @ranking
+                            </span>
+                        }
+
+                        <img src="@(string.IsNullOrWhiteSpace(book.ImageUrl)
+                                                                    ? "/images/books/default-book.jpg"
+                                                                    : book.ImageUrl)"
+                             class="card-img-top p-4"
+                             style="height:350px; object-fit:contain;"
+                             alt="@book.Title"
+                             onerror="this.src='/images/books/default-book.jpg'" />
+
+                        <div class="card-body d-flex flex-column">
+
+                            <div class="mb-2">
+
+                                <span class="badge bg-info text-dark">
+                                    @(book.Category?.Name ?? "Chưa phân loại")
+                                </span>
+
+                            </div>
+
+                            <h5 class="card-title fw-bold">
+                                @book.Title
+                            </h5>
+
+                            <p class="text-muted mb-2">
+                                @book.Author
+                            </p>
+
+                            <p class="mb-2">
+
+                                <strong>Giá thuê:</strong>
+
+                                <span class="text-success fw-bold">
+                                    @book.RentalPrice.ToString("N0") VNĐ/ngày
+                                </span>
+
+                            </p>
+
+                            <p class="mb-3">
+
+                                <strong>Lượt thuê:</strong>
+
+                                @if (rentalCount > 0)
+                                {
+                                    <span class="badge bg-danger">
+                                        🔥 @rentalCount lượt
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">
+                                        Chưa có lượt thuê
+                                    </span>
+                                }
+
+                            </p>
+
+                            <div class="mt-auto">
+
+                                <a asp-controller="Books"
+                                   asp-action="Details"
+                                   asp-route-id="@book.Id"
+                                   class="btn btn-primary w-100 mb-2">
+
+                                    Xem chi tiết
+
+                                </a>
+
+                                @if (book.Quantity > 0)
+                                {
+                                    <a asp-controller="Books"
+                                       asp-action="Details"
+                                       asp-route-id="@book.Id"
+                                       class="btn btn-outline-success w-100">
+
+                                        📖 Thuê sách
+
+                                    </a>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-outline-danger w-100"
+                                            disabled>
+
+                                        Hết sách
+
+                                    </button>
+                                }
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            }
+
+        </div>
+    }
+
+    <div class="text-center mt-5">
+
+        <a asp-controller="Books"
+           asp-action="Index"
+           class="btn btn-outline-secondary btn-lg">
+
+            ← Quay lại danh sách sách
+
+        </a>
+
+    </div>
+
+</div>

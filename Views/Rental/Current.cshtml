@@ -1,0 +1,186 @@
+﻿@model IEnumerable<VDK_BookRental.Models.Rental>
+
+@{
+    ViewData["Title"] = "Sách đang thuê";
+}
+
+<div class="container mt-5 mb-5">
+
+    <div class="d-flex justify-content-between
+        align-items-center mb-4">
+
+        <div>
+
+            <h2 class="fw-bold mb-1">
+                📖 Sách đang thuê
+            </h2>
+
+            <p class="text-muted mb-0">
+                Danh sách những quyển sách bạn đang thuê.
+            </p>
+
+        </div>
+
+        <a asp-controller="Books"
+           asp-action="Index"
+           class="btn btn-primary">
+
+            Tiếp tục thuê sách
+
+        </a>
+
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info text-center py-5">
+
+            <h4 class="mb-3">
+                Bạn chưa thuê quyển sách nào
+            </h4>
+
+            <p class="mb-4">
+                Hãy chọn một quyển sách phù hợp và bắt đầu thuê.
+            </p>
+
+            <a asp-controller="Books"
+               asp-action="Index"
+               class="btn btn-success">
+
+                📚 Xem danh sách sách
+
+            </a>
+
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+
+            @foreach (var rental in Model)
+            {
+                foreach (var detail in rental.RentalDetails)
+                {
+                    <div class="col-lg-6">
+
+                        <div class="card border-0 shadow-sm h-100">
+
+                            <div class="row g-0">
+
+                                <div class="col-md-4">
+
+                                    <img src="@(string.IsNullOrEmpty(detail.Book?.ImageUrl)
+                                                                                            ? "/images/books/default-book.jpg"
+                                                                                            : detail.Book.ImageUrl)"
+                                         class="img-fluid rounded-start p-3"
+                                         style="height:280px;
+                                    width:100%;
+                                    object-fit:contain;"
+                                         onerror="this.src='/images/books/default-book.jpg'" />
+
+                                </div>
+
+                                <div class="col-md-8">
+
+                                    <div class="card-body">
+
+                                        <h5 class="card-title fw-bold">
+                                            @detail.Book?.Title
+                                        </h5>
+
+                                        <p class="mb-2">
+
+                                            <strong>Tác giả:</strong>
+                                            @detail.Book?.Author
+
+                                        </p>
+
+                                        <p class="mb-2">
+
+                                            <strong>Ngày thuê:</strong>
+                                            @rental.RentalDate.ToString("dd/MM/yyyy")
+
+                                        </p>
+
+                                        <p class="mb-2">
+
+                                            <strong>Ngày trả:</strong>
+                                            @rental.ReturnDate.ToString("dd/MM/yyyy")
+
+                                        </p>
+
+                                        <p class="mb-2">
+
+                                            <strong>Số ngày thuê:</strong>
+                                            @detail.RentalDays ngày
+
+                                        </p>
+
+                                        <p class="mb-2">
+
+                                            <strong>Thành tiền:</strong>
+
+                                            <span class="text-success fw-bold">
+
+                                                @detail.SubTotal.ToString("N0") VNĐ
+
+                                            </span>
+
+                                        </p>
+
+                                        <p class="mb-3">
+
+                                            <strong>Thanh toán:</strong>
+
+                                            @if (rental.Payment?.Status == "Paid")
+                                            {
+                                                <span class="badge bg-success">
+                                                    Đã thanh toán
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning text-dark">
+                                                    Chờ thanh toán
+                                                </span>
+                                            }
+
+                                        </p>
+
+                                        @if (rental.Payment?.Status != "Paid")
+                                        {
+                                            <a asp-controller="Payment"
+                                               asp-action="Checkout"
+                                               asp-route-rentalId="@rental.Id"
+                                               class="btn btn-warning">
+
+                                                💳 Thanh toán ngay
+
+                                            </a>
+                                        }
+
+                                        <a asp-controller="Books"
+                                           asp-action="Details"
+                                           asp-route-id="@detail.BookId"
+                                           class="btn btn-outline-primary">
+
+                                            Xem sách
+
+                                        </a>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+                }
+            }
+
+        </div>
+    }
+
+</div>

@@ -1,0 +1,292 @@
+﻿@{
+    ViewData["Title"] = "Trang nhân viên";
+    var fullName = Context.Session.GetString("FullName") ?? "Nhân viên";
+    var userRole = Context.Session.GetString("UserRole") ?? "Staff";
+}
+
+<div class="staff-dashboard">
+    <div class="container py-4">
+
+        <div class="dashboard-header mb-4">
+            <div>
+                <h2 class="fw-bold mb-1">
+                    Trang quản lý nhân viên
+                </h2>
+
+                <p class="text-muted mb-0">
+                    Xin chào <strong>@fullName</strong> - Quyền: @userRole
+                </p>
+            </div>
+
+            <div class="dashboard-actions">
+                <a asp-controller="Home"
+                   asp-action="Index"
+                   class="btn btn-outline-primary">
+                    Về trang chủ
+                </a>
+
+                <a asp-controller="Account"
+                   asp-action="Logout"
+                   class="btn btn-danger">
+                    Đăng xuất
+                </a>
+            </div>
+        </div>
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @TempData["SuccessMessage"]
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert">
+                </button>
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @TempData["ErrorMessage"]
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert">
+                </button>
+            </div>
+        }
+
+        <div class="row g-4 mb-4">
+
+            <div class="col-md-6 col-xl-3">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        📚
+                    </div>
+
+                    <div>
+                        <p class="stat-label">
+                            Tổng số sách
+                        </p>
+
+                        <h3 class="stat-value">
+                            @ViewBag.TotalBooks
+                        </h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-xl-3">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        ✅
+                    </div>
+
+                    <div>
+                        <p class="stat-label">
+                            Sách còn hàng
+                        </p>
+
+                        <h3 class="stat-value">
+                            @ViewBag.AvailableBooks
+                        </h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-xl-3">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        📦
+                    </div>
+
+                    <div>
+                        <p class="stat-label">
+                            Tổng đơn thuê
+                        </p>
+
+                        <h3 class="stat-value">
+                            @ViewBag.TotalRentals
+                        </h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-xl-3">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        💳
+                    </div>
+
+                    <div>
+                        <p class="stat-label">
+                            Thanh toán chờ xử lý
+                        </p>
+
+                        <h3 class="stat-value">
+                            @ViewBag.PendingPayments
+                        </h3>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="row g-4">
+
+            <div class="col-md-6">
+                <div class="feature-card h-100">
+                    <div class="feature-icon">
+                        📖
+                    </div>
+
+                    <h4 class="fw-bold">
+                        Quản lý sách
+                    </h4>
+
+                    <p class="text-muted">
+                        Xem danh sách sách, số lượng còn lại và thông tin thể loại.
+                    </p>
+
+                    <a asp-controller="Staff"
+                       asp-action="Books"
+                       class="btn btn-primary">
+                        Xem danh sách sách
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="feature-card h-100">
+                    <div class="feature-icon">
+                        🧾
+                    </div>
+
+                    <h4 class="fw-bold">
+                        Quản lý đơn thuê
+                    </h4>
+
+                    <p class="text-muted">
+                        Theo dõi các đơn thuê sách và thông tin khách hàng.
+                    </p>
+
+                    <a asp-controller="Staff"
+                       asp-action="Rentals"
+                       class="btn btn-success">
+                        Xem đơn thuê
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+    body {
+        background: #f4f7fb;
+    }
+
+    .staff-dashboard {
+        min-height: 90vh;
+    }
+
+    .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        padding: 25px;
+        background: white;
+        border-radius: 18px;
+        box-shadow: 0 8px 25px rgba(15, 23, 42, .08);
+    }
+
+    .dashboard-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .stat-card {
+        height: 100%;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding: 24px;
+        background: white;
+        border-radius: 18px;
+        box-shadow: 0 8px 25px rgba(15, 23, 42, .08);
+        transition: transform .2s ease, box-shadow .2s ease;
+    }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(15, 23, 42, .14);
+        }
+
+    .stat-icon {
+        width: 58px;
+        height: 58px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #e8f0ff;
+        border-radius: 16px;
+        font-size: 28px;
+    }
+
+    .stat-label {
+        margin-bottom: 4px;
+        color: #64748b;
+        font-size: 15px;
+    }
+
+    .stat-value {
+        margin: 0;
+        color: #1e3a8a;
+        font-weight: 800;
+    }
+
+    .feature-card {
+        padding: 30px;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 8px 25px rgba(15, 23, 42, .08);
+        text-align: center;
+        transition: transform .2s ease, box-shadow .2s ease;
+    }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(15, 23, 42, .14);
+        }
+
+    .feature-icon {
+        width: 75px;
+        height: 75px;
+        margin: 0 auto 18px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: linear-gradient(135deg, #dbeafe, #eff6ff);
+        border-radius: 22px;
+        font-size: 36px;
+    }
+
+    @@media (max-width: 768px) {
+        .dashboard-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .dashboard-actions {
+            width: 100%;
+            flex-direction: column;
+        }
+
+            .dashboard-actions .btn {
+                width: 100%;
+            }
+    }
+</style>

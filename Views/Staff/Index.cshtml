@@ -1,0 +1,247 @@
+﻿@{
+    ViewData["Title"] = "Trang nhân viên";
+
+    var fullName =
+        Context.Session.GetString("FullName");
+
+    var userRole =
+        Context.Session.GetString("UserRole");
+}
+
+<style>
+    .staff-page {
+        min-height: 80vh;
+        background: #f5f7fb;
+    }
+
+    .staff-header {
+        border-radius: 22px;
+        padding: 32px;
+        background: linear-gradient(135deg, #0d6efd, #111827);
+        color: white;
+        box-shadow: 0 14px 35px rgba(13, 110, 253, 0.18);
+    }
+
+    .staff-stat-card {
+        height: 100%;
+        border: none;
+        border-radius: 18px;
+        box-shadow: 0 10px 28px rgba(20, 34, 60, 0.08);
+        transition: transform 0.2s ease;
+    }
+
+        .staff-stat-card:hover {
+            transform: translateY(-4px);
+        }
+
+    .staff-stat-number {
+        font-size: 32px;
+        font-weight: 800;
+    }
+
+    .staff-action-card {
+        border: none;
+        border-radius: 18px;
+        box-shadow: 0 10px 28px rgba(20, 34, 60, 0.08);
+    }
+
+    .staff-action-button {
+        min-height: 50px;
+        border-radius: 12px;
+        font-weight: 700;
+    }
+</style>
+
+<div class="staff-page py-5">
+
+    <div class="container">
+
+        <div class="staff-header mb-4">
+
+            <div class="d-flex justify-content-between
+                align-items-center flex-wrap gap-3">
+
+                <div>
+
+                    <div class="small opacity-75 mb-2">
+                        HỆ THỐNG QUẢN LÝ NHÂN VIÊN
+                    </div>
+
+                    <h1 class="fw-bold mb-2">
+                        Xin chào, @fullName
+                    </h1>
+
+                    <p class="mb-0 opacity-75">
+                        Bạn đang đăng nhập với quyền
+                        <strong>@userRole</strong>.
+                    </p>
+
+                </div>
+
+                <div class="fs-1">
+                    👨‍💼
+                </div>
+
+            </div>
+
+        </div>
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show">
+
+                @TempData["SuccessMessage"]
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert">
+                </button>
+
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show">
+
+                @TempData["ErrorMessage"]
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert">
+                </button>
+
+            </div>
+        }
+
+        <div class="row g-4 mb-4">
+
+            <div class="col-md-6 col-xl-3">
+
+                <div class="card staff-stat-card">
+
+                    <div class="card-body p-4">
+
+                        <div class="text-muted mb-2">
+                            Tổng số sách
+                        </div>
+
+                        <div class="staff-stat-number text-primary">
+                            @ViewBag.TotalBooks
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-md-6 col-xl-3">
+
+                <div class="card staff-stat-card">
+
+                    <div class="card-body p-4">
+
+                        <div class="text-muted mb-2">
+                            Sách còn hàng
+                        </div>
+
+                        <div class="staff-stat-number text-success">
+                            @ViewBag.AvailableBooks
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-md-6 col-xl-3">
+
+                <div class="card staff-stat-card">
+
+                    <div class="card-body p-4">
+
+                        <div class="text-muted mb-2">
+                            Tổng đơn thuê
+                        </div>
+
+                        <div class="staff-stat-number text-warning">
+                            @ViewBag.TotalRentals
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-md-6 col-xl-3">
+
+                <div class="card staff-stat-card">
+
+                    <div class="card-body p-4">
+
+                        <div class="text-muted mb-2">
+                            Thanh toán chờ duyệt
+                        </div>
+
+                        <div class="staff-stat-number text-danger">
+                            @ViewBag.PendingPayments
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="card staff-action-card">
+
+            <div class="card-body p-4 p-lg-5">
+
+                <h3 class="fw-bold mb-4">
+                    Chức năng nhân viên
+                </h3>
+
+                <div class="row g-3">
+
+                    <div class="col-md-6">
+
+                        <a asp-controller="Staff"
+                           asp-action="Books"
+                           class="btn btn-primary staff-action-button
+                            w-100 d-flex align-items-center
+                            justify-content-center">
+
+                            📚 Xem danh sách sách
+
+                        </a>
+
+                    </div>
+
+                    <div class="col-md-6">
+
+                        <a asp-controller="Staff"
+                           asp-action="Rentals"
+                           class="btn btn-success staff-action-button
+                            w-100 d-flex align-items-center
+                            justify-content-center">
+
+                            📋 Quản lý đơn thuê
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>

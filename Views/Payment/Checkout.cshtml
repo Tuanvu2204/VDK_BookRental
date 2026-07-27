@@ -1,0 +1,839 @@
+﻿@model VDK_BookRental.Models.Rental
+
+@{
+    ViewData["Title"] = "Thanh toán";
+    var transferContent =
+        Model.Payment?.TransferContent ?? $"RENTAL_{Model.Id}";
+}
+
+<style>
+    .checkout-page {
+        min-height: 80vh;
+        background: #f5f7fb;
+    }
+
+    .checkout-card {
+        border: none;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 10px 35px rgba(24, 39, 75, 0.09);
+    }
+
+    .checkout-card-header {
+        padding: 18px 24px;
+    }
+
+    .payment-method-card {
+        position: relative;
+        width: 100%;
+        min-height: 112px;
+        padding: 16px;
+        border: 2px solid #e2e6ea;
+        border-radius: 18px;
+        background: #ffffff;
+        cursor: pointer;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
+        user-select: none;
+    }
+
+        .payment-method-card:hover {
+            border-color: #86b7fe;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 24px rgba(13, 110, 253, 0.12);
+        }
+
+        .payment-method-card.active {
+            border-color: #0d6efd;
+            background: #f1f7ff;
+            box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.10), 0 12px 28px rgba(13, 110, 253, 0.14);
+        }
+
+    .payment-method-logo-wrapper {
+        width: 76px;
+        height: 64px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 7px;
+        border: 1px solid #edf0f2;
+        border-radius: 14px;
+        background: #ffffff;
+    }
+
+    .payment-method-logo {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+
+    .selected-check {
+        position: absolute;
+        top: 9px;
+        right: 9px;
+        width: 28px;
+        height: 28px;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        color: #ffffff;
+        background: #0d6efd;
+        font-size: 16px;
+        font-weight: 700;
+        box-shadow: 0 4px 10px rgba(13, 110, 253, 0.3);
+    }
+
+    .payment-method-card.active .selected-check {
+        display: flex;
+    }
+
+    .payment-method-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: #212529;
+    }
+
+    .payment-method-description {
+        margin-top: 3px;
+        color: #6c757d;
+        font-size: 13px;
+    }
+
+    .selected-method-notice {
+        border: 1px solid #cfe2ff;
+        border-radius: 14px;
+        padding: 12px 16px;
+        background: #eaf3ff;
+        color: #084298;
+    }
+
+    .qr-container {
+        width: 100%;
+        max-width: 320px;
+        margin: 0 auto;
+        padding: 15px;
+        border: 1px solid #e4e7eb;
+        border-radius: 20px;
+        background: #ffffff;
+        box-shadow: 0 10px 28px rgba(24, 39, 75, 0.1);
+    }
+
+    .qr-image {
+        display: block;
+        width: 100%;
+        height: 400px;
+        border-radius: 13px;
+        object-fit: contain;
+        transition: opacity 0.15s ease;
+    }
+
+    .payment-information {
+        padding: 22px;
+        border: 1px solid #e1e5ea;
+        border-radius: 18px;
+        background: #ffffff;
+    }
+
+    .payment-info-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 12px 0;
+        border-bottom: 1px dashed #d8dde3;
+    }
+
+        .payment-info-row:last-of-type {
+            border-bottom: none;
+        }
+
+    .payment-info-label {
+        color: #6c757d;
+        white-space: nowrap;
+    }
+
+    .payment-info-value {
+        text-align: right;
+        font-weight: 700;
+        word-break: break-word;
+    }
+
+    .transfer-content-box {
+        padding: 14px;
+        border: 2px dashed #f0ad00;
+        border-radius: 13px;
+        background: #fff5d6;
+        text-align: center;
+    }
+
+    .payment-submit-button {
+        min-height: 52px;
+        border-radius: 13px;
+        font-weight: 700;
+    }
+
+    @@media (max-width: 575.98px) {
+        .payment-method-card {
+            min-height: auto;
+        }
+
+        .payment-method-logo-wrapper {
+            width: 64px;
+            height: 56px;
+        }
+
+        .payment-info-row {
+            display: block;
+        }
+
+        .payment-info-value {
+            margin-top: 5px;
+            text-align: left;
+        }
+
+        .qr-image {
+            height: 340px;
+        }
+    }
+</style>
+
+<div class="checkout-page py-5">
+
+    <div class="container">
+
+        <div class="row justify-content-center g-4">
+
+            <!-- THÔNG TIN ĐƠN THUÊ -->
+            <div class="col-xl-6 col-lg-6">
+
+                <div class="card checkout-card h-100">
+
+                    <div class="checkout-card-header bg-primary text-white">
+
+                        <h4 class="mb-0 fw-bold">
+                            📚 Thông tin đơn thuê
+                        </h4>
+
+                    </div>
+
+                    <div class="card-body p-4">
+
+                        <div class="row gy-2">
+
+                            <div class="col-sm-6">
+                                <span class="text-muted">Mã đơn:</span>
+                                <strong>#@Model.Id</strong>
+                            </div>
+
+                            <div class="col-sm-6">
+                                <span class="text-muted">Khách hàng:</span>
+                                <strong>
+                                    @(Model.User?.FullName ?? "Khách hàng")
+                                </strong>
+                            </div>
+
+                            <div class="col-sm-6">
+                                <span class="text-muted">Ngày thuê:</span>
+                                <strong>
+                                    @Model.RentalDate.ToString("dd/MM/yyyy")
+                                </strong>
+                            </div>
+
+                            <div class="col-sm-6">
+                                <span class="text-muted">Ngày trả:</span>
+                                <strong>
+                                    @Model.ReturnDate.ToString("dd/MM/yyyy")
+                                </strong>
+                            </div>
+
+                            <div class="col-12 mt-3">
+
+                                <span class="text-muted">
+                                    Trạng thái đơn:
+                                </span>
+
+                                @if (Model.Payment?.Status == "Paid")
+                                {
+                                    <span class="badge bg-success">
+                                        Đã thanh toán
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning text-dark">
+                                        Chờ thanh toán
+                                    </span>
+                                }
+
+                            </div>
+
+                        </div>
+
+                        <hr class="my-4" />
+
+                        <h5 class="fw-bold mb-3">
+                            Sách đã thuê
+                        </h5>
+
+                        <div class="table-responsive">
+
+                            <table class="table align-middle">
+
+                                <thead class="table-light">
+
+                                    <tr>
+                                        <th>Sách</th>
+                                        <th class="text-center">SL</th>
+                                        <th class="text-center">Số ngày</th>
+                                        <th class="text-end">Thành tiền</th>
+                                    </tr>
+
+                                </thead>
+
+                                <tbody>
+
+                                    @if (Model.RentalDetails != null &&
+                                         Model.RentalDetails.Any())
+                                    {
+                                        @foreach (var detail in Model.RentalDetails)
+                                        {
+                                            <tr>
+
+                                                <td>
+                                                    <strong>
+                                                        @(detail.Book?.Title
+                                                            ?? "Không xác định")
+                                                    </strong>
+                                                </td>
+
+                                                <td class="text-center">
+                                                    @detail.Quantity
+                                                </td>
+
+                                                <td class="text-center">
+                                                    @detail.RentalDays ngày
+                                                </td>
+
+                                                <td class="text-end fw-bold text-primary">
+                                                    @detail.SubTotal.ToString("N0") VNĐ
+                                                </td>
+
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+
+                                            <td colspan="4"
+                                                class="text-center text-muted py-4">
+
+                                                Không có dữ liệu sách trong đơn thuê.
+
+                                            </td>
+
+                                        </tr>
+                                    }
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                        <div class="border rounded-4 bg-light p-4 mt-3">
+
+                            <div class="d-flex justify-content-between
+                                align-items-center gap-3">
+
+                                <span class="fs-5">
+                                    Tổng tiền thanh toán
+                                </span>
+
+                                <span class="fs-4 fw-bold text-danger">
+                                    @Model.TotalAmount.ToString("N0") VNĐ
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                        <div class="mt-4">
+
+                            <a asp-controller="Books"
+                               asp-action="Index"
+                               class="btn btn-outline-secondary">
+
+                                ← Quay lại danh sách sách
+
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- KHU VỰC THANH TOÁN -->
+            <div class="col-xl-5 col-lg-6">
+
+                <div class="card checkout-card">
+
+                    <div class="checkout-card-header bg-success text-white text-center">
+
+                        <h4 class="mb-0 fw-bold">
+                            💳 Chọn phương thức thanh toán
+                        </h4>
+
+                    </div>
+
+                    <div class="card-body p-4">
+
+                        <p class="text-muted text-center mb-4">
+                            Chọn ngân hàng hoặc ví điện tử bạn muốn sử dụng.
+                        </p>
+
+                        <!-- DANH SÁCH PHƯƠNG THỨC -->
+                        <div class="row g-3">
+
+                            <!-- MB BANK -->
+                            <div class="col-md-6">
+
+                                <div id="paymentOptionMb"
+                                     class="payment-method-card active"
+                                     role="button"
+                                     tabindex="0"
+                                     data-payment-code="mb">
+
+                                    <span class="selected-check">✓</span>
+
+                                    <div class="d-flex align-items-center gap-3">
+
+                                        <div class="payment-method-logo-wrapper">
+
+                                            <img src="~/images/books/Logo_MB_new.png"
+                                                 class="payment-method-logo"
+                                                 alt="Logo MB Bank"
+                                                 onerror="this.src='/images/books/default-book.jpg'" />
+
+                                        </div>
+
+                                        <div>
+
+                                            <div class="payment-method-title">
+                                                MB Bank
+                                            </div>
+
+                                            <div class="payment-method-description">
+                                                Chuyển khoản
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            <!-- MOMO -->
+                            <div class="col-md-6">
+
+                                <div id="paymentOptionMomo"
+                                     class="payment-method-card"
+                                     role="button"
+                                     tabindex="0"
+                                     data-payment-code="momo">
+
+                                    <span class="selected-check">✓</span>
+
+                                    <div class="d-flex align-items-center gap-3">
+
+                                        <div class="payment-method-logo-wrapper">
+
+                                            <img src="~/images/books/Logo_Momo_new.png"
+                                                 class="payment-method-logo"
+                                                 alt="Logo MoMo"
+                                                 onerror="this.src='/images/books/default-book.jpg'" />
+
+                                        </div>
+
+                                        <div>
+
+                                            <div class="payment-method-title">
+                                                Ví MoMo
+                                            </div>
+
+                                            <div class="payment-method-description">
+                                                Ví điện tử
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <div class="selected-method-notice mt-3">
+
+                            ✓ Bạn đang chọn:
+
+                            <strong id="selectedMethodName">
+                                MB Bank
+                            </strong>
+
+                        </div>
+
+                        <!-- QR -->
+                        <div class="qr-container mt-4">
+
+                            <img id="paymentQrImage"
+                                 src="~/images/books/payment-qr.jpg"
+                                 class="qr-image"
+                                 alt="Mã QR thanh toán"
+                                 onerror="this.src='/images/books/default-book.jpg'" />
+
+                        </div>
+
+                        <!-- THÔNG TIN THANH TOÁN -->
+                        <div class="payment-information mt-4">
+
+                            <div class="text-center mb-3">
+
+                                <h5 id="paymentTitle"
+                                    class="fw-bold mb-2">
+
+                                    Ngân hàng MB Bank
+
+                                </h5>
+
+                                <span id="paymentBadge"
+                                      class="badge bg-primary">
+
+                                    Chuyển khoản ngân hàng
+
+                                </span>
+
+                            </div>
+
+                            <div class="payment-info-row">
+
+                                <span id="accountLabel"
+                                      class="payment-info-label">
+
+                                    Số tài khoản
+
+                                </span>
+
+                                <span id="accountNumber"
+                                      class="payment-info-value
+                                    text-primary fs-5">
+
+                                    0817857316
+
+                                </span>
+
+                            </div>
+
+                            <div class="payment-info-row">
+
+                                <span class="payment-info-label">
+                                    Chủ tài khoản
+                                </span>
+
+                                <span id="accountOwner"
+                                      class="payment-info-value">
+
+                                    NGUYỄN HUỲNH TUẤN VŨ
+
+                                </span>
+
+                            </div>
+
+                            <div class="payment-info-row">
+
+                                <span class="payment-info-label">
+                                    Số tiền
+                                </span>
+
+                                <span class="payment-info-value text-danger">
+                                    @Model.TotalAmount.ToString("N0") VNĐ
+                                </span>
+
+                            </div>
+
+                            <div class="mt-3">
+
+                                <p class="fw-bold text-center mb-2">
+                                    Nội dung chuyển khoản
+                                </p>
+
+                                <div class="transfer-content-box">
+
+                                    <span class="fw-bold fs-5">
+                                        @transferContent
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <!-- TRẠNG THÁI -->
+                        <div class="text-center mt-4">
+
+                            <p class="mb-2 fw-bold">
+                                Trạng thái thanh toán
+                            </p>
+
+                            @if (Model.Payment?.Status == "Paid")
+                            {
+                                <span class="badge bg-success fs-6 px-3 py-2">
+                                    Đã thanh toán
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark
+                                    fs-6 px-3 py-2">
+
+                                    Chờ thanh toán
+
+                                </span>
+                            }
+
+                        </div>
+
+                        @if (Model.Payment?.Status != "Paid")
+                        {
+                            <form asp-controller="Payment"
+                                  asp-action="Confirm"
+                                  method="post"
+                                  class="mt-4">
+
+                                @Html.AntiForgeryToken()
+
+                                <input type="hidden"
+                                       name="rentalId"
+                                       value="@Model.Id" />
+
+                                <input type="hidden"
+                                       id="selectedPaymentMethod"
+                                       name="paymentMethod"
+                                       value="MB Bank" />
+
+                                <button type="submit"
+                                        id="confirmPaymentButton"
+                                        class="btn btn-success
+                                    payment-submit-button w-100">
+
+                                    Tôi đã chuyển khoản qua MB Bank
+
+                                </button>
+
+                            </form>
+                        }
+                        else
+                        {
+                            <div class="alert alert-success text-center mt-4 mb-0">
+
+                                Đơn thuê này đã được thanh toán.
+
+                            </div>
+                        }
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+@section Scripts {
+
+    <script>
+        /*
+         * DANH SÁCH PHƯƠNG THỨC THANH TOÁN
+         *
+         * Sau này muốn thêm ngân hàng mới, bạn chỉ cần:
+         * 1. Thêm logo và QR vào wwwroot/images/books.
+         * 2. Thêm một object mới vào paymentMethods.
+         * 3. Thêm một thẻ lựa chọn có data-payment-code tương ứng.
+         */
+        const paymentMethods = {
+            mb: {
+                code: "mb",
+                methodName: "MB Bank",
+                title: "Ngân hàng MB Bank",
+                badgeText: "Chuyển khoản ngân hàng",
+                badgeClass: "badge bg-primary",
+                logoUrl: "/images/books/Logo_MB_new.png",
+                qrUrl: "/images/books/payment-qr.jpg",
+                accountLabel: "Số tài khoản",
+                accountNumber: "0817857316",
+                accountOwner: "NGUYỄN HUỲNH TUẤN VŨ",
+                buttonText: "Tôi đã chuyển khoản qua MB Bank"
+            },
+
+            momo: {
+                code: "momo",
+                methodName: "Ví MoMo",
+                title: "Ví điện tử MoMo",
+                badgeText: "Thanh toán qua MoMo",
+                badgeClass: "badge bg-danger",
+                logoUrl: "/images/books/Logo_Momo_new.png",
+                qrUrl: "/images/books/momopayment-qr.jpg",
+                accountLabel: "Số điện thoại",
+                accountNumber: "0817857316",
+                accountOwner: "NGUYỄN HUỲNH TUẤN VŨ",
+                buttonText: "Tôi đã thanh toán qua MoMo"
+            }
+        };
+
+        const paymentCards =
+            document.querySelectorAll("[data-payment-code]");
+
+        const paymentQrImage =
+            document.getElementById("paymentQrImage");
+
+        const paymentTitle =
+            document.getElementById("paymentTitle");
+
+        const paymentBadge =
+            document.getElementById("paymentBadge");
+
+        const accountLabel =
+            document.getElementById("accountLabel");
+
+        const accountNumber =
+            document.getElementById("accountNumber");
+
+        const accountOwner =
+            document.getElementById("accountOwner");
+
+        const selectedMethodName =
+            document.getElementById("selectedMethodName");
+
+        const selectedPaymentMethod =
+            document.getElementById("selectedPaymentMethod");
+
+        const confirmPaymentButton =
+            document.getElementById("confirmPaymentButton");
+
+        function selectPaymentMethod(paymentCode) {
+
+            const method = paymentMethods[paymentCode];
+
+            if (!method) {
+                console.error(
+                    "Không tìm thấy phương thức thanh toán:",
+                    paymentCode
+                );
+
+                return;
+            }
+
+            paymentCards.forEach(card => {
+
+                const cardCode =
+                    card.getAttribute("data-payment-code");
+
+                card.classList.toggle(
+                    "active",
+                    cardCode === paymentCode
+                );
+
+                card.setAttribute(
+                    "aria-pressed",
+                    cardCode === paymentCode
+                        ? "true"
+                        : "false"
+                );
+            });
+
+            paymentQrImage.style.opacity = "0.25";
+
+            setTimeout(() => {
+
+                paymentQrImage.src = method.qrUrl;
+                paymentQrImage.alt =
+                    `Mã QR thanh toán ${method.methodName}`;
+
+                paymentQrImage.style.opacity = "1";
+
+            }, 120);
+
+            paymentTitle.textContent =
+                method.title;
+
+            paymentBadge.textContent =
+                method.badgeText;
+
+            paymentBadge.className =
+                method.badgeClass;
+
+            accountLabel.textContent =
+                method.accountLabel;
+
+            accountNumber.textContent =
+                method.accountNumber;
+
+            accountOwner.textContent =
+                method.accountOwner;
+
+            selectedMethodName.textContent =
+                method.methodName;
+
+            if (selectedPaymentMethod) {
+                selectedPaymentMethod.value =
+                    method.methodName;
+            }
+
+            if (confirmPaymentButton) {
+                confirmPaymentButton.textContent =
+                    method.buttonText;
+            }
+        }
+
+        paymentCards.forEach(card => {
+
+            card.addEventListener("click", function () {
+
+                const paymentCode =
+                    this.getAttribute("data-payment-code");
+
+                selectPaymentMethod(paymentCode);
+            });
+
+            card.addEventListener("keydown", function (event) {
+
+                if (event.key === "Enter" ||
+                    event.key === " ") {
+
+                    event.preventDefault();
+
+                    const paymentCode =
+                        this.getAttribute("data-payment-code");
+
+                    selectPaymentMethod(paymentCode);
+                }
+            });
+        });
+
+        selectPaymentMethod("mb");
+    </script>
+
+}

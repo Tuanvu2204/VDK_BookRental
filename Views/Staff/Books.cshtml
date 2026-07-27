@@ -1,0 +1,141 @@
+﻿@model IEnumerable<VDK_BookRental.Models.Book>
+
+@{
+    ViewData["Title"] = "Danh sách sách";
+}
+
+<div class="container py-5">
+
+    <div class="d-flex justify-content-between
+        align-items-center flex-wrap gap-3 mb-4">
+
+        <div>
+            <h1 class="fw-bold mb-1">
+                Danh sách sách
+            </h1>
+
+            <p class="text-muted mb-0">
+                Nhân viên có thể kiểm tra sách và số lượng tồn kho.
+            </p>
+        </div>
+
+        <a asp-controller="Staff"
+           asp-action="Index"
+           class="btn btn-outline-secondary">
+            Quay lại
+        </a>
+
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4">
+
+        <div class="card-body p-0">
+
+            <div class="table-responsive">
+
+                <table class="table table-hover align-middle mb-0">
+
+                    <thead class="table-light">
+
+                        <tr>
+                            <th class="ps-4">Ảnh</th>
+                            <th>Tên sách</th>
+                            <th>Tác giả</th>
+                            <th>Danh mục</th>
+                            <th>Giá thuê</th>
+                            <th>Số lượng</th>
+                            <th>Trạng thái</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        @if (Model.Any())
+                        {
+                            foreach (var book in Model)
+                            {
+                                var imageUrl =
+                                    string.IsNullOrWhiteSpace(book.ImageUrl)
+                                        ? "/images/books/default-book.jpg"
+                                        : book.ImageUrl;
+
+                                <tr>
+
+                                    <td class="ps-4">
+
+                                        <img src="@imageUrl"
+                                             alt="@book.Title"
+                                             width="55"
+                                             height="75"
+                                             style="object-fit: cover;
+                                        border-radius: 8px;"
+                                             onerror="this.src='/images/books/default-book.jpg';" />
+
+                                    </td>
+
+                                    <td class="fw-semibold">
+                                        @book.Title
+                                    </td>
+
+                                    <td>
+                                        @book.Author
+                                    </td>
+
+                                    <td>
+                                        @(book.Category?.Name ?? "Chưa phân loại")
+                                    </td>
+
+                                    <td class="text-danger fw-semibold">
+                                        @book.RentalPrice.ToString("N0") VNĐ
+                                    </td>
+
+                                    <td>
+                                        @book.Quantity
+                                    </td>
+
+                                    <td>
+
+                                        @if (book.Quantity > 0)
+                                        {
+                                            <span class="badge bg-success">
+                                                Còn sách
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger">
+                                                Hết sách
+                                            </span>
+                                        }
+
+                                    </td>
+
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+
+                                <td colspan="7"
+                                    class="text-center py-5 text-muted">
+
+                                    Chưa có sách trong hệ thống.
+
+                                </td>
+
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>

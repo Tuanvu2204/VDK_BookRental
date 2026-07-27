@@ -1,0 +1,175 @@
+﻿@model IEnumerable<VDK_BookRental.Models.User>
+
+@{
+    ViewData["Title"] = "Quản lý người dùng";
+}
+
+<div class="container py-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="fw-bold mb-1">
+                👥 Quản lý người dùng
+            </h1>
+
+            <p class="text-muted mb-0">
+                Phân quyền, khóa và mở khóa tài khoản.
+            </p>
+        </div>
+
+        <a asp-controller="Admin"
+           asp-action="Index"
+           class="btn btn-outline-secondary">
+            ← Quay lại Dashboard
+        </a>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">
+            @TempData["SuccessMessage"]
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">
+            @TempData["ErrorMessage"]
+        </div>
+    }
+
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-4">
+
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle">
+
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>Họ tên</th>
+                            <th>Email</th>
+                            <th>Số điện thoại</th>
+                            <th>Quyền</th>
+                            <th>Trạng thái</th>
+                            <th>Ngày tạo</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        @foreach (var user in Model)
+                        {
+                            <tr>
+                                <td>@user.Id</td>
+
+                                <td class="fw-bold">
+                                    @user.FullName
+                                </td>
+
+                                <td>@user.Email</td>
+
+                                <td>@user.Phone</td>
+
+                                <td style="min-width:220px;">
+
+                                    <form asp-controller="Admin"
+                                          asp-action="ChangeRole"
+                                          method="post"
+                                          class="d-flex gap-2">
+
+                                        @Html.AntiForgeryToken()
+
+                                        <input type="hidden"
+                                               name="userId"
+                                               value="@user.Id" />
+
+                                        <select name="role"
+                                                class="form-select form-select-sm">
+
+                                            <option value="Customer"
+                                                    selected="@(user.Role == "Customer")">
+                                                Customer
+                                            </option>
+
+                                            <option value="Staff"
+                                                    selected="@(user.Role == "Staff")">
+                                                Staff
+                                            </option>
+
+                                            <option value="Admin"
+                                                    selected="@(user.Role == "Admin")">
+                                                Admin
+                                            </option>
+
+                                        </select>
+
+                                        <button type="submit"
+                                                class="btn btn-sm btn-primary">
+                                            Lưu
+                                        </button>
+
+                                    </form>
+
+                                </td>
+
+                                <td>
+                                    @if (user.IsLocked)
+                                    {
+                                        <span class="badge bg-danger">
+                                            Đã khóa
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success">
+                                            Hoạt động
+                                        </span>
+                                    }
+                                </td>
+
+                                <td>
+                                    @user.CreatedAt.ToString("dd/MM/yyyy")
+                                </td>
+
+                                <td>
+                                    <form asp-controller="Admin"
+                                          asp-action="ToggleLock"
+                                          method="post">
+
+                                        @Html.AntiForgeryToken()
+
+                                        <input type="hidden"
+                                               name="userId"
+                                               value="@user.Id" />
+
+                                        @if (user.IsLocked)
+                                        {
+                                            <button type="submit"
+                                                    class="btn btn-sm btn-success">
+                                                Mở khóa
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button type="submit"
+                                                    class="btn btn-sm btn-danger">
+                                                Khóa tài khoản
+                                            </button>
+                                        }
+
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+</div>

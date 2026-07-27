@@ -1,0 +1,380 @@
+﻿@{
+    ViewData["Title"] = "Quản trị hệ thống";
+}
+
+<style>
+    .admin-page {
+        min-height: 75vh;
+        background: #f6f8fc;
+    }
+
+    .admin-header {
+        padding: 28px;
+        border-radius: 22px;
+        background: linear-gradient(135deg, #0d6efd, #173b73);
+        color: white;
+        box-shadow: 0 12px 30px rgba(13, 110, 253, 0.18);
+    }
+
+    .admin-stat-card {
+        height: 100%;
+        border: none;
+        border-radius: 20px;
+        background: #ffffff;
+        box-shadow: 0 8px 24px rgba(28, 39, 60, 0.08);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+        .admin-stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 14px 34px rgba(28, 39, 60, 0.13);
+        }
+
+    .admin-stat-icon {
+        width: 58px;
+        height: 58px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        font-size: 28px;
+        background: #f1f5ff;
+    }
+
+    .admin-stat-number {
+        font-size: 38px;
+        font-weight: 800;
+        line-height: 1;
+    }
+
+    .admin-action-button {
+        border-radius: 11px;
+        font-weight: 600;
+    }
+</style>
+
+<div class="admin-page py-5">
+
+    <div class="container">
+
+        <!-- PHẦN GIỚI THIỆU -->
+        <div class="admin-header mb-5">
+
+            <div class="row align-items-center gy-3">
+
+                <div class="col-lg-8">
+
+                    <h1 class="fw-bold mb-2">
+                        ⚙️ Quản trị hệ thống
+                    </h1>
+
+                    <p class="mb-0 opacity-75 fs-5">
+                        Theo dõi và quản lý toàn bộ hoạt động của
+                        VDK Book Rental.
+                    </p>
+
+                </div>
+
+                <div class="col-lg-4 text-lg-end">
+
+                    <span class="badge bg-light text-primary fs-6 px-3 py-2">
+                        Quyền hiện tại: Administrator
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- THỐNG KÊ -->
+        <div class="row g-4">
+
+            <!-- TỔNG NGƯỜI DÙNG -->
+            <div class="col-xl-4 col-md-6">
+
+                <div class="card admin-stat-card">
+
+                    <div class="card-body p-4">
+
+                        <div class="d-flex justify-content-between align-items-start mb-4">
+
+                            <div class="admin-stat-icon">
+                                👥
+                            </div>
+
+                            <span class="badge bg-primary-subtle text-primary">
+                                Tài khoản
+                            </span>
+
+                        </div>
+
+                        <h5 class="fw-bold mb-2">
+                            Tổng người dùng
+                        </h5>
+
+                        <div class="admin-stat-number text-primary mb-4">
+                            @ViewBag.TotalUsers
+                        </div>
+
+                        <a asp-controller="Admin"
+                           asp-action="Users"
+                           class="btn btn-primary admin-action-button w-100">
+
+                            Quản lý người dùng
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- NHÂN VIÊN -->
+            <div class="col-xl-4 col-md-6">
+
+                <div class="card admin-stat-card">
+
+                    <div class="card-body p-4">
+
+                        <div class="d-flex justify-content-between align-items-start mb-4">
+
+                            <div class="admin-stat-icon">
+                                🧑‍💼
+                            </div>
+
+                            <span class="badge bg-success-subtle text-success">
+                                Staff
+                            </span>
+
+                        </div>
+
+                        <h5 class="fw-bold mb-2">
+                            Nhân viên
+                        </h5>
+
+                        <div class="admin-stat-number text-success">
+                            @ViewBag.TotalStaff
+                        </div>
+
+                        <p class="text-muted mt-3 mb-0">
+                            Tài khoản có quyền vận hành hệ thống.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- KHÁCH HÀNG -->
+            <div class="col-xl-4 col-md-6">
+
+                <div class="card admin-stat-card">
+
+                    <div class="card-body p-4">
+
+                        <div class="d-flex justify-content-between align-items-start mb-4">
+
+                            <div class="admin-stat-icon">
+                                🙋
+                            </div>
+
+                            <span class="badge bg-info-subtle text-info">
+                                Customer
+                            </span>
+
+                        </div>
+
+                        <h5 class="fw-bold mb-2">
+                            Khách hàng
+                        </h5>
+
+                        <div class="admin-stat-number text-info">
+                            @ViewBag.TotalCustomers
+                        </div>
+
+                        <p class="text-muted mt-3 mb-0">
+                            Người dùng đang sử dụng dịch vụ thuê sách.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- TỔNG SỐ SÁCH -->
+            <div class="col-xl-4 col-md-6">
+
+                <div class="card admin-stat-card">
+
+                    <div class="card-body p-4">
+
+                        <div class="d-flex justify-content-between align-items-start mb-4">
+
+                            <div class="admin-stat-icon">
+                                📚
+                            </div>
+
+                            <span class="badge bg-warning-subtle text-warning">
+                                Kho sách
+                            </span>
+
+                        </div>
+
+                        <h5 class="fw-bold mb-2">
+                            Tổng số sách
+                        </h5>
+
+                        <div class="admin-stat-number text-warning mb-4">
+                            @ViewBag.TotalBooks
+                        </div>
+
+                        <a asp-controller="Admin"
+                           asp-action="Books"
+                           class="btn btn-warning admin-action-button w-100">
+
+                            Quản lý sách
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- TỔNG ĐƠN THUÊ -->
+            <div class="col-xl-4 col-md-6">
+
+                <div class="card admin-stat-card">
+
+                    <div class="card-body p-4">
+
+                        <div class="d-flex justify-content-between align-items-start mb-4">
+
+                            <div class="admin-stat-icon">
+                                📦
+                            </div>
+
+                            <span class="badge bg-secondary-subtle text-secondary">
+                                Đơn thuê
+                            </span>
+
+                        </div>
+
+                        <h5 class="fw-bold mb-2">
+                            Tổng đơn thuê
+                        </h5>
+
+                        <div class="admin-stat-number text-secondary">
+                            @ViewBag.TotalRentals
+                        </div>
+
+                        <p class="text-muted mt-3 mb-0">
+                            Tổng số đơn thuê được tạo trên hệ thống.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- THANH TOÁN CHỜ DUYỆT -->
+            <div class="col-xl-4 col-md-6">
+
+                <div class="card admin-stat-card">
+
+                    <div class="card-body p-4">
+
+                        <div class="d-flex justify-content-between align-items-start mb-4">
+
+                            <div class="admin-stat-icon">
+                                💳
+                            </div>
+
+                            <span class="badge bg-danger-subtle text-danger">
+                                Thanh toán
+                            </span>
+
+                        </div>
+
+                        <h5 class="fw-bold mb-2">
+                            Thanh toán chờ duyệt
+                        </h5>
+
+                        <div class="admin-stat-number text-danger">
+                            @ViewBag.PendingPayments
+                        </div>
+
+                        <p class="text-muted mt-3 mb-0">
+                            Các giao dịch đang chờ kiểm tra và xác nhận.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- TRUY CẬP NHANH -->
+        <div class="card border-0 shadow-sm rounded-4 mt-5">
+
+            <div class="card-body p-4">
+
+                <h4 class="fw-bold mb-4">
+                    ⚡ Truy cập nhanh
+                </h4>
+
+                <div class="row g-3">
+
+                    <div class="col-lg-4 col-md-6">
+
+                        <a asp-controller="Admin"
+                           asp-action="Users"
+                           class="btn btn-outline-primary w-100 py-3">
+
+                            👥 Quản lý người dùng
+
+                        </a>
+
+                    </div>
+
+                    <div class="col-lg-4 col-md-6">
+
+                        <a asp-controller="Admin"
+                           asp-action="Books"
+                           class="btn btn-outline-warning w-100 py-3">
+
+                            📚 Quản lý sách
+
+                        </a>
+
+                    </div>
+
+                    <div class="col-lg-4 col-md-6">
+
+                        <a asp-controller="Books"
+                           asp-action="Index"
+                           class="btn btn-outline-secondary w-100 py-3">
+
+                            🏠 Xem website khách hàng
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>

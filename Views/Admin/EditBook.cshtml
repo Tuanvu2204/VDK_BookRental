@@ -1,0 +1,172 @@
+﻿@model VDK_BookRental.Models.Book
+
+@{
+    ViewData["Title"] = "Sửa sách";
+    var categories =
+        ViewBag.Categories as IEnumerable<VDK_BookRental.Models.Category>;
+}
+
+<div class="container py-5">
+
+    <div class="row justify-content-center">
+
+        <div class="col-lg-8">
+
+            <div class="card border-0 shadow-sm rounded-4">
+
+                <div class="card-body p-4">
+
+                    <h1 class="fw-bold mb-4">
+                        ✏️ Cập nhật sách
+                    </h1>
+
+                    <form asp-controller="Admin"
+                          asp-action="EditBook"
+                          method="post">
+
+                        @Html.AntiForgeryToken()
+
+                        <input asp-for="Id" type="hidden" />
+
+                        <div asp-validation-summary="ModelOnly"
+                             class="text-danger mb-3"></div>
+
+                        <div class="mb-3">
+
+                            <label asp-for="Title"
+                                   class="form-label fw-bold">
+                                Tên sách
+                            </label>
+
+                            <input asp-for="Title"
+                                   class="form-control" />
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label asp-for="Author"
+                                   class="form-label fw-bold">
+                                Tác giả
+                            </label>
+
+                            <input asp-for="Author"
+                                   class="form-control" />
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label asp-for="CategoryId"
+                                   class="form-label fw-bold">
+                                Danh mục
+                            </label>
+
+                            <select asp-for="CategoryId"
+                                    class="form-select">
+
+                                @if (categories != null)
+                                {
+                                    @foreach (var category in categories)
+                                    {
+                                        <option value="@category.Id">
+                                            @category.Name
+                                        </option>
+                                    }
+                                }
+
+                            </select>
+
+                        </div>
+
+                        <div class="row">
+
+                            <div class="col-md-6 mb-3">
+
+                                <label asp-for="RentalPrice"
+                                       class="form-label fw-bold">
+                                    Giá thuê mỗi ngày
+                                </label>
+
+                                <input asp-for="RentalPrice"
+                                       type="number"
+                                       min="0"
+                                       class="form-control" />
+
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+
+                                <label asp-for="Quantity"
+                                       class="form-label fw-bold">
+                                    Số lượng
+                                </label>
+
+                                <input asp-for="Quantity"
+                                       type="number"
+                                       min="0"
+                                       class="form-control" />
+
+                            </div>
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label asp-for="ImageUrl"
+                                   class="form-label fw-bold">
+                                Đường dẫn ảnh
+                            </label>
+
+                            <input asp-for="ImageUrl"
+                                   class="form-control" />
+
+                        </div>
+
+                        <div class="mb-4">
+
+                            <label asp-for="Description"
+                                   class="form-label fw-bold">
+                                Mô tả
+                            </label>
+
+                            <textarea asp-for="Description"
+                                      rows="5"
+                                      class="form-control"></textarea>
+
+                        </div>
+
+                        <div class="d-flex gap-2">
+
+                            <button type="submit"
+                                    class="btn btn-warning">
+
+                                Cập nhật
+
+                            </button>
+
+                            <a asp-controller="Admin"
+                               asp-action="Books"
+                               class="btn btn-outline-secondary">
+
+                                Hủy
+
+                            </a>
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

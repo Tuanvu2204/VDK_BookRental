@@ -1,0 +1,211 @@
+﻿@model IEnumerable<VDK_BookRental.Models.Rental>
+
+@{
+    ViewData["Title"] = "Lịch sử thuê sách";
+}
+
+<div class="container mt-5 mb-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+
+        <div>
+            <h2 class="fw-bold mb-1">
+                📜 Lịch sử thuê sách
+            </h2>
+
+            <p class="text-muted mb-0">
+                Danh sách toàn bộ đơn thuê sách của bạn.
+            </p>
+        </div>
+
+        <a asp-controller="Books"
+           asp-action="Index"
+           class="btn btn-primary">
+
+            📚 Tiếp tục thuê sách
+
+        </a>
+
+    </div>
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="alert alert-info text-center py-5">
+
+            <h4 class="mb-3">
+                Chưa có lịch sử thuê sách
+            </h4>
+
+            <p class="mb-4">
+                Bạn chưa tạo đơn thuê sách nào.
+            </p>
+
+            <a asp-controller="Books"
+               asp-action="Index"
+               class="btn btn-success">
+
+                Xem danh sách sách
+
+            </a>
+
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+
+            <table class="table table-bordered table-hover align-middle shadow-sm">
+
+                <thead class="table-dark">
+
+                    <tr>
+                        <th>Mã đơn</th>
+                        <th>Sách</th>
+                        <th>Ngày thuê</th>
+                        <th>Ngày trả</th>
+                        <th>Tổng tiền</th>
+                        <th>Thanh toán</th>
+                        <th>Trạng thái</th>
+                        <th>Thao tác</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    @foreach (var rental in Model)
+                    {
+                        <tr>
+
+                            <td>
+                                #@rental.Id
+                            </td>
+
+                            <td>
+
+                                @if (rental.RentalDetails != null &&
+                                     rental.RentalDetails.Any())
+                                {
+                                    @foreach (var detail in rental.RentalDetails)
+                                    {
+                                        <div class="mb-2">
+
+                                            <strong>
+                                                @(detail.Book?.Title ?? "Không xác định")
+                                            </strong>
+
+                                            <div class="small text-muted">
+
+                                                @detail.RentalDays ngày
+
+                                                @if (detail.SubTotal > 0)
+                                                {
+                                                    <span>
+                                                        -
+                                                        @detail.SubTotal.ToString("N0") VNĐ
+                                                    </span>
+                                                }
+
+                                            </div>
+
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="text-muted">
+                                        Không có dữ liệu sách
+                                    </span>
+                                }
+
+                            </td>
+
+                            <td>
+                                @rental.RentalDate.ToString("dd/MM/yyyy")
+                            </td>
+
+                            <td>
+                                @rental.ReturnDate.ToString("dd/MM/yyyy")
+                            </td>
+
+                            <td class="text-success fw-bold">
+                                @rental.TotalAmount.ToString("N0") VNĐ
+                            </td>
+
+                            <td>
+
+                                @if (rental.Payment?.Status == "Paid")
+                                {
+                                    <span class="badge bg-success">
+                                        Đã thanh toán
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning text-dark">
+                                        Chờ thanh toán
+                                    </span>
+                                }
+
+                            </td>
+
+                            <td>
+
+                                @if (rental.Status == "Returned")
+                                {
+                                    <span class="badge bg-secondary">
+                                        Đã trả sách
+                                    </span>
+                                }
+                                else if (rental.Status == "Cancelled")
+                                {
+                                    <span class="badge bg-danger">
+                                        Đã hủy
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-primary">
+                                        @rental.Status
+                                    </span>
+                                }
+
+                            </td>
+
+                            <td>
+
+                                @if (rental.Payment?.Status != "Paid")
+                                {
+                                    <a asp-controller="Payment"
+                                       asp-action="Checkout"
+                                       asp-route-rentalId="@rental.Id"
+                                       class="btn btn-sm btn-warning">
+
+                                        Thanh toán
+
+                                    </a>
+                                }
+                                else
+                                {
+                                    <a asp-controller="Books"
+                                       asp-action="Index"
+                                       class="btn btn-sm btn-outline-primary">
+
+                                        Thuê thêm
+
+                                    </a>
+                                }
+
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+    }
+
+</div>

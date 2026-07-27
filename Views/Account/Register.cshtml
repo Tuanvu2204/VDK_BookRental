@@ -1,0 +1,197 @@
+﻿@model VDK_BookRental.ViewModels.RegisterViewModel
+
+@{
+    ViewData["Title"] = "Đăng ký";
+}
+
+<div class="login-page">
+    <div class="login-card">
+
+        <div class="login-left">
+            <div class="logo-box">
+                <img src="/images/books/NIIE.jpg"
+                     alt="NIIE Logo"
+                     class="niie-logo" />
+            </div>
+
+            <h1>VDK Book Rental</h1>
+
+            <p>
+                Tạo tài khoản để thuê sách online nhanh chóng, tiện lợi.
+            </p>
+        </div>
+
+        <div class="login-right">
+            <h2>Đăng ký</h2>
+
+            <form asp-action="Register" method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div class="mb-3">
+                    <label class="form-label">Họ và tên</label>
+                    <input asp-for="FullName"
+                           class="form-control custom-input"
+                           placeholder="Nhập họ và tên..." />
+                    <span asp-validation-for="FullName" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <input asp-for="Email"
+                           class="form-control custom-input"
+                           placeholder="Nhập email..." />
+                    <span asp-validation-for="Email" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Số điện thoại</label>
+                    <input asp-for="Phone"
+                           class="form-control custom-input"
+                           placeholder="Nhập số điện thoại..." />
+                    <span asp-validation-for="Phone" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Mật khẩu</label>
+                    <input asp-for="Password"
+                           type="password"
+                           class="form-control custom-input"
+                           placeholder="Nhập mật khẩu..." />
+                    <span asp-validation-for="Password" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Nhập lại mật khẩu</label>
+                    <input asp-for="ConfirmPassword"
+                           type="password"
+                           class="form-control custom-input"
+                           placeholder="Nhập lại mật khẩu..." />
+                    <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 btn-login">
+                    Đăng ký
+                </button>
+            </form>
+
+            <div class="login-links">
+                <p>
+                    Bạn đã có tài khoản?
+                    <a asp-controller="Account" asp-action="Login">
+                        Đăng nhập ngay
+                    </a>
+                </p>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    body {
+        background: linear-gradient(135deg, #0f172a, #1e3a8a);
+    }
+
+    .login-page {
+        min-height: 90vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 30px;
+    }
+
+    .login-card {
+        width: 1000px;
+        max-width: 100%;
+        background: white;
+        border-radius: 25px;
+        overflow: hidden;
+        display: flex;
+        box-shadow: 0 15px 40px rgba(0,0,0,.25);
+    }
+
+    .login-left {
+        width: 45%;
+        background: linear-gradient(135deg, #2563eb, #1e40af);
+        color: white;
+        text-align: center;
+        padding: 45px 35px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        min-height: 430px;
+    }
+
+    .logo-box {
+        width: 260px;
+        background: white;
+        border-radius: 18px;
+        padding: 15px;
+        margin-bottom: 25px;
+        box-shadow: 0 10px 25px rgba(0,0,0,.2);
+    }
+
+    .niie-logo {
+        width: 100%;
+        height: auto;
+        display: block;
+        object-fit: contain;
+        border-radius: 10px;
+    }
+
+    .login-left h1 {
+        font-weight: 800;
+        margin-bottom: 15px;
+    }
+
+    .login-left p {
+        font-size: 18px;
+        line-height: 1.6;
+    }
+
+    .login-right {
+        width: 55%;
+        padding: 45px 55px;
+    }
+
+        .login-right h2 {
+            text-align: center;
+            margin-bottom: 25px;
+            font-weight: 800;
+            color: #1e3a8a;
+        }
+
+    .custom-input {
+        height: 46px;
+        border-radius: 12px;
+    }
+
+    .btn-login {
+        height: 50px;
+        border-radius: 12px;
+        font-weight: bold;
+        font-size: 17px;
+    }
+
+    .login-links {
+        text-align: center;
+        margin-top: 20px;
+    }
+
+        .login-links a {
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+    @@media(max-width:768px) {
+        .login-card {
+            flex-direction: column;
+        }
+
+        .login-left,
+        .login-right {
+            width: 100%;
+        }
+    }
+</style>

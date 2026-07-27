@@ -1,0 +1,429 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0" />
+
+    <title>@ViewData["Title"] - VDK Book Rental</title>
+
+    <link rel="stylesheet"
+          href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+
+    <link rel="stylesheet"
+          href="~/css/site.css"
+          asp-append-version="true" />
+
+    <link rel="stylesheet"
+          href="~/VDK_BookRental.styles.css"
+          asp-append-version="true" />
+</head>
+
+<body>
+
+    <!-- THANH MENU -->
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm">
+            <div class="container">
+
+                <!-- Logo -->
+                <a class="navbar-brand fw-bold text-primary"
+                   asp-controller="Books"
+                   asp-action="Index">
+
+                    📚 VDK Book Rental
+
+                </a>
+
+                <!-- Nút mở menu trên điện thoại -->
+                <button class="navbar-toggler"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#mainNavbar"
+                        aria-controls="mainNavbar"
+                        aria-expanded="false"
+                        aria-label="Mở menu">
+
+                    <span class="navbar-toggler-icon"></span>
+
+                </button>
+
+                <div class="collapse navbar-collapse"
+                     id="mainNavbar">
+
+                    <!-- Menu bên trái -->
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+
+                        <li class="nav-item">
+                            <a class="nav-link"
+                               asp-controller="Books"
+                               asp-action="Index">
+
+                                🏠 Trang chủ
+
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link"
+                               asp-controller="Books"
+                               asp-action="Index">
+
+                                📚 Danh sách sách
+
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link"
+                               asp-controller="Books"
+                               asp-action="Featured">
+
+                                🔥 Sách nổi bật
+
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link"
+                               asp-controller="Rental"
+                               asp-action="Current">
+
+                                📖 Sách đang thuê
+
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link"
+                               asp-controller="Rental"
+                               asp-action="History">
+
+                                📜 Lịch sử thuê
+
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link"
+                               href="#footerContact">
+
+                                ☎ Liên hệ
+
+                            </a>
+                        </li>
+
+                    </ul>
+
+                    <!-- Khu vực tài khoản -->
+                    <ul class="navbar-nav align-items-lg-center">
+
+                        @if (Context.Session.GetString("UserId") != null)
+                        {
+                            <li class="nav-item me-lg-3">
+
+                                <span class="nav-link text-dark">
+
+                                    👤 Xin chào,
+
+                                    <strong>
+                                        @(Context.Session.GetString("FullName")
+                                            ?? Context.Session.GetString("Username")
+                                            ?? "Người dùng")
+                                    </strong>
+
+                                </span>
+
+                            </li>
+
+                            <li class="nav-item">
+
+                                <a class="btn btn-outline-danger"
+                                   asp-controller="Account"
+                                   asp-action="Logout">
+
+                                    Đăng xuất
+
+                                </a>
+
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item me-lg-2">
+
+                                <a class="nav-link"
+                                   asp-controller="Account"
+                                   asp-action="Login">
+
+                                    🔐 Đăng nhập
+
+                                </a>
+
+                            </li>
+
+                            <li class="nav-item">
+
+                                <a class="btn btn-primary"
+                                   asp-controller="Account"
+                                   asp-action="Register">
+
+                                    Đăng ký
+
+                                </a>
+
+                            </li>
+                        }
+
+                    </ul>
+
+                </div>
+
+            </div>
+        </nav>
+    </header>
+
+    <!-- NỘI DUNG TRANG -->
+    <main role="main"
+          class="pb-4">
+
+        @RenderBody()
+
+    </main>
+
+    <!-- CHÂN TRANG -->
+    <footer id="footerContact"
+            class="bg-light border-top mt-5 py-5">
+
+        <div class="container">
+
+            <div class="row gy-4">
+
+                <!-- Giới thiệu -->
+                <div class="col-lg-4 col-md-6">
+
+                    <h4 class="fw-bold text-primary mb-3">
+                        📚 VDK Book Rental
+                    </h4>
+
+                    <p class="text-muted mb-0"
+                       style="line-height: 1.8;">
+
+                        Hệ thống thuê sách trực tuyến dành cho sinh viên,
+                        hỗ trợ tìm kiếm và thuê sách nhanh chóng, tiện lợi
+                        với giao diện thân thiện và dễ sử dụng.
+
+                    </p>
+
+                </div>
+
+                <!-- Liên kết nhanh -->
+                <div class="col-lg-3 col-md-6">
+
+                    <h5 class="fw-bold mb-3">
+                        Liên kết nhanh
+                    </h5>
+
+                    <ul class="list-unstyled mb-0">
+
+                        <li class="mb-2">
+
+                            <a asp-controller="Books"
+                               asp-action="Index"
+                               class="text-decoration-none text-dark">
+
+                                📚 Danh sách sách
+
+                            </a>
+
+                        </li>
+
+                        <li class="mb-2">
+
+                            <a asp-controller="Books"
+                               asp-action="Featured"
+                               class="text-decoration-none text-dark">
+
+                                🔥 Sách nổi bật
+
+                            </a>
+
+                        </li>
+
+                        <li class="mb-2">
+
+                            <a asp-controller="Rental"
+                               asp-action="Current"
+                               class="text-decoration-none text-dark">
+
+                                📖 Sách đang thuê
+
+                            </a>
+
+                        </li>
+
+                        <li>
+
+                            <a asp-controller="Rental"
+                               asp-action="History"
+                               class="text-decoration-none text-dark">
+
+                                📜 Lịch sử thuê
+
+                            </a>
+
+                        </li>
+
+                    </ul>
+
+                </div>
+
+                <!-- Thông tin liên hệ -->
+                <div class="col-lg-5 col-md-12">
+
+                    <h5 class="fw-bold mb-3">
+                        Thông tin liên hệ
+                    </h5>
+
+                    <div class="mb-3">
+
+                        <div class="d-flex align-items-start">
+
+                            <div class="me-3 fs-5">
+                                📧
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    Email hỗ trợ
+                                </strong>
+
+                                <div class="mt-1">
+
+                                    <a href="mailto:Nguyenhuynhtuanvu2309@gmail.com"
+                                       class="text-decoration-none text-primary">
+
+                                        Nguyenhuynhtuanvu2309@gmail.com
+
+                                    </a>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="mb-3">
+
+                        <div class="d-flex align-items-start">
+
+                            <div class="me-3 fs-5">
+                                📱
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    Điện thoại
+                                </strong>
+
+                                <div class="mt-1">
+
+                                    <a href="tel:0817857316"
+                                       class="text-decoration-none text-primary">
+
+                                        0817 857 316
+
+                                    </a>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div>
+
+                        <div class="d-flex align-items-start">
+
+                            <div class="me-3 fs-5">
+                                📍
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    Địa chỉ
+                                </strong>
+
+                                <div class="mt-1 text-muted">
+
+                                    Thành phố Hồ Chí Minh, Việt Nam
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <hr class="my-4" />
+
+            <!-- Bản quyền -->
+            <div class="row align-items-center">
+
+                <div class="col-md-6 text-center text-md-start">
+
+                    <span class="text-muted">
+
+                        © @DateTime.Now.Year
+                        <strong>VDK Book Rental</strong>.
+                        All rights reserved.
+
+                    </span>
+
+                </div>
+
+                <div class="col-md-6 text-center text-md-end mt-2 mt-md-0">
+
+                    <span class="text-muted">
+
+                        Phát triển bởi
+
+                        <strong class="text-primary">
+                            Nguyễn Huỳnh Tuấn Vũ
+                        </strong>
+
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </footer>
+
+    <!-- JAVASCRIPT -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script src="~/js/site.js"
+            asp-append-version="true"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+
+</body>
+</html>
