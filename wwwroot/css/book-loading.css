@@ -1,0 +1,20 @@
+﻿document.addEventListener("DOMContentLoaded", function () {
+
+    const form = document.getElementById("loginForm");
+
+    if (!form)
+        return;
+
+    form.addEventListener("submit", function () {
+
+        const loading = document.getElementById("bookLoading");
+
+        if (loading) {
+
+            loading.classList.add("show");
+
+        }
+
+    });
+
+});

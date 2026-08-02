@@ -253,15 +253,32 @@
                                     Trạng thái đơn:
                                 </span>
 
-                                @if (Model.Payment?.Status == "Paid")
+                                @if (Model.Payment?.Status == "Paid" ||
+                                     Model.Payment?.Status == "Completed")
                                 {
                                     <span class="badge bg-success">
+                                        <i class="bi bi-check-circle me-1"></i>
                                         Đã thanh toán
+                                    </span>
+                                }
+                                else if (Model.Payment?.Status == "AwaitingConfirmation")
+                                {
+                                    <span class="badge bg-info text-dark">
+                                        <i class="bi bi-hourglass-split me-1"></i>
+                                        Chờ nhân viên xác nhận
+                                    </span>
+                                }
+                                else if (Model.Payment?.Status == "Rejected")
+                                {
+                                    <span class="badge bg-danger">
+                                        <i class="bi bi-x-circle me-1"></i>
+                                        Thanh toán bị từ chối
                                     </span>
                                 }
                                 else
                                 {
                                     <span class="badge bg-warning text-dark">
+                                        <i class="bi bi-clock me-1"></i>
                                         Chờ thanh toán
                                     </span>
                                 }
@@ -594,29 +611,46 @@
                                 Trạng thái thanh toán
                             </p>
 
-                            @if (Model.Payment?.Status == "Paid")
+                            @if (Model.Payment?.Status == "Paid" ||
+                                 Model.Payment?.Status == "Completed")
                             {
                                 <span class="badge bg-success fs-6 px-3 py-2">
+                                    <i class="bi bi-check-circle me-1"></i>
                                     Đã thanh toán
+                                </span>
+                            }
+                            else if (Model.Payment?.Status == "AwaitingConfirmation")
+                            {
+                                <span class="badge bg-info text-dark fs-6 px-3 py-2">
+                                    <i class="bi bi-hourglass-split me-1"></i>
+                                    Đang chờ nhân viên xác nhận
+                                </span>
+                            }
+                            else if (Model.Payment?.Status == "Rejected")
+                            {
+                                <span class="badge bg-danger fs-6 px-3 py-2">
+                                    <i class="bi bi-x-circle me-1"></i>
+                                    Thanh toán bị từ chối
                                 </span>
                             }
                             else
                             {
-                                <span class="badge bg-warning text-dark
-                                    fs-6 px-3 py-2">
-
+                                <span class="badge bg-warning text-dark fs-6 px-3 py-2">
+                                    <i class="bi bi-clock me-1"></i>
                                     Chờ thanh toán
-
                                 </span>
                             }
 
                         </div>
 
-                        @if (Model.Payment?.Status != "Paid")
+                        @if (Model.Payment?.Status != "Paid" &&
+                             Model.Payment?.Status != "Completed" &&
+                             Model.Payment?.Status != "AwaitingConfirmation")
                         {
                             <form asp-controller="Payment"
                                   asp-action="Confirm"
                                   method="post"
+                                  id="paymentConfirmForm"
                                   class="mt-4">
 
                                 @Html.AntiForgeryToken()
@@ -632,8 +666,7 @@
 
                                 <button type="submit"
                                         id="confirmPaymentButton"
-                                        class="btn btn-success
-                                    payment-submit-button w-100">
+                                        class="btn btn-success payment-submit-button w-100">
 
                                     Tôi đã chuyển khoản qua MB Bank
 
@@ -641,12 +674,18 @@
 
                             </form>
                         }
+                        else if (Model.Payment?.Status == "AwaitingConfirmation")
+                        {
+                            <div class="alert alert-info text-center mt-4 mb-0">
+                                <i class="bi bi-hourglass-split me-1"></i>
+                                Yêu cầu thanh toán đã được gửi và đang chờ nhân viên xác nhận.
+                            </div>
+                        }
                         else
                         {
                             <div class="alert alert-success text-center mt-4 mb-0">
-
+                                <i class="bi bi-check-circle-fill me-1"></i>
                                 Đơn thuê này đã được thanh toán.
-
                             </div>
                         }
 
@@ -664,176 +703,204 @@
 
 @section Scripts {
 
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <script>
         /*
-         * DANH SÁCH PHƯƠNG THỨC THANH TOÁN
-         *
-         * Sau này muốn thêm ngân hàng mới, bạn chỉ cần:
-         * 1. Thêm logo và QR vào wwwroot/images/books.
-         * 2. Thêm một object mới vào paymentMethods.
-         * 3. Thêm một thẻ lựa chọn có data-payment-code tương ứng.
-         */
+        * DANH SÁCH PHƯƠNG THỨC THANH TOÁN
+        *
+        * Sau này muốn thêm ngân hàng mới, bạn chỉ cần:
+        * 1. Thêm logo và QR vào wwwroot/images/books.
+        * 2. Thêm một object mới vào paymentMethods.
+        * 3. Thêm một thẻ lựa chọn có data-payment-code tương ứng.
+        */
         const paymentMethods = {
-            mb: {
-                code: "mb",
-                methodName: "MB Bank",
-                title: "Ngân hàng MB Bank",
-                badgeText: "Chuyển khoản ngân hàng",
-                badgeClass: "badge bg-primary",
-                logoUrl: "/images/books/Logo_MB_new.png",
-                qrUrl: "/images/books/payment-qr.jpg",
-                accountLabel: "Số tài khoản",
-                accountNumber: "0817857316",
-                accountOwner: "NGUYỄN HUỲNH TUẤN VŨ",
-                buttonText: "Tôi đã chuyển khoản qua MB Bank"
-            },
+        mb: {
+        code: "mb",
+        methodName: "MB Bank",
+        title: "Ngân hàng MB Bank",
+        badgeText: "Chuyển khoản ngân hàng",
+        badgeClass: "badge bg-primary",
+        logoUrl: "/images/books/Logo_MB_new.png",
+        qrUrl: "/images/books/payment-qr.jpg",
+        accountLabel: "Số tài khoản",
+        accountNumber: "0817857316",
+        accountOwner: "NGUYỄN HUỲNH TUẤN VŨ",
+        buttonText: "Tôi đã chuyển khoản qua MB Bank"
+        },
 
-            momo: {
-                code: "momo",
-                methodName: "Ví MoMo",
-                title: "Ví điện tử MoMo",
-                badgeText: "Thanh toán qua MoMo",
-                badgeClass: "badge bg-danger",
-                logoUrl: "/images/books/Logo_Momo_new.png",
-                qrUrl: "/images/books/momopayment-qr.jpg",
-                accountLabel: "Số điện thoại",
-                accountNumber: "0817857316",
-                accountOwner: "NGUYỄN HUỲNH TUẤN VŨ",
-                buttonText: "Tôi đã thanh toán qua MoMo"
-            }
+        momo: {
+        code: "momo",
+        methodName: "Ví MoMo",
+        title: "Ví điện tử MoMo",
+        badgeText: "Thanh toán qua MoMo",
+        badgeClass: "badge bg-danger",
+        logoUrl: "/images/books/Logo_Momo_new.png",
+        qrUrl: "/images/books/momopayment-qr.jpg",
+        accountLabel: "Số điện thoại",
+        accountNumber: "0817857316",
+        accountOwner: "NGUYỄN HUỲNH TUẤN VŨ",
+        buttonText: "Tôi đã thanh toán qua MoMo"
+        }
         };
 
         const paymentCards =
-            document.querySelectorAll("[data-payment-code]");
+        document.querySelectorAll("[data-payment-code]");
 
         const paymentQrImage =
-            document.getElementById("paymentQrImage");
+        document.getElementById("paymentQrImage");
 
         const paymentTitle =
-            document.getElementById("paymentTitle");
+        document.getElementById("paymentTitle");
 
         const paymentBadge =
-            document.getElementById("paymentBadge");
+        document.getElementById("paymentBadge");
 
         const accountLabel =
-            document.getElementById("accountLabel");
+        document.getElementById("accountLabel");
 
         const accountNumber =
-            document.getElementById("accountNumber");
+        document.getElementById("accountNumber");
 
         const accountOwner =
-            document.getElementById("accountOwner");
+        document.getElementById("accountOwner");
 
         const selectedMethodName =
-            document.getElementById("selectedMethodName");
+        document.getElementById("selectedMethodName");
 
         const selectedPaymentMethod =
-            document.getElementById("selectedPaymentMethod");
+        document.getElementById("selectedPaymentMethod");
 
         const confirmPaymentButton =
-            document.getElementById("confirmPaymentButton");
+        document.getElementById("confirmPaymentButton");
 
         function selectPaymentMethod(paymentCode) {
 
-            const method = paymentMethods[paymentCode];
+        const method = paymentMethods[paymentCode];
 
-            if (!method) {
-                console.error(
-                    "Không tìm thấy phương thức thanh toán:",
-                    paymentCode
-                );
+        if (!method) {
+        console.error(
+        "Không tìm thấy phương thức thanh toán:",
+        paymentCode
+        );
 
-                return;
-            }
-
-            paymentCards.forEach(card => {
-
-                const cardCode =
-                    card.getAttribute("data-payment-code");
-
-                card.classList.toggle(
-                    "active",
-                    cardCode === paymentCode
-                );
-
-                card.setAttribute(
-                    "aria-pressed",
-                    cardCode === paymentCode
-                        ? "true"
-                        : "false"
-                );
-            });
-
-            paymentQrImage.style.opacity = "0.25";
-
-            setTimeout(() => {
-
-                paymentQrImage.src = method.qrUrl;
-                paymentQrImage.alt =
-                    `Mã QR thanh toán ${method.methodName}`;
-
-                paymentQrImage.style.opacity = "1";
-
-            }, 120);
-
-            paymentTitle.textContent =
-                method.title;
-
-            paymentBadge.textContent =
-                method.badgeText;
-
-            paymentBadge.className =
-                method.badgeClass;
-
-            accountLabel.textContent =
-                method.accountLabel;
-
-            accountNumber.textContent =
-                method.accountNumber;
-
-            accountOwner.textContent =
-                method.accountOwner;
-
-            selectedMethodName.textContent =
-                method.methodName;
-
-            if (selectedPaymentMethod) {
-                selectedPaymentMethod.value =
-                    method.methodName;
-            }
-
-            if (confirmPaymentButton) {
-                confirmPaymentButton.textContent =
-                    method.buttonText;
-            }
+        return;
         }
 
         paymentCards.forEach(card => {
 
-            card.addEventListener("click", function () {
+        const cardCode =
+        card.getAttribute("data-payment-code");
 
-                const paymentCode =
-                    this.getAttribute("data-payment-code");
+        card.classList.toggle(
+        "active",
+        cardCode === paymentCode
+        );
 
-                selectPaymentMethod(paymentCode);
-            });
+        card.setAttribute(
+        "aria-pressed",
+        cardCode === paymentCode
+        ? "true"
+        : "false"
+        );
+        });
 
-            card.addEventListener("keydown", function (event) {
+        paymentQrImage.style.opacity = "0.25";
 
-                if (event.key === "Enter" ||
-                    event.key === " ") {
+        setTimeout(() => {
 
-                    event.preventDefault();
+        paymentQrImage.src = method.qrUrl;
+        paymentQrImage.alt =
+        `Mã QR thanh toán ${method.methodName}`;
 
-                    const paymentCode =
-                        this.getAttribute("data-payment-code");
+        paymentQrImage.style.opacity = "1";
 
-                    selectPaymentMethod(paymentCode);
-                }
-            });
+        }, 120);
+
+        paymentTitle.textContent =
+        method.title;
+
+        paymentBadge.textContent =
+        method.badgeText;
+
+        paymentBadge.className =
+        method.badgeClass;
+
+        accountLabel.textContent =
+        method.accountLabel;
+
+        accountNumber.textContent =
+        method.accountNumber;
+
+        accountOwner.textContent =
+        method.accountOwner;
+
+        selectedMethodName.textContent =
+        method.methodName;
+
+        if (selectedPaymentMethod) {
+        selectedPaymentMethod.value =
+        method.methodName;
+        }
+
+        if (confirmPaymentButton) {
+        confirmPaymentButton.textContent =
+        method.buttonText;
+        }
+        }
+
+        paymentCards.forEach(card => {
+
+        card.addEventListener("click", function () {
+
+        const paymentCode =
+        this.getAttribute("data-payment-code");
+
+        selectPaymentMethod(paymentCode);
+        });
+
+        card.addEventListener("keydown", function (event) {
+
+        if (event.key === "Enter" ||
+        event.key === " ") {
+
+        event.preventDefault();
+
+        const paymentCode =
+        this.getAttribute("data-payment-code");
+
+        selectPaymentMethod(paymentCode);
+        }
+        });
         });
 
         selectPaymentMethod("mb");
+
+        const paymentConfirmForm =
+        document.getElementById("paymentConfirmForm");
+
+        if (paymentConfirmForm) {
+        paymentConfirmForm.addEventListener("submit", function (event) {
+        event.preventDefault();
+
+        const selectedMethod =
+        selectedPaymentMethod?.value ?? "phương thức đã chọn";
+
+        Swal.fire({
+        title: "Xác nhận đã thanh toán?",
+        text: `Bạn xác nhận đã thanh toán bằng ${selectedMethod}?`,
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Đã thanh toán",
+        cancelButtonText: "Kiểm tra lại",
+        confirmButtonColor: "#198754"
+        }).then(function (result) {
+        if (result.isConfirmed) {
+        paymentConfirmForm.submit();
+        }
+        });
+        });
+        }
     </script>
 
 }

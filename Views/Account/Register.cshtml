@@ -27,32 +27,45 @@
             <form asp-action="Register" method="post">
                 <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
+                <!-- UserName -->
                 <div class="mb-3">
-                    <label class="form-label">Họ và tên</label>
+                    <label asp-for="UserName" class="form-label">Tên tài khoản</label>
+                    <input asp-for="UserName"
+                           class="form-control custom-input"
+                           placeholder="Nhập tên tài khoản..." />
+                    <span asp-validation-for="UserName" class="text-danger"></span>
+                </div>
+
+                <!-- FullName -->
+                <div class="mb-3">
+                    <label asp-for="FullName" class="form-label">Họ và tên</label>
                     <input asp-for="FullName"
                            class="form-control custom-input"
                            placeholder="Nhập họ và tên..." />
                     <span asp-validation-for="FullName" class="text-danger"></span>
                 </div>
 
+                <!-- Email -->
                 <div class="mb-3">
-                    <label class="form-label">Email</label>
+                    <label asp-for="Email" class="form-label">Email</label>
                     <input asp-for="Email"
                            class="form-control custom-input"
                            placeholder="Nhập email..." />
                     <span asp-validation-for="Email" class="text-danger"></span>
                 </div>
 
+                <!-- Phone -->
                 <div class="mb-3">
-                    <label class="form-label">Số điện thoại</label>
+                    <label asp-for="Phone" class="form-label">Số điện thoại</label>
                     <input asp-for="Phone"
                            class="form-control custom-input"
                            placeholder="Nhập số điện thoại..." />
                     <span asp-validation-for="Phone" class="text-danger"></span>
                 </div>
 
+                <!-- Password -->
                 <div class="mb-3">
-                    <label class="form-label">Mật khẩu</label>
+                    <label asp-for="Password" class="form-label">Mật khẩu</label>
                     <input asp-for="Password"
                            type="password"
                            class="form-control custom-input"
@@ -60,8 +73,9 @@
                     <span asp-validation-for="Password" class="text-danger"></span>
                 </div>
 
+                <!-- Confirm Password -->
                 <div class="mb-3">
-                    <label class="form-label">Nhập lại mật khẩu</label>
+                    <label asp-for="ConfirmPassword" class="form-label">Nhập lại mật khẩu</label>
                     <input asp-for="ConfirmPassword"
                            type="password"
                            class="form-control custom-input"

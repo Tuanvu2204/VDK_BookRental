@@ -1,0 +1,740 @@
+﻿@model IEnumerable<VDK_BookRental.Models.Rental>
+
+@{
+    ViewData["Title"] = "Đơn thuê quá hạn";
+
+    var rentals = Model?
+        .OrderBy(item => item.ReturnDate)
+        .ToList()
+        ?? new List<VDK_BookRental.Models.Rental>();
+
+    var today = DateTime.Today;
+
+    var totalOverdue = rentals.Count;
+
+    var overSevenDays = rentals.Count(item =>
+        (today - item.ReturnDate.Date).Days >= 7);
+
+    var totalBooks = rentals.Sum(item =>
+        item.RentalDetails?.Sum(detail => detail.Quantity) ?? 0);
+
+    var totalAmount = rentals.Sum(item =>
+        item.TotalAmount);
+
+    string GetCustomerName(VDK_BookRental.Models.Rental rental)
+    {
+        if (!string.IsNullOrWhiteSpace(rental.User?.FullName))
+        {
+            return rental.User.FullName;
+        }
+
+        return rental.User?.UserName ?? "Không xác định";
+    }
+
+    int GetOverdueDays(VDK_BookRental.Models.Rental rental)
+    {
+        return Math.Max(
+            0,
+            (today - rental.ReturnDate.Date).Days
+        );
+    }
+
+    string GetUrgencyClass(int days)
+    {
+        if (days >= 14)
+        {
+            return "overdue-danger";
+        }
+
+        if (days >= 7)
+        {
+            return "overdue-warning";
+        }
+
+        return "overdue-info";
+    }
+
+    string GetUrgencyText(int days)
+    {
+        if (days >= 14)
+        {
+            return "Rất nghiêm trọng";
+        }
+
+        if (days >= 7)
+        {
+            return "Cần xử lý sớm";
+        }
+
+        return "Mới quá hạn";
+    }
+}
+
+<style>
+    .overdue-page {
+        min-height: 100vh;
+        padding: 32px 0 60px;
+        background: radial-gradient(circle at top right, rgba(220, 53, 69, 0.1), transparent 31%), #f5f7fb;
+    }
+
+    .overdue-heading {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 24px;
+    }
+
+        .overdue-heading h1 {
+            margin: 0;
+            color: #172033;
+            font-size: clamp(1.8rem, 3vw, 2.45rem);
+            font-weight: 900;
+        }
+
+        .overdue-heading p {
+            margin: 8px 0 0;
+            color: #6c757d;
+        }
+
+    .overdue-back-button {
+        min-height: 46px;
+        padding: 11px 18px;
+        border-radius: 13px;
+        font-weight: 800;
+    }
+
+    .overdue-stat-card {
+        height: 100%;
+        padding: 20px;
+        border: 1px solid rgba(20, 35, 60, 0.06);
+        border-radius: 20px;
+        background: #ffffff;
+        box-shadow: 0 10px 30px rgba(24, 39, 75, 0.07);
+    }
+
+    .overdue-stat-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+    }
+
+    .overdue-stat-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+        font-weight: 650;
+    }
+
+    .overdue-stat-number {
+        margin-top: 6px;
+        color: #172033;
+        font-size: 1.8rem;
+        font-weight: 900;
+    }
+
+        .overdue-stat-number.money {
+            font-size: clamp(1.2rem, 2vw, 1.6rem);
+        }
+
+    .overdue-stat-icon {
+        width: 50px;
+        height: 50px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        font-size: 1.35rem;
+    }
+
+    .icon-red {
+        color: #b02a37;
+        background: #f8d7da;
+    }
+
+    .icon-orange {
+        color: #997404;
+        background: #fff3cd;
+    }
+
+    .icon-blue {
+        color: #0d6efd;
+        background: #eaf2ff;
+    }
+
+    .icon-green {
+        color: #146c43;
+        background: #d1e7dd;
+    }
+
+    .overdue-list {
+        display: grid;
+        gap: 18px;
+        margin-top: 24px;
+    }
+
+    .overdue-card {
+        overflow: hidden;
+        border: none;
+        border-radius: 22px;
+        background: #ffffff;
+        box-shadow: 0 12px 34px rgba(24, 39, 75, 0.08);
+    }
+
+    .overdue-card-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 20px 22px;
+        border-bottom: 1px solid #edf0f4;
+        background: #fbfcfe;
+    }
+
+    .overdue-code {
+        color: #dc3545;
+        font-size: 1.08rem;
+        font-weight: 900;
+    }
+
+    .overdue-created-date {
+        margin-top: 4px;
+        color: #7a8494;
+        font-size: 0.85rem;
+    }
+
+    .overdue-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-size: 0.82rem;
+        font-weight: 850;
+        white-space: nowrap;
+    }
+
+    .overdue-danger {
+        color: #b02a37;
+        background: #f8d7da;
+    }
+
+    .overdue-warning {
+        color: #997404;
+        background: #fff3cd;
+    }
+
+    .overdue-info {
+        color: #087990;
+        background: #cff4fc;
+    }
+
+    .overdue-card-body {
+        padding: 22px;
+    }
+
+    .overdue-info-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .overdue-info-item {
+        padding: 15px;
+        border: 1px solid #edf0f4;
+        border-radius: 15px;
+        background: #ffffff;
+    }
+
+    .overdue-info-label {
+        display: block;
+        margin-bottom: 5px;
+        color: #7a8494;
+        font-size: 0.82rem;
+        font-weight: 700;
+    }
+
+    .overdue-info-value {
+        color: #172033;
+        font-weight: 850;
+    }
+
+    .overdue-book-list {
+        display: grid;
+        gap: 10px;
+        margin-top: 18px;
+    }
+
+    .overdue-book-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 13px 15px;
+        border: 1px solid #edf0f4;
+        border-radius: 14px;
+        background: #fbfcfe;
+    }
+
+    .overdue-book-title {
+        overflow: hidden;
+        color: #172033;
+        font-weight: 850;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .overdue-book-meta {
+        color: #6c757d;
+        font-size: 0.83rem;
+        white-space: nowrap;
+    }
+
+    .overdue-action-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        margin-top: 18px;
+        padding-top: 18px;
+        border-top: 1px solid #edf0f4;
+    }
+
+    .overdue-total {
+        color: #dc3545;
+        font-size: 1.12rem;
+        font-weight: 900;
+    }
+
+    .overdue-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 9px;
+    }
+
+    .overdue-action-button {
+        min-height: 41px;
+        padding: 8px 14px;
+        border-radius: 11px;
+        font-weight: 800;
+    }
+
+    .overdue-empty {
+        margin-top: 24px;
+        padding: 72px 20px;
+        border-radius: 22px;
+        background: #ffffff;
+        box-shadow: 0 12px 34px rgba(24, 39, 75, 0.08);
+        text-align: center;
+    }
+
+    .overdue-empty-icon {
+        width: 82px;
+        height: 82px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 17px;
+        border-radius: 25px;
+        color: #146c43;
+        background: #d1e7dd;
+        font-size: 2rem;
+    }
+
+    .overdue-empty h2 {
+        color: #172033;
+        font-weight: 900;
+    }
+
+    .overdue-empty p {
+        max-width: 500px;
+        margin: 8px auto 0;
+        color: #6c757d;
+    }
+
+    @@media (max-width: 991.98px) {
+        .overdue-info-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+        .overdue-page {
+            padding-top: 22px;
+        }
+
+        .overdue-heading {
+            align-items: stretch;
+        }
+
+        .overdue-back-button {
+            width: 100%;
+        }
+
+        .overdue-info-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .overdue-book-item {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .overdue-actions,
+        .overdue-action-button {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="overdue-page">
+    <div class="container">
+
+        <div class="overdue-heading">
+            <div>
+                <h1>
+                    <i class="bi bi-exclamation-triangle-fill me-2 text-danger"></i>
+                    Đơn thuê quá hạn
+                </h1>
+
+                <p>
+                    Theo dõi và xử lý các đơn đang thuê đã vượt quá ngày trả dự kiến.
+                </p>
+            </div>
+
+            <a asp-controller="Staff"
+               asp-action="Index"
+               class="btn btn-outline-primary overdue-back-button">
+                <i class="bi bi-arrow-left me-2"></i>
+                Về trang quản lý
+            </a>
+        </div>
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show shadow-sm"
+                 role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                @TempData["SuccessMessage"]
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Đóng">
+                </button>
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show shadow-sm"
+                 role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                @TempData["ErrorMessage"]
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Đóng">
+                </button>
+            </div>
+        }
+
+        <div class="row g-3">
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="overdue-stat-card">
+                    <div class="overdue-stat-top">
+                        <div>
+                            <div class="overdue-stat-label">
+                                Tổng đơn quá hạn
+                            </div>
+
+                            <div class="overdue-stat-number">
+                                @totalOverdue
+                            </div>
+                        </div>
+
+                        <div class="overdue-stat-icon icon-red">
+                            <i class="bi bi-exclamation-octagon-fill"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="overdue-stat-card">
+                    <div class="overdue-stat-top">
+                        <div>
+                            <div class="overdue-stat-label">
+                                Quá hạn từ 7 ngày
+                            </div>
+
+                            <div class="overdue-stat-number">
+                                @overSevenDays
+                            </div>
+                        </div>
+
+                        <div class="overdue-stat-icon icon-orange">
+                            <i class="bi bi-calendar-x-fill"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="overdue-stat-card">
+                    <div class="overdue-stat-top">
+                        <div>
+                            <div class="overdue-stat-label">
+                                Tổng sách chưa trả
+                            </div>
+
+                            <div class="overdue-stat-number">
+                                @totalBooks
+                            </div>
+                        </div>
+
+                        <div class="overdue-stat-icon icon-blue">
+                            <i class="bi bi-bookshelf"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="overdue-stat-card">
+                    <div class="overdue-stat-top">
+                        <div>
+                            <div class="overdue-stat-label">
+                                Giá trị các đơn
+                            </div>
+
+                            <div class="overdue-stat-number money">
+                                @totalAmount.ToString("N0") VNĐ
+                            </div>
+                        </div>
+
+                        <div class="overdue-stat-icon icon-green">
+                            <i class="bi bi-cash-stack"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        @if (rentals.Any())
+        {
+            <div class="overdue-list">
+
+                @foreach (var rental in rentals)
+                {
+                    var overdueDays = GetOverdueDays(rental);
+
+                    var details =
+                        rental.RentalDetails?.ToList()
+                        ?? new List<VDK_BookRental.Models.RentalDetail>();
+
+                    <article class="overdue-card">
+
+                        <div class="overdue-card-header">
+
+                            <div>
+                                <div class="overdue-code">
+                                    #RENT-@rental.Id.ToString("D4")
+                                </div>
+
+                                <div class="overdue-created-date">
+                                    Tạo ngày @rental.RentalDate.ToString("dd/MM/yyyy")
+                                </div>
+                            </div>
+
+                            <span class="overdue-badge @GetUrgencyClass(overdueDays)">
+                                <i class="bi bi-clock-history"></i>
+                                @GetUrgencyText(overdueDays)
+                                · @overdueDays ngày
+                            </span>
+
+                        </div>
+
+                        <div class="overdue-card-body">
+
+                            <div class="overdue-info-grid">
+
+                                <div class="overdue-info-item">
+                                    <span class="overdue-info-label">
+                                        Khách hàng
+                                    </span>
+
+                                    <div class="overdue-info-value">
+                                        @GetCustomerName(rental)
+                                    </div>
+                                </div>
+
+                                <div class="overdue-info-item">
+                                    <span class="overdue-info-label">
+                                        Số điện thoại
+                                    </span>
+
+                                    <div class="overdue-info-value">
+                                        @(string.IsNullOrWhiteSpace(rental.User?.Phone)
+                                            ? "Chưa cập nhật"
+                                            : rental.User.Phone)
+                                    </div>
+                                </div>
+
+                                <div class="overdue-info-item">
+                                    <span class="overdue-info-label">
+                                        Ngày trả dự kiến
+                                    </span>
+
+                                    <div class="overdue-info-value text-danger">
+                                        @rental.ReturnDate.ToString("dd/MM/yyyy")
+                                    </div>
+                                </div>
+
+                                <div class="overdue-info-item">
+                                    <span class="overdue-info-label">
+                                        Trạng thái
+                                    </span>
+
+                                    <div class="overdue-info-value text-info">
+                                        Đang thuê
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <div class="overdue-book-list">
+
+                                @if (details.Any())
+                                {
+                                    @foreach (var detail in details)
+                                    {
+                                        <div class="overdue-book-item">
+
+                                            <div class="overdue-book-title">
+                                                <i class="bi bi-book me-2 text-primary"></i>
+                                                @(detail.Book?.Title ?? "Sách không tồn tại")
+                                            </div>
+
+                                            <div class="overdue-book-meta">
+                                                @detail.Quantity cuốn
+                                                · @detail.RentalDays ngày
+                                            </div>
+
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <div class="alert alert-light border mb-0">
+                                        Không có dữ liệu sách trong đơn này.
+                                    </div>
+                                }
+
+                            </div>
+
+                            <div class="overdue-action-row">
+
+                                <div class="overdue-total">
+                                    Tổng tiền:
+                                    @rental.TotalAmount.ToString("N0") VNĐ
+                                </div>
+
+                                <div class="overdue-actions">
+
+                                    <a asp-controller="Staff"
+                                       asp-action="RentalDetails"
+                                       asp-route-id="@rental.Id"
+                                       class="btn btn-outline-primary overdue-action-button">
+                                        <i class="bi bi-eye me-2"></i>
+                                        Xem chi tiết
+                                    </a>
+
+                                    <form asp-controller="Overdue"
+                                          asp-action="ConfirmReturn"
+                                          method="post"
+                                          class="confirm-overdue-return-form">
+
+                                        @Html.AntiForgeryToken()
+
+                                        <input type="hidden"
+                                               name="rentalId"
+                                               value="@rental.Id" />
+
+                                        <button type="submit"
+                                                class="btn btn-success overdue-action-button">
+                                            <i class="bi bi-journal-check me-2"></i>
+                                            Xác nhận đã trả
+                                        </button>
+
+                                    </form>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+                    </article>
+                }
+
+            </div>
+        }
+        else
+        {
+            <div class="overdue-empty">
+
+                <div class="overdue-empty-icon">
+                    <i class="bi bi-shield-check"></i>
+                </div>
+
+                <h2>Không có đơn thuê quá hạn</h2>
+
+                <p>
+                    Tất cả đơn đang thuê hiện vẫn còn trong thời hạn trả sách.
+                </p>
+
+            </div>
+        }
+
+    </div>
+</div>
+
+@section Scripts {
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        document.querySelectorAll(
+        ".confirm-overdue-return-form"
+        )
+        .forEach(function (form) {
+        form.addEventListener(
+        "submit",
+        function (event) {
+        event.preventDefault();
+
+        Swal.fire({
+        title: "Xác nhận khách đã trả sách?",
+        text: "Số lượng sách sẽ được hoàn lại vào kho.",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Xác nhận đã trả",
+        cancelButtonText: "Quay lại",
+        confirmButtonColor: "#198754"
+        })
+        .then(function (result) {
+        if (result.isConfirmed) {
+        form.submit();
+        }
+        });
+        }
+        );
+        });
+    </script>
+}

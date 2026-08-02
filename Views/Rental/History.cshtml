@@ -2,210 +2,1014 @@
 
 @{
     ViewData["Title"] = "Lịch sử thuê sách";
+
+    var rentals = Model?
+        .OrderByDescending(item => item.Id)
+        .ToList()
+        ?? new List<VDK_BookRental.Models.Rental>();
+
+    var totalRentals = rentals.Count;
+
+    var pendingCount = rentals.Count(item =>
+        item.Status == "Pending" ||
+        item.Status == "Approved");
+
+    var borrowingCount = rentals.Count(item =>
+        item.Status == "Borrowing");
+
+    var completedCount = rentals.Count(item =>
+        item.Status == "Returned");
+
+    var totalSpent = rentals
+        .Where(item =>
+            item.Payment != null &&
+            (item.Payment.Status == "Paid" ||
+             item.Payment.Status == "Completed"))
+        .Sum(item => item.TotalAmount);
+
+    string RentalStatusText(string? status)
+    {
+        return status switch
+        {
+            "Pending" => "Chờ duyệt",
+            "Approved" => "Đã duyệt",
+            "Borrowing" => "Đang thuê",
+            "Returned" => "Đã trả",
+            "Cancelled" => "Đã hủy",
+            _ => status ?? "Không xác định"
+        };
+    }
+
+    string RentalStatusClass(string? status)
+    {
+        return status switch
+        {
+            "Pending" => "history-status-warning",
+            "Approved" => "history-status-primary",
+            "Borrowing" => "history-status-info",
+            "Returned" => "history-status-success",
+            "Cancelled" => "history-status-danger",
+            _ => "history-status-secondary"
+        };
+    }
+
+    string RentalStatusIcon(string? status)
+    {
+        return status switch
+        {
+            "Pending" => "bi-hourglass-split",
+            "Approved" => "bi-check-circle",
+            "Borrowing" => "bi-book",
+            "Returned" => "bi-check-circle-fill",
+            "Cancelled" => "bi-x-circle",
+            _ => "bi-circle"
+        };
+    }
+
+    string PaymentStatusText(string? status)
+    {
+        return status switch
+        {
+            "Pending" => "Chờ thanh toán",
+            "AwaitingConfirmation" => "Chờ nhân viên xác nhận",
+            "Paid" => "Đã thanh toán",
+            "Completed" => "Đã hoàn tất",
+            "Rejected" => "Thanh toán bị từ chối",
+            "Cancelled" => "Đã hủy",
+            _ => status ?? "Chưa có thanh toán"
+        };
+    }
+
+    string PaymentStatusClass(string? status)
+    {
+        return status switch
+        {
+            "Pending" => "history-status-warning",
+            "AwaitingConfirmation" => "history-status-info",
+            "Paid" => "history-status-success",
+            "Completed" => "history-status-success",
+            "Rejected" => "history-status-danger",
+            "Cancelled" => "history-status-secondary",
+            _ => "history-status-secondary"
+        };
+    }
+
+    string PaymentStatusIcon(string? status)
+    {
+        return status switch
+        {
+            "Pending" => "bi-clock",
+            "AwaitingConfirmation" => "bi-hourglass-split",
+            "Paid" => "bi-credit-card-2-front-fill",
+            "Completed" => "bi-shield-check",
+            "Rejected" => "bi-x-circle-fill",
+            "Cancelled" => "bi-slash-circle",
+            _ => "bi-credit-card"
+        };
+    }
+
+    bool CanPayAgain(string? paymentStatus, string? rentalStatus)
+    {
+        if (rentalStatus == "Cancelled" ||
+            rentalStatus == "Returned")
+        {
+            return false;
+        }
+
+        return paymentStatus == "Pending" ||
+               paymentStatus == "Rejected" ||
+               string.IsNullOrWhiteSpace(paymentStatus);
+    }
 }
 
-<div class="container mt-5 mb-5">
+<style>
+    .rental-history-page {
+        min-height: 100vh;
+        padding: 34px 0 64px;
+        background: radial-gradient(circle at top right, rgba(13, 110, 253, 0.11), transparent 31%), #f5f7fb;
+    }
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    .history-heading {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 24px;
+    }
 
-        <div>
-            <h2 class="fw-bold mb-1">
-                📜 Lịch sử thuê sách
-            </h2>
+        .history-heading h1 {
+            margin: 0;
+            color: #172033;
+            font-size: clamp(1.8rem, 3vw, 2.45rem);
+            font-weight: 900;
+        }
 
-            <p class="text-muted mb-0">
-                Danh sách toàn bộ đơn thuê sách của bạn.
-            </p>
-        </div>
+        .history-heading p {
+            margin: 8px 0 0;
+            color: #6c757d;
+        }
 
-        <a asp-controller="Books"
-           asp-action="Index"
-           class="btn btn-primary">
+    .history-home-button {
+        min-height: 46px;
+        padding: 11px 18px;
+        border-radius: 13px;
+        font-weight: 800;
+    }
 
-            📚 Tiếp tục thuê sách
+    .history-summary-card {
+        height: 100%;
+        padding: 20px;
+        border: 1px solid rgba(20, 35, 60, 0.06);
+        border-radius: 20px;
+        background: #ffffff;
+        box-shadow: 0 10px 30px rgba(24, 39, 75, 0.07);
+    }
 
-        </a>
+    .history-summary-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+    }
 
-    </div>
+    .history-summary-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+        font-weight: 650;
+    }
 
-    @if (Model == null || !Model.Any())
-    {
-        <div class="alert alert-info text-center py-5">
+    .history-summary-number {
+        margin-top: 5px;
+        color: #172033;
+        font-size: 1.8rem;
+        font-weight: 900;
+    }
 
-            <h4 class="mb-3">
-                Chưa có lịch sử thuê sách
-            </h4>
+    .history-summary-icon {
+        width: 49px;
+        height: 49px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        font-size: 1.3rem;
+    }
 
-            <p class="mb-4">
-                Bạn chưa tạo đơn thuê sách nào.
-            </p>
+        .history-summary-icon.total {
+            color: #0d6efd;
+            background: #eaf2ff;
+        }
+
+        .history-summary-icon.pending {
+            color: #997404;
+            background: #fff3cd;
+        }
+
+        .history-summary-icon.borrowing {
+            color: #087990;
+            background: #cff4fc;
+        }
+
+        .history-summary-icon.spent {
+            color: #146c43;
+            background: #d1e7dd;
+        }
+
+    .history-filter-card {
+        margin-top: 24px;
+        padding: 18px;
+        border: none;
+        border-radius: 20px;
+        background: #ffffff;
+        box-shadow: 0 10px 30px rgba(24, 39, 75, 0.07);
+    }
+
+    .history-filter-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 9px;
+    }
+
+    .history-filter-button {
+        min-height: 40px;
+        padding: 8px 15px;
+        border: 1px solid #dce2e9;
+        border-radius: 999px;
+        color: #495057;
+        background: #ffffff;
+        font-size: 0.88rem;
+        font-weight: 800;
+        transition: all 0.2s ease;
+    }
+
+        .history-filter-button:hover,
+        .history-filter-button.active {
+            border-color: #0d6efd;
+            color: #ffffff;
+            background: #0d6efd;
+        }
+
+    .history-list {
+        display: grid;
+        gap: 20px;
+        margin-top: 24px;
+    }
+
+    .history-rental-card {
+        overflow: hidden;
+        border: none;
+        border-radius: 22px;
+        background: #ffffff;
+        box-shadow: 0 12px 34px rgba(24, 39, 75, 0.08);
+    }
+
+    .history-rental-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 20px 22px;
+        border-bottom: 1px solid #edf0f4;
+        background: #fbfcfe;
+    }
+
+    .history-rental-code {
+        color: #0d6efd;
+        font-size: 1.12rem;
+        font-weight: 900;
+    }
+
+    .history-rental-date {
+        margin-top: 4px;
+        color: #7a8494;
+        font-size: 0.86rem;
+    }
+
+    .history-status-group {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+
+    .history-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 11px;
+        border-radius: 999px;
+        font-size: 0.82rem;
+        font-weight: 850;
+        white-space: nowrap;
+    }
+
+    .history-status-warning {
+        color: #997404;
+        background: #fff3cd;
+    }
+
+    .history-status-primary {
+        color: #084298;
+        background: #cfe2ff;
+    }
+
+    .history-status-info {
+        color: #087990;
+        background: #cff4fc;
+    }
+
+    .history-status-success {
+        color: #146c43;
+        background: #d1e7dd;
+    }
+
+    .history-status-danger {
+        color: #b02a37;
+        background: #f8d7da;
+    }
+
+    .history-status-secondary {
+        color: #495057;
+        background: #e2e3e5;
+    }
+
+    .history-rental-body {
+        padding: 22px;
+    }
+
+    .history-book-list {
+        display: grid;
+        gap: 12px;
+    }
+
+    .history-book-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 14px 16px;
+        border: 1px solid #edf0f4;
+        border-radius: 15px;
+        background: #fbfcfe;
+    }
+
+    .history-book-title {
+        color: #172033;
+        font-weight: 850;
+    }
+
+    .history-book-meta {
+        margin-top: 4px;
+        color: #7a8494;
+        font-size: 0.84rem;
+    }
+
+    .history-book-subtotal {
+        color: #0d6efd;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .history-info-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 18px;
+    }
+
+    .history-info-item {
+        padding: 15px;
+        border: 1px solid #edf0f4;
+        border-radius: 15px;
+        background: #ffffff;
+    }
+
+    .history-info-label {
+        display: block;
+        margin-bottom: 5px;
+        color: #7a8494;
+        font-size: 0.82rem;
+        font-weight: 700;
+    }
+
+    .history-info-value {
+        color: #172033;
+        font-weight: 850;
+    }
+
+    .history-total-box {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-top: 18px;
+        padding: 17px 18px;
+        border-radius: 16px;
+        background: #f8fafc;
+    }
+
+    .history-total-label {
+        color: #495057;
+        font-weight: 750;
+    }
+
+    .history-total-value {
+        color: #dc3545;
+        font-size: 1.25rem;
+        font-weight: 950;
+        white-space: nowrap;
+    }
+
+    .history-action-group {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 18px;
+    }
+
+    .history-action-button {
+        min-height: 43px;
+        padding: 9px 16px;
+        border-radius: 12px;
+        font-weight: 800;
+    }
+
+    .history-waiting-note {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        margin-top: 18px;
+        padding: 14px 16px;
+        border: 1px solid #b6effb;
+        border-radius: 14px;
+        color: #055160;
+        background: #cff4fc;
+    }
+
+    .history-empty {
+        margin-top: 24px;
+        padding: 72px 20px;
+        border-radius: 22px;
+        background: #ffffff;
+        box-shadow: 0 12px 34px rgba(24, 39, 75, 0.08);
+        text-align: center;
+    }
+
+    .history-empty-icon {
+        width: 82px;
+        height: 82px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 17px;
+        border-radius: 25px;
+        color: #0d6efd;
+        background: #eaf2ff;
+        font-size: 2.1rem;
+    }
+
+    .history-empty h2 {
+        color: #172033;
+        font-weight: 900;
+    }
+
+    .history-empty p {
+        max-width: 500px;
+        margin: 8px auto 20px;
+        color: #6c757d;
+    }
+
+    @@media (max-width: 991.98px) {
+        .history-info-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+        .rental-history-page {
+            padding-top: 22px;
+        }
+
+        .history-heading {
+            align-items: stretch;
+        }
+
+        .history-home-button {
+            width: 100%;
+        }
+
+        .history-rental-header {
+            align-items: flex-start;
+        }
+
+        .history-status-group {
+            justify-content: flex-start;
+        }
+
+        .history-book-item {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .history-action-group,
+        .history-action-button {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="rental-history-page">
+    <div class="container">
+
+        <div class="history-heading">
+            <div>
+                <h1>
+                    <i class="bi bi-clock-history me-2 text-primary"></i>
+                    Lịch sử thuê sách
+                </h1>
+
+                <p>
+                    Theo dõi toàn bộ đơn thuê, trạng thái xử lý và thanh toán của bạn.
+                </p>
+            </div>
 
             <a asp-controller="Books"
                asp-action="Index"
-               class="btn btn-success">
+               class="btn btn-outline-primary history-home-button">
 
-                Xem danh sách sách
-
+                <i class="bi bi-book me-2"></i>
+                Tiếp tục xem sách
             </a>
+        </div>
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show shadow-sm"
+                 role="alert">
+
+                <i class="bi bi-check-circle-fill me-2"></i>
+                @TempData["SuccessMessage"]
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Đóng">
+                </button>
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show shadow-sm"
+                 role="alert">
+
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                @TempData["ErrorMessage"]
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Đóng">
+                </button>
+            </div>
+        }
+
+        <div class="row g-3">
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="history-summary-card">
+                    <div class="history-summary-top">
+                        <div>
+                            <div class="history-summary-label">
+                                Tổng đơn thuê
+                            </div>
+
+                            <div class="history-summary-number">
+                                @totalRentals
+                            </div>
+                        </div>
+
+                        <div class="history-summary-icon total">
+                            <i class="bi bi-receipt"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="history-summary-card">
+                    <div class="history-summary-top">
+                        <div>
+                            <div class="history-summary-label">
+                                Đang xử lý
+                            </div>
+
+                            <div class="history-summary-number">
+                                @pendingCount
+                            </div>
+                        </div>
+
+                        <div class="history-summary-icon pending">
+                            <i class="bi bi-hourglass-split"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="history-summary-card">
+                    <div class="history-summary-top">
+                        <div>
+                            <div class="history-summary-label">
+                                Đang thuê
+                            </div>
+
+                            <div class="history-summary-number">
+                                @borrowingCount
+                            </div>
+                        </div>
+
+                        <div class="history-summary-icon borrowing">
+                            <i class="bi bi-book-half"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="history-summary-card">
+                    <div class="history-summary-top">
+                        <div>
+                            <div class="history-summary-label">
+                                Tổng đã thanh toán
+                            </div>
+
+                            <div class="history-summary-number fs-5">
+                                @totalSpent.ToString("N0") VNĐ
+                            </div>
+                        </div>
+
+                        <div class="history-summary-icon spent">
+                            <i class="bi bi-cash-coin"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
         </div>
-    }
-    else
-    {
-        <div class="table-responsive">
 
-            <table class="table table-bordered table-hover align-middle shadow-sm">
+        <div class="history-filter-card">
+            <div class="history-filter-buttons">
 
-                <thead class="table-dark">
+                <button type="button"
+                        class="history-filter-button active"
+                        data-history-filter="all">
+                    Tất cả (@totalRentals)
+                </button>
 
-                    <tr>
-                        <th>Mã đơn</th>
-                        <th>Sách</th>
-                        <th>Ngày thuê</th>
-                        <th>Ngày trả</th>
-                        <th>Tổng tiền</th>
-                        <th>Thanh toán</th>
-                        <th>Trạng thái</th>
-                        <th>Thao tác</th>
-                    </tr>
+                <button type="button"
+                        class="history-filter-button"
+                        data-history-filter="Pending">
+                    Chờ duyệt
+                </button>
 
-                </thead>
+                <button type="button"
+                        class="history-filter-button"
+                        data-history-filter="Approved">
+                    Đã duyệt
+                </button>
 
-                <tbody>
+                <button type="button"
+                        class="history-filter-button"
+                        data-history-filter="Borrowing">
+                    Đang thuê
+                </button>
 
-                    @foreach (var rental in Model)
-                    {
-                        <tr>
+                <button type="button"
+                        class="history-filter-button"
+                        data-history-filter="Returned">
+                    Đã trả (@completedCount)
+                </button>
 
-                            <td>
-                                #@rental.Id
-                            </td>
+                <button type="button"
+                        class="history-filter-button"
+                        data-history-filter="Cancelled">
+                    Đã hủy
+                </button>
 
-                            <td>
+            </div>
+        </div>
 
-                                @if (rental.RentalDetails != null &&
-                                     rental.RentalDetails.Any())
+        @if (rentals.Any())
+        {
+            <div class="history-list" id="rentalHistoryList">
+
+                @foreach (var rental in rentals)
+                {
+                    var paymentStatus =
+                        rental.Payment?.Status ?? "Pending";
+
+                    var details =
+                        rental.RentalDetails?.ToList()
+                        ?? new List<VDK_BookRental.Models.RentalDetail>();
+
+                    <article class="history-rental-card"
+                             data-rental-status="@rental.Status">
+
+                        <div class="history-rental-header">
+                            <div>
+                                <div class="history-rental-code">
+                                    #RENT-@rental.Id.ToString("D4")
+                                </div>
+
+                                <div class="history-rental-date">
+                                    Tạo ngày @rental.RentalDate.ToString("dd/MM/yyyy")
+                                </div>
+                            </div>
+
+                            <div class="history-status-group">
+
+                                <span class="history-status @RentalStatusClass(rental.Status)">
+                                    <i class="bi @RentalStatusIcon(rental.Status)"></i>
+                                    @RentalStatusText(rental.Status)
+                                </span>
+
+                                <span class="history-status @PaymentStatusClass(paymentStatus)">
+                                    <i class="bi @PaymentStatusIcon(paymentStatus)"></i>
+                                    @PaymentStatusText(paymentStatus)
+                                </span>
+
+                            </div>
+                        </div>
+
+                        <div class="history-rental-body">
+
+                            <div class="history-book-list">
+
+                                @if (details.Any())
                                 {
-                                    @foreach (var detail in rental.RentalDetails)
+                                    @foreach (var detail in details)
                                     {
-                                        <div class="mb-2">
+                                        <div class="history-book-item">
+                                            <div>
+                                                <div class="history-book-title">
+                                                    <i class="bi bi-book me-2 text-primary"></i>
+                                                    @(detail.Book?.Title ?? "Sách không tồn tại")
+                                                </div>
 
-                                            <strong>
-                                                @(detail.Book?.Title ?? "Không xác định")
-                                            </strong>
-
-                                            <div class="small text-muted">
-
-                                                @detail.RentalDays ngày
-
-                                                @if (detail.SubTotal > 0)
-                                                {
-                                                    <span>
-                                                        -
-                                                        @detail.SubTotal.ToString("N0") VNĐ
-                                                    </span>
-                                                }
-
+                                                <div class="history-book-meta">
+                                                    @detail.Quantity cuốn
+                                                    · @detail.RentalDays ngày
+                                                    · @detail.Price.ToString("N0") VNĐ/ngày
+                                                </div>
                                             </div>
 
+                                            <div class="history-book-subtotal">
+                                                @detail.SubTotal.ToString("N0") VNĐ
+                                            </div>
                                         </div>
                                     }
                                 }
                                 else
                                 {
-                                    <span class="text-muted">
-                                        Không có dữ liệu sách
-                                    </span>
+                                    <div class="alert alert-light border text-center mb-0">
+                                        Không có dữ liệu sách trong đơn thuê này.
+                                    </div>
                                 }
 
-                            </td>
+                            </div>
 
-                            <td>
-                                @rental.RentalDate.ToString("dd/MM/yyyy")
-                            </td>
+                            <div class="history-info-grid">
 
-                            <td>
-                                @rental.ReturnDate.ToString("dd/MM/yyyy")
-                            </td>
-
-                            <td class="text-success fw-bold">
-                                @rental.TotalAmount.ToString("N0") VNĐ
-                            </td>
-
-                            <td>
-
-                                @if (rental.Payment?.Status == "Paid")
-                                {
-                                    <span class="badge bg-success">
-                                        Đã thanh toán
+                                <div class="history-info-item">
+                                    <span class="history-info-label">
+                                        Ngày thuê
                                     </span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-warning text-dark">
-                                        Chờ thanh toán
+
+                                    <div class="history-info-value">
+                                        @rental.RentalDate.ToString("dd/MM/yyyy")
+                                    </div>
+                                </div>
+
+                                <div class="history-info-item">
+                                    <span class="history-info-label">
+                                        Ngày trả dự kiến
                                     </span>
-                                }
 
-                            </td>
+                                    <div class="history-info-value">
+                                        @rental.ReturnDate.ToString("dd/MM/yyyy")
+                                    </div>
+                                </div>
 
-                            <td>
-
-                                @if (rental.Status == "Returned")
-                                {
-                                    <span class="badge bg-secondary">
-                                        Đã trả sách
+                                <div class="history-info-item">
+                                    <span class="history-info-label">
+                                        Phương thức thanh toán
                                     </span>
-                                }
-                                else if (rental.Status == "Cancelled")
-                                {
-                                    <span class="badge bg-danger">
-                                        Đã hủy
-                                    </span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-primary">
-                                        @rental.Status
-                                    </span>
-                                }
 
-                            </td>
+                                    <div class="history-info-value">
+                                        @(string.IsNullOrWhiteSpace(rental.Payment?.PaymentMethod)
+                                            ? "Chưa chọn"
+                                            : rental.Payment.PaymentMethod)
+                                    </div>
+                                </div>
 
-                            <td>
+                            </div>
 
-                                @if (rental.Payment?.Status != "Paid")
+                            <div class="history-total-box">
+                                <span class="history-total-label">
+                                    Tổng tiền đơn thuê
+                                </span>
+
+                                <span class="history-total-value">
+                                    @rental.TotalAmount.ToString("N0") VNĐ
+                                </span>
+                            </div>
+
+                            @if (paymentStatus == "AwaitingConfirmation")
+                            {
+                                <div class="history-waiting-note">
+                                    <i class="bi bi-info-circle-fill"></i>
+
+                                    <div>
+                                        Yêu cầu thanh toán đã được gửi.
+                                        Vui lòng chờ nhân viên kiểm tra và xác nhận.
+                                    </div>
+                                </div>
+                            }
+
+                            <div class="history-action-group">
+
+                                <a asp-controller="Receipt"
+                                   asp-action="Details"
+                                   asp-route-id="@rental.Id"
+                                   class="btn btn-outline-dark history-action-button">
+                                    <i class="bi bi-receipt-cutoff me-2"></i>
+                                    Xem hóa đơn
+                                </a>
+
+                                @if (CanPayAgain(paymentStatus, rental.Status))
                                 {
                                     <a asp-controller="Payment"
                                        asp-action="Checkout"
                                        asp-route-rentalId="@rental.Id"
-                                       class="btn btn-sm btn-warning">
+                                       class="btn btn-primary history-action-button">
 
-                                        Thanh toán
+                                        <i class="bi bi-credit-card me-2"></i>
 
-                                    </a>
-                                }
-                                else
-                                {
-                                    <a asp-controller="Books"
-                                       asp-action="Index"
-                                       class="btn btn-sm btn-outline-primary">
-
-                                        Thuê thêm
-
+                                        @(paymentStatus == "Rejected"
+                                            ? "Thanh toán lại"
+                                            : "Thanh toán")
                                     </a>
                                 }
 
-                            </td>
+                                <button type="button"
+                                        class="btn btn-outline-secondary history-action-button"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#rentalDetail_@rental.Id"
+                                        aria-expanded="false"
+                                        aria-controls="rentalDetail_@rental.Id">
 
-                        </tr>
-                    }
+                                    <i class="bi bi-chevron-down me-2"></i>
+                                    Thu gọn / mở rộng
+                                </button>
 
-                </tbody>
+                            </div>
 
-            </table>
+                            <div class="collapse mt-3"
+                                 id="rentalDetail_@rental.Id">
 
-        </div>
-    }
+                                <div class="border rounded-4 p-3 bg-light">
 
+                                    <div class="row g-3">
+
+                                        <div class="col-12 col-md-6">
+                                            <small class="text-muted d-block">
+                                                Mã thanh toán
+                                            </small>
+
+                                            <strong>
+                                                @(rental.Payment != null
+                                                    ? $"#PAY-{rental.Payment.Id:D4}"
+                                                    : "Chưa có")
+                                            </strong>
+                                        </div>
+
+                                        <div class="col-12 col-md-6">
+                                            <small class="text-muted d-block">
+                                                Nội dung chuyển khoản
+                                            </small>
+
+                                            <strong>
+                                                @(string.IsNullOrWhiteSpace(
+                                                    rental.Payment?.TransferContent)
+                                                        ? $"RENTAL_{rental.Id}"
+                                                        : rental.Payment.TransferContent)
+                                            </strong>
+                                        </div>
+
+                                    </div>
+
+                                </div>
+                            </div>
+
+                        </div>
+                    </article>
+                }
+
+            </div>
+
+            <div id="historyFilterEmpty"
+                 class="history-empty d-none">
+
+                <div class="history-empty-icon">
+                    <i class="bi bi-search"></i>
+                </div>
+
+                <h2>Không có đơn thuê phù hợp</h2>
+
+                <p>
+                    Không tìm thấy đơn thuê thuộc trạng thái bạn vừa chọn.
+                </p>
+            </div>
+        }
+        else
+        {
+            <div class="history-empty">
+
+                <div class="history-empty-icon">
+                    <i class="bi bi-journal-x"></i>
+                </div>
+
+                <h2>Bạn chưa có lịch sử thuê sách</h2>
+
+                <p>
+                    Hãy khám phá danh sách sách và tạo đơn thuê đầu tiên của bạn.
+                </p>
+
+                <a asp-controller="Books"
+                   asp-action="Index"
+                   class="btn btn-primary history-action-button px-4">
+
+                    <i class="bi bi-book me-2"></i>
+                    Xem danh sách sách
+                </a>
+            </div>
+        }
+
+    </div>
 </div>
+
+@section Scripts {
+
+    <script>
+        const filterButtons =
+            document.querySelectorAll("[data-history-filter]");
+
+        const rentalCards =
+            document.querySelectorAll("[data-rental-status]");
+
+        const filterEmpty =
+            document.getElementById("historyFilterEmpty");
+
+        filterButtons.forEach(function (button) {
+            button.addEventListener("click", function () {
+                const selectedStatus =
+                    this.getAttribute("data-history-filter");
+
+                filterButtons.forEach(function (item) {
+                    item.classList.remove("active");
+                });
+
+                this.classList.add("active");
+
+                let visibleCount = 0;
+
+                rentalCards.forEach(function (card) {
+                    const rentalStatus =
+                        card.getAttribute("data-rental-status");
+
+                    const shouldShow =
+                        selectedStatus === "all" ||
+                        rentalStatus === selectedStatus;
+
+                    card.classList.toggle("d-none", !shouldShow);
+
+                    if (shouldShow) {
+                        visibleCount++;
+                    }
+                });
+
+                if (filterEmpty) {
+                    filterEmpty.classList.toggle(
+                        "d-none",
+                        visibleCount > 0
+                    );
+                }
+            });
+        });
+    </script>
+}

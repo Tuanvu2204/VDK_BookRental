@@ -1,0 +1,697 @@
+﻿@model VDK_BookRental.Models.Rental
+
+@{
+    ViewData["Title"] = "Hóa đơn thuê sách";
+
+    var paymentStatus =
+        Model.Payment?.Status ?? "Pending";
+
+    var customerName =
+        !string.IsNullOrWhiteSpace(Model.User?.FullName)
+            ? Model.User.FullName
+            : Model.User?.UserName ?? "Không xác định";
+
+    var details =
+        Model.RentalDetails?.ToList()
+        ?? new List<VDK_BookRental.Models.RentalDetail>();
+
+    var totalQuantity =
+        details.Sum(item => item.Quantity);
+
+    string GetRentalStatusText(string? status)
+    {
+        return status switch
+        {
+            "Pending" => "Chờ duyệt",
+            "Approved" => "Đã duyệt",
+            "Borrowing" => "Đang thuê",
+            "Returned" => "Đã trả",
+            "Cancelled" => "Đã hủy",
+            _ => status ?? "Không xác định"
+        };
+    }
+
+    string GetPaymentStatusText(string? status)
+    {
+        return status switch
+        {
+            "Pending" => "Chờ thanh toán",
+            "AwaitingConfirmation" => "Chờ xác nhận",
+            "Paid" => "Đã thanh toán",
+            "Completed" => "Đã hoàn tất",
+            "Rejected" => "Bị từ chối",
+            "Cancelled" => "Đã hủy",
+            _ => status ?? "Không xác định"
+        };
+    }
+
+    string GetPaymentStatusClass(string? status)
+    {
+        return status switch
+        {
+            "Paid" => "receipt-status-success",
+            "Completed" => "receipt-status-success",
+            "AwaitingConfirmation" => "receipt-status-info",
+            "Rejected" => "receipt-status-danger",
+            "Cancelled" => "receipt-status-secondary",
+            _ => "receipt-status-warning"
+        };
+    }
+}
+
+<style>
+    .receipt-page {
+        min-height: 100vh;
+        padding: 34px 0 64px;
+        background: radial-gradient( circle at top right, rgba(13, 110, 253, 0.1), transparent 31% ), #f5f7fb;
+    }
+
+    .receipt-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        max-width: 970px;
+        margin: 0 auto 18px;
+    }
+
+    .receipt-toolbar-title h1 {
+        margin: 0;
+        color: #172033;
+        font-size: clamp(1.65rem, 3vw, 2.2rem);
+        font-weight: 900;
+    }
+
+    .receipt-toolbar-title p {
+        margin: 6px 0 0;
+        color: #6c757d;
+    }
+
+    .receipt-toolbar-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 9px;
+    }
+
+    .receipt-toolbar-button {
+        min-height: 44px;
+        padding: 9px 16px;
+        border-radius: 12px;
+        font-weight: 800;
+    }
+
+    .receipt-sheet {
+        max-width: 970px;
+        margin: 0 auto;
+        overflow: hidden;
+        border: 1px solid #e8ecf1;
+        border-radius: 24px;
+        background: #ffffff;
+        box-shadow: 0 18px 50px rgba(24, 39, 75, 0.11);
+    }
+
+    .receipt-top {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 30px 34px;
+        color: #ffffff;
+        background: linear-gradient( 135deg, #0d6efd, #111827 );
+    }
+
+    .receipt-brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .receipt-brand-icon {
+        width: 55px;
+        height: 55px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 17px;
+        background: rgba(255, 255, 255, 0.14);
+        font-size: 1.55rem;
+    }
+
+    .receipt-brand h2 {
+        margin: 0;
+        font-size: 1.4rem;
+        font-weight: 900;
+    }
+
+    .receipt-brand p {
+        margin: 4px 0 0;
+        color: rgba(255, 255, 255, 0.76);
+        font-size: 0.88rem;
+    }
+
+    .receipt-number {
+        text-align: right;
+    }
+
+    .receipt-number-label {
+        color: rgba(255, 255, 255, 0.72);
+        font-size: 0.82rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .receipt-number-value {
+        margin-top: 4px;
+        font-size: 1.25rem;
+        font-weight: 900;
+    }
+
+    .receipt-body {
+        padding: 30px 34px 34px;
+    }
+
+    .receipt-section-title {
+        margin-bottom: 14px;
+        color: #172033;
+        font-size: 1rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.035em;
+    }
+
+    .receipt-info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 13px;
+    }
+
+    .receipt-info-item {
+        padding: 14px 15px;
+        border: 1px solid #edf0f4;
+        border-radius: 14px;
+        background: #fbfcfe;
+    }
+
+    .receipt-info-label {
+        display: block;
+        margin-bottom: 5px;
+        color: #7a8494;
+        font-size: 0.8rem;
+        font-weight: 700;
+    }
+
+    .receipt-info-value {
+        color: #172033;
+        font-weight: 850;
+    }
+
+    .receipt-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 850;
+    }
+
+    .receipt-status-success {
+        color: #146c43;
+        background: #d1e7dd;
+    }
+
+    .receipt-status-info {
+        color: #087990;
+        background: #cff4fc;
+    }
+
+    .receipt-status-warning {
+        color: #997404;
+        background: #fff3cd;
+    }
+
+    .receipt-status-danger {
+        color: #b02a37;
+        background: #f8d7da;
+    }
+
+    .receipt-status-secondary {
+        color: #495057;
+        background: #e2e3e5;
+    }
+
+    .receipt-divider {
+        margin: 25px 0;
+        border-top: 1px dashed #dfe4ea;
+    }
+
+    .receipt-table {
+        min-width: 760px;
+        margin: 0;
+    }
+
+        .receipt-table thead th {
+            padding: 13px 14px;
+            border-bottom: 1px solid #e6eaf0;
+            color: #5f6b7a;
+            background: #f8fafc;
+            font-size: 0.8rem;
+            font-weight: 850;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .receipt-table tbody td {
+            padding: 15px 14px;
+            border-color: #edf0f4;
+            vertical-align: middle;
+        }
+
+    .receipt-book-title {
+        color: #172033;
+        font-weight: 850;
+    }
+
+    .receipt-book-subtext {
+        margin-top: 3px;
+        color: #7a8494;
+        font-size: 0.8rem;
+    }
+
+    .receipt-money {
+        font-weight: 850;
+        white-space: nowrap;
+    }
+
+    .receipt-summary {
+        width: min(100%, 390px);
+        margin: 24px 0 0 auto;
+        padding: 18px;
+        border: 1px solid #e8ecf1;
+        border-radius: 17px;
+        background: #fbfcfe;
+    }
+
+    .receipt-summary-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 7px 0;
+        color: #495057;
+    }
+
+        .receipt-summary-row.total {
+            margin-top: 8px;
+            padding-top: 14px;
+            border-top: 1px dashed #dce2e9;
+            color: #172033;
+            font-size: 1.14rem;
+            font-weight: 900;
+        }
+
+    .receipt-summary-total {
+        color: #dc3545;
+        font-size: 1.25rem;
+        font-weight: 950;
+        white-space: nowrap;
+    }
+
+    .receipt-note {
+        margin-top: 25px;
+        padding: 15px 17px;
+        border: 1px solid #b6effb;
+        border-radius: 14px;
+        color: #055160;
+        background: #cff4fc;
+        font-size: 0.88rem;
+    }
+
+    .receipt-footer {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 20px;
+        margin-top: 38px;
+        color: #6c757d;
+        font-size: 0.84rem;
+    }
+
+    .receipt-signature {
+        min-width: 230px;
+        text-align: center;
+    }
+
+        .receipt-signature strong {
+            display: block;
+            margin-bottom: 55px;
+            color: #172033;
+        }
+
+    @@media (max-width: 767.98px) {
+        .receipt-page {
+            padding-top: 22px;
+        }
+
+        .receipt-toolbar {
+            align-items: stretch;
+        }
+
+        .receipt-toolbar-actions,
+        .receipt-toolbar-button {
+            width: 100%;
+        }
+
+        .receipt-top,
+        .receipt-body {
+            padding-left: 20px;
+            padding-right: 20px;
+        }
+
+        .receipt-number {
+            text-align: left;
+        }
+
+        .receipt-info-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media print {
+        body {
+            background: #ffffff !important;
+        }
+
+        header,
+        footer,
+        nav,
+        .receipt-toolbar {
+            display: none !important;
+        }
+
+        .receipt-page {
+            min-height: auto;
+            padding: 0;
+            background: #ffffff;
+        }
+
+        .receipt-sheet {
+            max-width: none;
+            border: none;
+            border-radius: 0;
+            box-shadow: none;
+        }
+
+        .receipt-top {
+            color: #000000 !important;
+            background: #ffffff !important;
+            border-bottom: 2px solid #000000;
+        }
+
+        .receipt-brand p,
+        .receipt-number-label {
+            color: #333333 !important;
+        }
+
+        .receipt-brand-icon {
+            border: 1px solid #000000;
+            background: #ffffff;
+        }
+
+        .receipt-status {
+            border: 1px solid #777777;
+            color: #000000 !important;
+            background: #ffffff !important;
+        }
+
+        .receipt-note {
+            color: #000000;
+            background: #ffffff;
+        }
+
+        @@page {
+            margin: 14mm;
+        }
+    }
+</style>
+
+<div class="receipt-page">
+    <div class="container">
+
+        <div class="receipt-toolbar">
+            <div class="receipt-toolbar-title">
+                <h1>
+                    <i class="bi bi-receipt-cutoff me-2 text-primary"></i>
+                    Hóa đơn thuê sách
+                </h1>
+
+                <p>
+                    Kiểm tra thông tin trước khi in hoặc lưu thành PDF.
+                </p>
+            </div>
+
+            <div class="receipt-toolbar-actions">
+                <button type="button"
+                        class="btn btn-primary receipt-toolbar-button"
+                        onclick="window.print()">
+                    <i class="bi bi-printer-fill me-2"></i>
+                    In / Lưu PDF
+                </button>
+
+                <button type="button"
+                        class="btn btn-outline-secondary receipt-toolbar-button"
+                        onclick="history.back()">
+                    <i class="bi bi-arrow-left me-2"></i>
+                    Quay lại
+                </button>
+            </div>
+        </div>
+
+        <article class="receipt-sheet">
+
+            <div class="receipt-top">
+                <div class="receipt-brand">
+                    <div class="receipt-brand-icon">
+                        <i class="bi bi-book-half"></i>
+                    </div>
+
+                    <div>
+                        <h2>VDK Book Rental</h2>
+                        <p>Hệ thống quản lý và cho thuê sách trực tuyến</p>
+                    </div>
+                </div>
+
+                <div class="receipt-number">
+                    <div class="receipt-number-label">
+                        Mã hóa đơn
+                    </div>
+
+                    <div class="receipt-number-value">
+                        #INV-@Model.Id.ToString("D5")
+                    </div>
+                </div>
+            </div>
+
+            <div class="receipt-body">
+
+                <div class="receipt-section-title">
+                    Thông tin khách hàng
+                </div>
+
+                <div class="receipt-info-grid">
+                    <div class="receipt-info-item">
+                        <span class="receipt-info-label">Họ và tên</span>
+                        <div class="receipt-info-value">@customerName</div>
+                    </div>
+
+                    <div class="receipt-info-item">
+                        <span class="receipt-info-label">Tên đăng nhập</span>
+                        <div class="receipt-info-value">
+                            @(Model.User?.UserName ?? "Không xác định")
+                        </div>
+                    </div>
+
+                    <div class="receipt-info-item">
+                        <span class="receipt-info-label">Email</span>
+                        <div class="receipt-info-value">
+                            @(string.IsNullOrWhiteSpace(Model.User?.Email)
+                                ? "Chưa cập nhật"
+                                : Model.User.Email)
+                        </div>
+                    </div>
+
+                    <div class="receipt-info-item">
+                        <span class="receipt-info-label">Số điện thoại</span>
+                        <div class="receipt-info-value">
+                            @(string.IsNullOrWhiteSpace(Model.User?.Phone)
+                                ? "Chưa cập nhật"
+                                : Model.User.Phone)
+                        </div>
+                    </div>
+                </div>
+
+                <div class="receipt-divider"></div>
+
+                <div class="receipt-section-title">
+                    Thông tin đơn thuê
+                </div>
+
+                <div class="receipt-info-grid">
+                    <div class="receipt-info-item">
+                        <span class="receipt-info-label">Mã đơn thuê</span>
+                        <div class="receipt-info-value">
+                            #RENT-@Model.Id.ToString("D4")
+                        </div>
+                    </div>
+
+                    <div class="receipt-info-item">
+                        <span class="receipt-info-label">Ngày lập đơn</span>
+                        <div class="receipt-info-value">
+                            @Model.RentalDate.ToString("dd/MM/yyyy")
+                        </div>
+                    </div>
+
+                    <div class="receipt-info-item">
+                        <span class="receipt-info-label">Ngày trả dự kiến</span>
+                        <div class="receipt-info-value">
+                            @Model.ReturnDate.ToString("dd/MM/yyyy")
+                        </div>
+                    </div>
+
+                    <div class="receipt-info-item">
+                        <span class="receipt-info-label">Trạng thái đơn</span>
+                        <div class="receipt-info-value">
+                            @GetRentalStatusText(Model.Status)
+                        </div>
+                    </div>
+
+                    <div class="receipt-info-item">
+                        <span class="receipt-info-label">
+                            Trạng thái thanh toán
+                        </span>
+
+                        <span class="receipt-status @GetPaymentStatusClass(paymentStatus)">
+                            <i class="bi bi-credit-card"></i>
+                            @GetPaymentStatusText(paymentStatus)
+                        </span>
+                    </div>
+
+                    <div class="receipt-info-item">
+                        <span class="receipt-info-label">
+                            Phương thức thanh toán
+                        </span>
+
+                        <div class="receipt-info-value">
+                            @(string.IsNullOrWhiteSpace(Model.Payment?.PaymentMethod)
+                                ? "Chưa chọn"
+                                : Model.Payment.PaymentMethod)
+                        </div>
+                    </div>
+                </div>
+
+                <div class="receipt-divider"></div>
+
+                <div class="receipt-section-title">
+                    Danh sách sách thuê
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table receipt-table align-middle">
+                        <thead>
+                            <tr>
+                                <th>Sách</th>
+                                <th class="text-center">Số lượng</th>
+                                <th class="text-center">Số ngày</th>
+                                <th class="text-end">Đơn giá/ngày</th>
+                                <th class="text-end">Thành tiền</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @if (details.Any())
+                            {
+                                @foreach (var detail in details)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="receipt-book-title">
+                                                @(detail.Book?.Title ?? "Sách không tồn tại")
+                                            </div>
+
+                                            <div class="receipt-book-subtext">
+                                                Mã sách: #BOOK-@detail.BookId.ToString("D3")
+                                            </div>
+                                        </td>
+
+                                        <td class="text-center">@detail.Quantity</td>
+                                        <td class="text-center">@detail.RentalDays ngày</td>
+
+                                        <td class="text-end receipt-money">
+                                            @detail.Price.ToString("N0") VNĐ
+                                        </td>
+
+                                        <td class="text-end receipt-money">
+                                            @detail.SubTotal.ToString("N0") VNĐ
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="5"
+                                        class="text-center text-muted py-5">
+                                        Không có dữ liệu sách trong đơn thuê này.
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="receipt-summary">
+                    <div class="receipt-summary-row">
+                        <span>Tổng số đầu sách</span>
+                        <strong>@details.Count</strong>
+                    </div>
+
+                    <div class="receipt-summary-row">
+                        <span>Tổng số lượng</span>
+                        <strong>@totalQuantity cuốn</strong>
+                    </div>
+
+                    <div class="receipt-summary-row total">
+                        <span>Tổng thanh toán</span>
+
+                        <span class="receipt-summary-total">
+                            @Model.TotalAmount.ToString("N0") VNĐ
+                        </span>
+                    </div>
+                </div>
+
+                <div class="receipt-note">
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                    Vui lòng giữ hóa đơn này để đối chiếu khi nhận và trả sách.
+                    Hóa đơn được tạo tự động từ hệ thống VDK Book Rental.
+                </div>
+
+                <div class="receipt-footer">
+                    <div>
+                        <strong>VDK Book Rental</strong><br />
+                        Ngày in: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")
+                    </div>
+
+                    <div class="receipt-signature">
+                        <strong>Người lập hóa đơn</strong>
+                        Hệ thống tự động
+                    </div>
+                </div>
+
+            </div>
+        </article>
+
+    </div>
+</div>

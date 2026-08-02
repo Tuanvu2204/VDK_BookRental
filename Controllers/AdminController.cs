@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VDK_BookRental.Data;
 using VDK_BookRental.Models;
@@ -9,665 +10,770 @@ namespace VDK_BookRental.Controllers
     public class AdminController : Controller
     {
         private readonly AppDbContext _context;
-        private readonly IWebHostEnvironment _environment;
 
-        private static readonly string[] AllowedImageExtensions =
+        private readonly ILogger<AdminController>
+            _logger;
+
+        private static readonly string[] AllowedRoles =
         {
-            ".jpg",
-            ".jpeg",
-            ".png",
-            ".webp"
+            "Admin",
+            "Staff",
+            "Customer"
         };
-
-        private const long MaximumImageSize = 5 * 1024 * 1024;
 
         public AdminController(
             AppDbContext context,
-            IWebHostEnvironment environment)
+            ILogger<AdminController> logger)
         {
             _context = context;
-            _environment = environment;
+            _logger = logger;
         }
 
         // =====================================================
         // DASHBOARD ADMIN
+        // URL: /Admin
         // =====================================================
 
-        public IActionResult Index()
+        [HttpGet]
+        public async Task<IActionResult> Index()
         {
-            var accessResult = CheckAdminAccess();
-
-            if (accessResult != null)
+            if (!IsAdmin())
             {
-                return accessResult;
+                return RedirectToLogin();
             }
 
-            ViewBag.TotalUsers = _context.Users.Count();
+            try
+            {
+                ViewBag.TotalUsers =
+                    await _context.Users
+                        .AsNoTracking()
+                        .CountAsync();
 
-            ViewBag.TotalCustomers = _context.Users
-                .Count(u => u.Role == "Customer");
+                ViewBag.TotalStaff =
+                    await _context.Users
+                        .AsNoTracking()
+                        .CountAsync(user =>
+                            user.Role == "Staff");
 
-            ViewBag.TotalStaff = _context.Users
-                .Count(u => u.Role == "Staff");
+                ViewBag.TotalCustomers =
+                    await _context.Users
+                        .AsNoTracking()
+                        .CountAsync(user =>
+                            user.Role == "Customer");
 
-            ViewBag.TotalBooks = _context.Books.Count();
+                ViewBag.TotalBooks =
+                    await _context.Books
+                        .AsNoTracking()
+                        .CountAsync();
 
-            ViewBag.TotalRentals = _context.Rentals.Count();
+                ViewBag.TotalRentals =
+                    await _context.Rentals
+                        .AsNoTracking()
+                        .CountAsync();
 
-            ViewBag.PendingPayments = _context.Payments
-                .Count(p =>
-                    p.Status == "Pending" ||
-                    p.Status == "AwaitingConfirmation");
+                ViewBag.PendingPayments =
+                    await _context.Payments
+                        .AsNoTracking()
+                        .CountAsync(payment =>
+                            payment.Status == "Pending" ||
+                            payment.Status ==
+                                "AwaitingConfirmation");
 
-            return View();
+                return View();
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(
+                    exception,
+                    "Không thể tải Dashboard Admin.");
+
+                TempData["ErrorMessage"] =
+                    "Không thể tải đầy đủ số liệu quản trị.";
+
+                return View();
+            }
         }
 
         // =====================================================
         // QUẢN LÝ NGƯỜI DÙNG
-        // =====================================================
-
-        public IActionResult Users()
-        {
-            var accessResult = CheckAdminAccess();
-
-            if (accessResult != null)
-            {
-                return accessResult;
-            }
-
-            var users = _context.Users
-                .AsNoTracking()
-                .OrderByDescending(u => u.CreatedAt)
-                .ToList();
-
-            return View(users);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult ChangeRole(
-            int userId,
-            string role)
-        {
-            var accessResult = CheckAdminAccess();
-
-            if (accessResult != null)
-            {
-                return accessResult;
-            }
-
-            var allowedRoles = new[]
-            {
-                "Admin",
-                "Staff",
-                "Customer"
-            };
-
-            if (!allowedRoles.Contains(role))
-            {
-                TempData["ErrorMessage"] =
-                    "Quyền được chọn không hợp lệ.";
-
-                return RedirectToAction(nameof(Users));
-            }
-
-            var user = _context.Users
-                .FirstOrDefault(u => u.Id == userId);
-
-            if (user == null)
-            {
-                return NotFound();
-            }
-
-            var currentUserIdText =
-                HttpContext.Session.GetString("UserId");
-
-            int.TryParse(
-                currentUserIdText,
-                out var currentUserId);
-
-            if (currentUserId == userId &&
-                role != "Admin")
-            {
-                TempData["ErrorMessage"] =
-                    "Bạn không thể tự hạ quyền Admin của mình.";
-
-                return RedirectToAction(nameof(Users));
-            }
-
-            user.Role = role;
-
-            _context.SaveChanges();
-
-            TempData["SuccessMessage"] =
-                $"Đã đổi quyền của {user.FullName} thành {role}.";
-
-            return RedirectToAction(nameof(Users));
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult ToggleLock(int userId)
-        {
-            var accessResult = CheckAdminAccess();
-
-            if (accessResult != null)
-            {
-                return accessResult;
-            }
-
-            var currentUserIdText =
-                HttpContext.Session.GetString("UserId");
-
-            int.TryParse(
-                currentUserIdText,
-                out var currentUserId);
-
-            if (currentUserId == userId)
-            {
-                TempData["ErrorMessage"] =
-                    "Bạn không thể tự khóa tài khoản của mình.";
-
-                return RedirectToAction(nameof(Users));
-            }
-
-            var user = _context.Users
-                .FirstOrDefault(u => u.Id == userId);
-
-            if (user == null)
-            {
-                return NotFound();
-            }
-
-            user.IsLocked = !user.IsLocked;
-
-            _context.SaveChanges();
-
-            TempData["SuccessMessage"] =
-                user.IsLocked
-                    ? $"Đã khóa tài khoản {user.FullName}."
-                    : $"Đã mở khóa tài khoản {user.FullName}.";
-
-            return RedirectToAction(nameof(Users));
-        }
-
-        // =====================================================
-        // QUẢN LÝ SÁCH
-        // =====================================================
-
-        public IActionResult Books()
-        {
-            var accessResult = CheckAdminAccess();
-
-            if (accessResult != null)
-            {
-                return accessResult;
-            }
-
-            var books = _context.Books
-                .AsNoTracking()
-                .Include(b => b.Category)
-                .OrderByDescending(b => b.Id)
-                .ToList();
-
-            return View(books);
-        }
-
-        // =====================================================
-        // THÊM SÁCH
+        // URL: /Admin/Users
         // =====================================================
 
         [HttpGet]
-        public IActionResult CreateBook()
+        public async Task<IActionResult> Users(
+            string? search,
+            string? role,
+            string? status)
         {
-            var accessResult = CheckAdminAccess();
-
-            if (accessResult != null)
+            if (!IsAdmin())
             {
-                return accessResult;
+                return RedirectToLogin();
             }
 
-            LoadCategories();
+            var currentUserId =
+                GetCurrentUserId() ?? 0;
 
-            return View(new BookFormViewModel());
-        }
+            var normalizedSearch =
+                search?.Trim() ?? string.Empty;
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreateBook(
-            BookFormViewModel model)
-        {
-            var accessResult = CheckAdminAccess();
+            var normalizedRole =
+                NormalizeFilterRole(role);
 
-            if (accessResult != null)
-            {
-                return accessResult;
-            }
-
-            ValidateImage(model.ImageFile, imageRequired: true);
-
-            if (!ModelState.IsValid)
-            {
-                LoadCategories();
-
-                return View(model);
-            }
-
-            string imageUrl;
+            var normalizedStatus =
+                NormalizeStatus(status);
 
             try
             {
-                imageUrl = await SaveImageAsync(model.ImageFile!);
+                var usersQuery =
+                    _context.Users
+                        .AsNoTracking()
+                        .AsQueryable();
+
+                // =============================================
+                // TÌM KIẾM
+                // =============================================
+
+                if (!string.IsNullOrWhiteSpace(
+                        normalizedSearch))
+                {
+                    var searchPattern =
+                        $"%{normalizedSearch}%";
+
+                    usersQuery =
+                        usersQuery.Where(user =>
+                            EF.Functions.Like(
+                                user.UserName,
+                                searchPattern)
+                            ||
+                            EF.Functions.Like(
+                                user.FullName,
+                                searchPattern)
+                            ||
+                            EF.Functions.Like(
+                                user.Email,
+                                searchPattern)
+                            ||
+                            (
+                                user.Phone != null
+                                &&
+                                EF.Functions.Like(
+                                    user.Phone,
+                                    searchPattern)
+                            ));
+                }
+
+                // =============================================
+                // LỌC QUYỀN
+                // =============================================
+
+                if (!string.IsNullOrWhiteSpace(
+                        normalizedRole))
+                {
+                    usersQuery =
+                        usersQuery.Where(user =>
+                            user.Role ==
+                            normalizedRole);
+                }
+
+                // =============================================
+                // LỌC TRẠNG THÁI
+                // =============================================
+
+                if (normalizedStatus == "Active")
+                {
+                    usersQuery =
+                        usersQuery.Where(user =>
+                            !user.IsLocked);
+                }
+                else if (normalizedStatus == "Locked")
+                {
+                    usersQuery =
+                        usersQuery.Where(user =>
+                            user.IsLocked);
+                }
+
+                var users =
+                    await usersQuery
+                        .OrderBy(user =>
+                            user.IsLocked)
+                        .ThenBy(user =>
+                            user.Role == "Admin"
+                                ? 0
+                                : user.Role == "Staff"
+                                    ? 1
+                                    : 2)
+                        .ThenBy(user =>
+                            user.FullName)
+                        .ThenBy(user =>
+                            user.Id)
+                        .ToListAsync();
+
+                // =============================================
+                // ĐẾM ĐƠN THUÊ
+                // =============================================
+
+                var userIds =
+                    users
+                        .Select(user => user.Id)
+                        .ToList();
+
+                var rentalCounts =
+                    userIds.Count == 0
+                        ? new Dictionary<int, int>()
+                        : await _context.Rentals
+                            .AsNoTracking()
+                            .Where(rental =>
+                                userIds.Contains(
+                                    rental.UserId))
+                            .GroupBy(rental =>
+                                rental.UserId)
+                            .Select(group =>
+                                new
+                                {
+                                    UserId = group.Key,
+                                    Count = group.Count()
+                                })
+                            .ToDictionaryAsync(
+                                item => item.UserId,
+                                item => item.Count);
+
+                // =============================================
+                // THỐNG KÊ TOÀN HỆ THỐNG
+                // =============================================
+
+                var allUsers =
+                    await _context.Users
+                        .AsNoTracking()
+                        .Select(user =>
+                            new
+                            {
+                                user.Role,
+                                user.IsLocked
+                            })
+                        .ToListAsync();
+
+                var model =
+                    new AdminUsersViewModel
+                    {
+                        Search =
+                            normalizedSearch,
+
+                        RoleFilter =
+                            normalizedRole,
+
+                        StatusFilter =
+                            normalizedStatus,
+
+                        CurrentUserId =
+                            currentUserId,
+
+                        TotalUsers =
+                            allUsers.Count,
+
+                        ActiveUsers =
+                            allUsers.Count(user =>
+                                !user.IsLocked),
+
+                        LockedUsers =
+                            allUsers.Count(user =>
+                                user.IsLocked),
+
+                        AdminUsers =
+                            allUsers.Count(user =>
+                                user.Role == "Admin"),
+
+                        StaffUsers =
+                            allUsers.Count(user =>
+                                user.Role == "Staff"),
+
+                        CustomerUsers =
+                            allUsers.Count(user =>
+                                user.Role == "Customer"),
+
+                        Users =
+                            users.Select(user =>
+                                new AdminUserItemViewModel
+                                {
+                                    Id =
+                                        user.Id,
+
+                                    UserName =
+                                        user.UserName ??
+                                        string.Empty,
+
+                                    FullName =
+                                        user.FullName ??
+                                        string.Empty,
+
+                                    Email =
+                                        user.Email ??
+                                        string.Empty,
+
+                                    Phone =
+                                        user.Phone ??
+                                        string.Empty,
+
+                                    Role =
+                                        NormalizeRole(
+                                            user.Role),
+
+                                    AvatarUrl =
+                                        user.AvatarUrl ??
+                                        string.Empty,
+
+                                    IsLocked =
+                                        user.IsLocked,
+
+                                    CreatedAt =
+                                        user.CreatedAt,
+
+                                    RentalCount =
+                                        rentalCounts.TryGetValue(
+                                            user.Id,
+                                            out var count)
+                                                ? count
+                                                : 0,
+
+                                    IsCurrentUser =
+                                        user.Id ==
+                                        currentUserId
+                                })
+                            .ToList()
+                    };
+
+                return View(
+                    "~/Views/Admin/Users.cshtml",
+                    model);
             }
-            catch (IOException)
+            catch (Exception exception)
             {
-                ModelState.AddModelError(
-                    nameof(model.ImageFile),
-                    "Không thể lưu ảnh. Vui lòng thử lại.");
+                _logger.LogError(
+                    exception,
+                    "Không thể tải danh sách người dùng.");
 
-                LoadCategories();
+                TempData["ErrorMessage"] =
+                    "Không thể tải danh sách người dùng.";
 
-                return View(model);
+                return View(
+                    "~/Views/Admin/Users.cshtml",
+                    new AdminUsersViewModel
+                    {
+                        Search =
+                            normalizedSearch,
+
+                        RoleFilter =
+                            normalizedRole,
+
+                        StatusFilter =
+                            normalizedStatus,
+
+                        CurrentUserId =
+                            currentUserId
+                    });
             }
-
-            var book = new Book
-            {
-                Title = model.Title.Trim(),
-                Author = model.Author.Trim(),
-                CategoryId = model.CategoryId,
-                RentalPrice = model.RentalPrice,
-                Quantity = model.Quantity,
-                Description = model.Description?.Trim(),
-                ImageUrl = imageUrl,
-                Status = model.Quantity > 0
-                    ? "Còn sách"
-                    : "Hết sách"
-            };
-
-            _context.Books.Add(book);
-
-            await _context.SaveChangesAsync();
-
-            TempData["SuccessMessage"] =
-                $"Đã thêm sách \"{book.Title}\".";
-
-            return RedirectToAction(nameof(Books));
         }
 
         // =====================================================
-        // SỬA SÁCH
+        // CẬP NHẬT QUYỀN
         // =====================================================
-
-        [HttpGet]
-        public IActionResult EditBook(int id)
-        {
-            var accessResult = CheckAdminAccess();
-
-            if (accessResult != null)
-            {
-                return accessResult;
-            }
-
-            var book = _context.Books
-                .AsNoTracking()
-                .FirstOrDefault(b => b.Id == id);
-
-            if (book == null)
-            {
-                return NotFound();
-            }
-
-            var model = new BookFormViewModel
-            {
-                Id = book.Id,
-                Title = book.Title,
-                Author = book.Author,
-                CategoryId = book.CategoryId,
-                RentalPrice = book.RentalPrice,
-                Quantity = book.Quantity,
-                Description = book.Description,
-                ExistingImageUrl = book.ImageUrl
-            };
-
-            LoadCategories();
-
-            return View(model);
-        }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> EditBook(
-            BookFormViewModel model)
+        public async Task<IActionResult> UpdateRole(
+            int id,
+            string? role,
+            string? search,
+            string? filterRole,
+            string? status)
         {
-            var accessResult = CheckAdminAccess();
-
-            if (accessResult != null)
+            if (!IsAdmin())
             {
-                return accessResult;
+                return RedirectToLogin();
             }
 
-            ValidateImage(model.ImageFile, imageRequired: false);
+            var normalizedRole =
+                NormalizeRole(role);
 
-            if (!ModelState.IsValid)
-            {
-                LoadCategories();
-
-                return View(model);
-            }
-
-            var book = await _context.Books
-                .FirstOrDefaultAsync(b => b.Id == model.Id);
-
-            if (book == null)
-            {
-                return NotFound();
-            }
-
-            var oldImageUrl = book.ImageUrl;
-
-            if (model.ImageFile != null)
-            {
-                try
-                {
-                    var newImageUrl =
-                        await SaveImageAsync(model.ImageFile);
-
-                    book.ImageUrl = newImageUrl;
-
-                    DeleteImageIfOwned(oldImageUrl);
-                }
-                catch (IOException)
-                {
-                    ModelState.AddModelError(
-                        nameof(model.ImageFile),
-                        "Không thể lưu ảnh mới. Vui lòng thử lại.");
-
-                    model.ExistingImageUrl = oldImageUrl;
-
-                    LoadCategories();
-
-                    return View(model);
-                }
-            }
-
-            book.Title = model.Title.Trim();
-            book.Author = model.Author.Trim();
-            book.CategoryId = model.CategoryId;
-            book.RentalPrice = model.RentalPrice;
-            book.Quantity = model.Quantity;
-            book.Description = model.Description?.Trim();
-
-            book.Status = model.Quantity > 0
-                ? "Còn sách"
-                : "Hết sách";
-
-            await _context.SaveChangesAsync();
-
-            TempData["SuccessMessage"] =
-                $"Đã cập nhật sách \"{book.Title}\".";
-
-            return RedirectToAction(nameof(Books));
-        }
-
-        // =====================================================
-        // XÓA SÁCH
-        // =====================================================
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteBook(int id)
-        {
-            var accessResult = CheckAdminAccess();
-
-            if (accessResult != null)
-            {
-                return accessResult;
-            }
-
-            var book = await _context.Books
-                .FirstOrDefaultAsync(b => b.Id == id);
-
-            if (book == null)
-            {
-                return NotFound();
-            }
-
-            var hasRentalDetails = await _context.RentalDetails
-                .AnyAsync(rd => rd.BookId == id);
-
-            if (hasRentalDetails)
+            if (!AllowedRoles.Contains(
+                    normalizedRole,
+                    StringComparer.OrdinalIgnoreCase))
             {
                 TempData["ErrorMessage"] =
-                    "Không thể xóa sách đã từng phát sinh đơn thuê.";
+                    "Quyền tài khoản không hợp lệ.";
 
-                return RedirectToAction(nameof(Books));
+                return RedirectToFilteredUsers(
+                    search,
+                    filterRole,
+                    status);
             }
 
-            var imageUrl = book.ImageUrl;
-
-            _context.Books.Remove(book);
-
-            await _context.SaveChangesAsync();
-
-            DeleteImageIfOwned(imageUrl);
-
-            TempData["SuccessMessage"] =
-                $"Đã xóa sách \"{book.Title}\".";
-
-            return RedirectToAction(nameof(Books));
-        }
-
-        // =====================================================
-        // KIỂM TRA FILE ẢNH
-        // =====================================================
-
-        private void ValidateImage(
-            IFormFile? imageFile,
-            bool imageRequired)
-        {
-            if (imageFile == null || imageFile.Length == 0)
+            try
             {
-                if (imageRequired)
+                var user =
+                    await _context.Users
+                        .FirstOrDefaultAsync(item =>
+                            item.Id == id);
+
+                if (user == null)
                 {
-                    ModelState.AddModelError(
-                        nameof(BookFormViewModel.ImageFile),
-                        "Vui lòng chọn ảnh bìa sách.");
+                    TempData["ErrorMessage"] =
+                        "Không tìm thấy tài khoản.";
+
+                    return RedirectToFilteredUsers(
+                        search,
+                        filterRole,
+                        status);
                 }
 
-                return;
+                var currentUserId =
+                    GetCurrentUserId();
+
+                // Không tự hạ quyền Admin đang đăng nhập.
+                if (currentUserId == user.Id &&
+                    normalizedRole != "Admin")
+                {
+                    TempData["ErrorMessage"] =
+                        "Bạn không thể tự hạ quyền tài khoản Admin đang đăng nhập.";
+
+                    return RedirectToFilteredUsers(
+                        search,
+                        filterRole,
+                        status);
+                }
+
+                // Không được hạ quyền Admin hoạt động cuối cùng.
+                if (user.Role == "Admin" &&
+                    normalizedRole != "Admin" &&
+                    !user.IsLocked)
+                {
+                    var activeAdminCount =
+                        await _context.Users
+                            .CountAsync(item =>
+                                item.Role == "Admin" &&
+                                !item.IsLocked);
+
+                    if (activeAdminCount <= 1)
+                    {
+                        TempData["ErrorMessage"] =
+                            "Không thể hạ quyền quản trị viên hoạt động cuối cùng.";
+
+                        return RedirectToFilteredUsers(
+                            search,
+                            filterRole,
+                            status);
+                    }
+                }
+
+                if (string.Equals(
+                        user.Role,
+                        normalizedRole,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    TempData["InfoMessage"] =
+                        $"Tài khoản {GetDisplayName(user)} đã có quyền {GetRoleText(normalizedRole)}.";
+
+                    return RedirectToFilteredUsers(
+                        search,
+                        filterRole,
+                        status);
+                }
+
+                var oldRole =
+                    GetRoleText(user.Role);
+
+                user.Role =
+                    normalizedRole;
+
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] =
+                    $"Đã đổi quyền của {GetDisplayName(user)} " +
+                    $"từ {oldRole} thành {GetRoleText(normalizedRole)}.";
+
+                return RedirectToFilteredUsers(
+                    search,
+                    filterRole,
+                    status);
             }
-
-            var extension = Path
-                .GetExtension(imageFile.FileName)
-                .ToLowerInvariant();
-
-            if (!AllowedImageExtensions.Contains(extension))
+            catch (DbUpdateException exception)
             {
-                ModelState.AddModelError(
-                    nameof(BookFormViewModel.ImageFile),
-                    "Chỉ chấp nhận ảnh JPG, JPEG, PNG hoặc WEBP.");
+                _logger.LogError(
+                    exception,
+                    "Lỗi cập nhật quyền UserId {UserId}.",
+                    id);
+
+                TempData["ErrorMessage"] =
+                    "Database không thể cập nhật quyền tài khoản.";
+
+                return RedirectToFilteredUsers(
+                    search,
+                    filterRole,
+                    status);
             }
-
-            if (imageFile.Length > MaximumImageSize)
+            catch (Exception exception)
             {
-                ModelState.AddModelError(
-                    nameof(BookFormViewModel.ImageFile),
-                    "Dung lượng ảnh không được vượt quá 5 MB.");
-            }
+                _logger.LogError(
+                    exception,
+                    "Lỗi cập nhật quyền UserId {UserId}.",
+                    id);
 
-            var allowedContentTypes = new[]
-            {
-                "image/jpeg",
-                "image/png",
-                "image/webp"
-            };
+                TempData["ErrorMessage"] =
+                    "Đã xảy ra lỗi khi cập nhật quyền.";
 
-            if (!allowedContentTypes.Contains(
-                    imageFile.ContentType.ToLowerInvariant()))
-            {
-                ModelState.AddModelError(
-                    nameof(BookFormViewModel.ImageFile),
-                    "Nội dung file không phải định dạng ảnh hợp lệ.");
+                return RedirectToFilteredUsers(
+                    search,
+                    filterRole,
+                    status);
             }
         }
 
         // =====================================================
-        // LƯU ẢNH VÀO WWWROOT
+        // KHÓA / MỞ KHÓA
         // =====================================================
 
-        private async Task<string> SaveImageAsync(
-            IFormFile imageFile)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleLock(
+            int id,
+            string? search,
+            string? filterRole,
+            string? status)
         {
-            var uploadFolder = Path.Combine(
-                _environment.WebRootPath,
-                "images",
-                "books");
-
-            Directory.CreateDirectory(uploadFolder);
-
-            var extension = Path
-                .GetExtension(imageFile.FileName)
-                .ToLowerInvariant();
-
-            var originalName = Path
-                .GetFileNameWithoutExtension(imageFile.FileName);
-
-            var safeName = CreateSafeFileName(originalName);
-
-            var uniqueFileName =
-                $"{safeName}_{DateTime.Now:yyyyMMddHHmmss}_{Guid.NewGuid():N}{extension}";
-
-            var fullPath = Path.Combine(
-                uploadFolder,
-                uniqueFileName);
-
-            await using var stream =
-                new FileStream(
-                    fullPath,
-                    FileMode.CreateNew);
-
-            await imageFile.CopyToAsync(stream);
-
-            return $"/images/books/{uniqueFileName}";
-        }
-
-        // =====================================================
-        // TẠO TÊN FILE AN TOÀN
-        // =====================================================
-
-        private static string CreateSafeFileName(string fileName)
-        {
-            if (string.IsNullOrWhiteSpace(fileName))
+            if (!IsAdmin())
             {
-                return "book";
+                return RedirectToLogin();
             }
 
-            var invalidChars =
-                Path.GetInvalidFileNameChars();
-
-            var cleaned = new string(
-                fileName
-                    .Trim()
-                    .Select(character =>
-                        invalidChars.Contains(character)
-                            ? '-'
-                            : character)
-                    .ToArray());
-
-            cleaned = cleaned
-                .Replace(" ", "-")
-                .ToLowerInvariant();
-
-            return string.IsNullOrWhiteSpace(cleaned)
-                ? "book"
-                : cleaned;
-        }
-
-        // =====================================================
-        // XÓA ẢNH DO HỆ THỐNG UPLOAD
-        // =====================================================
-
-        private void DeleteImageIfOwned(string? imageUrl)
-        {
-            if (string.IsNullOrWhiteSpace(imageUrl))
+            try
             {
-                return;
+                var user =
+                    await _context.Users
+                        .FirstOrDefaultAsync(item =>
+                            item.Id == id);
+
+                if (user == null)
+                {
+                    TempData["ErrorMessage"] =
+                        "Không tìm thấy tài khoản.";
+
+                    return RedirectToFilteredUsers(
+                        search,
+                        filterRole,
+                        status);
+                }
+
+                var currentUserId =
+                    GetCurrentUserId();
+
+                if (currentUserId == user.Id)
+                {
+                    TempData["ErrorMessage"] =
+                        "Bạn không thể tự khóa tài khoản đang đăng nhập.";
+
+                    return RedirectToFilteredUsers(
+                        search,
+                        filterRole,
+                        status);
+                }
+
+                // Không khóa Admin hoạt động cuối cùng.
+                if (!user.IsLocked &&
+                    user.Role == "Admin")
+                {
+                    var activeAdminCount =
+                        await _context.Users
+                            .CountAsync(item =>
+                                item.Role == "Admin" &&
+                                !item.IsLocked);
+
+                    if (activeAdminCount <= 1)
+                    {
+                        TempData["ErrorMessage"] =
+                            "Không thể khóa quản trị viên hoạt động cuối cùng.";
+
+                        return RedirectToFilteredUsers(
+                            search,
+                            filterRole,
+                            status);
+                    }
+                }
+
+                user.IsLocked =
+                    !user.IsLocked;
+
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] =
+                    user.IsLocked
+                        ? $"Đã khóa tài khoản {GetDisplayName(user)}."
+                        : $"Đã mở khóa tài khoản {GetDisplayName(user)}.";
+
+                return RedirectToFilteredUsers(
+                    search,
+                    filterRole,
+                    status);
             }
-
-            const string uploadPrefix =
-                "/images/books/";
-
-            if (!imageUrl.StartsWith(
-                    uploadPrefix,
-                    StringComparison.OrdinalIgnoreCase))
+            catch (DbUpdateException exception)
             {
-                return;
+                _logger.LogError(
+                    exception,
+                    "Lỗi khóa hoặc mở khóa UserId {UserId}.",
+                    id);
+
+                TempData["ErrorMessage"] =
+                    "Database không thể cập nhật trạng thái tài khoản.";
+
+                return RedirectToFilteredUsers(
+                    search,
+                    filterRole,
+                    status);
             }
-
-            var fileName = Path.GetFileName(imageUrl);
-
-            if (string.IsNullOrWhiteSpace(fileName) ||
-                fileName.Equals(
-                    "default-book.jpg",
-                    StringComparison.OrdinalIgnoreCase))
+            catch (Exception exception)
             {
-                return;
-            }
+                _logger.LogError(
+                    exception,
+                    "Lỗi khóa hoặc mở khóa UserId {UserId}.",
+                    id);
 
-            var fullPath = Path.Combine(
-                _environment.WebRootPath,
-                "images",
-                "books",
-                fileName);
+                TempData["ErrorMessage"] =
+                    "Đã xảy ra lỗi khi cập nhật tài khoản.";
 
-            if (System.IO.File.Exists(fullPath))
-            {
-                System.IO.File.Delete(fullPath);
+                return RedirectToFilteredUsers(
+                    search,
+                    filterRole,
+                    status);
             }
         }
 
         // =====================================================
-        // NẠP DANH MỤC
+        // TRỢ GIÚP
         // =====================================================
 
-        private void LoadCategories()
-        {
-            ViewBag.Categories = _context.Categories
-                .AsNoTracking()
-                .OrderBy(c => c.Name)
-                .ToList();
-        }
-
-        // =====================================================
-        // KIỂM TRA QUYỀN ADMIN
-        // =====================================================
-
-        private IActionResult? CheckAdminAccess()
+        private bool IsAdmin()
         {
             var userId =
-                HttpContext.Session.GetString("UserId");
+                HttpContext.Session.GetString(
+                    "UserId");
 
             var userRole =
-                HttpContext.Session.GetString("UserRole");
+                HttpContext.Session.GetString(
+                    "UserRole");
 
-            if (string.IsNullOrWhiteSpace(userId))
+            return !string.IsNullOrWhiteSpace(userId)
+                   &&
+                   string.Equals(
+                       userRole?.Trim(),
+                       "Admin",
+                       StringComparison.OrdinalIgnoreCase);
+        }
+
+        private int? GetCurrentUserId()
+        {
+            var value =
+                HttpContext.Session.GetString(
+                    "UserId");
+
+            return int.TryParse(
+                value,
+                out var userId)
+                    ? userId
+                    : null;
+        }
+
+        private IActionResult RedirectToLogin()
+        {
+            TempData["ErrorMessage"] =
+                "Vui lòng đăng nhập bằng tài khoản Admin.";
+
+            return RedirectToAction(
+                "Login",
+                "Account");
+        }
+
+        private IActionResult RedirectToFilteredUsers(
+            string? search,
+            string? filterRole,
+            string? status)
+        {
+            return RedirectToAction(
+                nameof(Users),
+                new
+                {
+                    search,
+                    role = filterRole,
+                    status
+                });
+        }
+
+        private static string NormalizeFilterRole(
+            string? role)
+        {
+            var normalized =
+                NormalizeRole(role);
+
+            return AllowedRoles.Contains(
+                normalized,
+                StringComparer.OrdinalIgnoreCase)
+                    ? normalized
+                    : string.Empty;
+        }
+
+        private static string NormalizeStatus(
+            string? status)
+        {
+            return status?.Trim() switch
             {
-                TempData["ErrorMessage"] =
-                    "Vui lòng đăng nhập để tiếp tục.";
+                "Active" => "Active",
+                "Locked" => "Locked",
+                _ => string.Empty
+            };
+        }
 
-                return RedirectToAction(
-                    "Login",
-                    "Account");
+        private static string NormalizeRole(
+            string? role)
+        {
+            return role?.Trim().ToLowerInvariant() switch
+            {
+                "admin" => "Admin",
+                "administrator" => "Admin",
+
+                "staff" => "Staff",
+                "employee" => "Staff",
+
+                "customer" => "Customer",
+                "user" => "Customer",
+
+                _ => string.Empty
+            };
+        }
+
+        private static string GetRoleText(
+            string? role)
+        {
+            return NormalizeRole(role) switch
+            {
+                "Admin" => "Quản trị viên",
+                "Staff" => "Nhân viên",
+                _ => "Khách hàng"
+            };
+        }
+
+        private static string GetDisplayName(
+            User user)
+        {
+            if (!string.IsNullOrWhiteSpace(
+                    user.FullName))
+            {
+                return user.FullName.Trim();
             }
 
-            if (userRole != "Admin")
+            if (!string.IsNullOrWhiteSpace(
+                    user.UserName))
             {
-                return RedirectToAction(
-                    "AccessDenied",
-                    "Home");
+                return user.UserName.Trim();
             }
 
-            return null;
+            return $"ID {user.Id}";
         }
     }
 }

@@ -39,9 +39,25 @@ namespace VDK_BookRental.Controllers
                 return View(model);
             }
 
+            var normalizedUserName = model.UserName
+                .Trim()
+                .ToLower();
+
             var normalizedEmail = model.Email
                 .Trim()
                 .ToLower();
+
+            var userNameExists = _context.Users
+                .Any(u => u.UserName.ToLower() == normalizedUserName);
+
+            if (userNameExists)
+            {
+                ModelState.AddModelError(
+                    nameof(model.UserName),
+                    "Tên tài khoản này đã được sử dụng.");
+
+                return View(model);
+            }
 
             var emailExists = _context.Users
                 .Any(u => u.Email.ToLower() == normalizedEmail);
@@ -57,6 +73,7 @@ namespace VDK_BookRental.Controllers
 
             var user = new User
             {
+                UserName = normalizedUserName,
                 FullName = model.FullName.Trim(),
                 Email = normalizedEmail,
                 Phone = model.Phone.Trim(),
@@ -64,9 +81,7 @@ namespace VDK_BookRental.Controllers
                 PasswordHash = BCrypt.Net.BCrypt
                     .HashPassword(model.Password),
 
-                // Người tự đăng ký chỉ được cấp quyền Customer
                 Role = "Customer",
-
                 IsLocked = false,
                 CreatedAt = DateTime.Now
             };
@@ -85,7 +100,6 @@ namespace VDK_BookRental.Controllers
         // =========================
 
         [HttpGet]
-      
         public IActionResult Login()
         {
             if (HttpContext.Session.GetString("UserId") != null)
@@ -105,36 +119,58 @@ namespace VDK_BookRental.Controllers
                 return View(model);
             }
 
-            var userName = model.UserName.Trim().ToLower();
+            var normalizedUserName = model.UserName
+                .Trim()
+                .ToLower();
 
             var user = _context.Users
-                .FirstOrDefault(u => u.UserName.ToLower() == userName);
+                .FirstOrDefault(u =>
+                    u.UserName.ToLower() == normalizedUserName);
 
             if (user == null)
             {
-                ModelState.AddModelError(string.Empty,
+                ModelState.AddModelError(
+                    string.Empty,
                     "Tên tài khoản hoặc mật khẩu không đúng.");
+
                 return View(model);
             }
 
-            if (!BCrypt.Net.BCrypt.Verify(model.Password, user.PasswordHash))
+            if (!BCrypt.Net.BCrypt.Verify(
+                model.Password,
+                user.PasswordHash))
             {
-                ModelState.AddModelError(string.Empty,
+                ModelState.AddModelError(
+                    string.Empty,
                     "Tên tài khoản hoặc mật khẩu không đúng.");
+
                 return View(model);
             }
 
             if (user.IsLocked)
             {
-                ModelState.AddModelError(string.Empty,
+                ModelState.AddModelError(
+                    string.Empty,
                     "Tài khoản đã bị khóa.");
+
                 return View(model);
             }
 
-            HttpContext.Session.SetString("UserId", user.Id.ToString());
-            HttpContext.Session.SetString("FullName", user.FullName);
-            HttpContext.Session.SetString("UserName", user.UserName);
-            HttpContext.Session.SetString("UserRole", user.Role);
+            HttpContext.Session.SetString(
+                "UserId",
+                user.Id.ToString());
+
+            HttpContext.Session.SetString(
+                "FullName",
+                user.FullName);
+
+            HttpContext.Session.SetString(
+                "UserName",
+                user.UserName);
+
+            HttpContext.Session.SetString(
+                "UserRole",
+                user.Role);
 
             TempData["SuccessMessage"] =
                 $"Đăng nhập thành công. Xin chào {user.FullName}!";
@@ -183,7 +219,7 @@ namespace VDK_BookRental.Controllers
                 .Trim()
                 .ToLower();
 
-            var userExists = _context.Users
+            _ = _context.Users
                 .AsNoTracking()
                 .Any(u => u.Email.ToLower() == normalizedEmail);
 

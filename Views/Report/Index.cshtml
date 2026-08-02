@@ -1,0 +1,1061 @@
+﻿@model VDK_BookRental.ViewModels.ReportViewModel
+
+@using System.Text.Json
+
+@{
+    ViewData["Title"] = "Báo cáo doanh thu";
+
+    var revenueLabels =
+        Model.MonthlyRevenue
+            .Select(item => item.Label)
+            .ToList();
+
+    var revenueValues =
+        Model.MonthlyRevenue
+            .Select(item => item.Revenue)
+            .ToList();
+
+    var revenueRentalCounts =
+        Model.MonthlyRevenue
+            .Select(item => item.RentalCount)
+            .ToList();
+
+    var statusLabels =
+        Model.RentalStatuses
+            .Select(item => item.DisplayName)
+            .ToList();
+
+    var statusValues =
+        Model.RentalStatuses
+            .Select(item => item.Count)
+            .ToList();
+
+    string GetPaymentStatusText(string? status)
+    {
+        return status switch
+        {
+            "Paid" => "Đã thanh toán",
+            "Completed" => "Đã hoàn tất",
+            _ => status ?? "Không xác định"
+        };
+    }
+
+    string GetPaymentStatusClass(string? status)
+    {
+        return status switch
+        {
+            "Paid" => "report-status-success",
+            "Completed" => "report-status-success",
+            _ => "report-status-secondary"
+        };
+    }
+}
+
+<style>
+    .report-page {
+        min-height: 100vh;
+        padding: 32px 0 60px;
+        background: radial-gradient(circle at top right, rgba(13, 110, 253, 0.11), transparent 31%), #f5f7fb;
+    }
+
+    .report-heading {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 24px;
+    }
+
+        .report-heading h1 {
+            margin: 0;
+            color: #172033;
+            font-size: clamp(1.8rem, 3vw, 2.45rem);
+            font-weight: 900;
+        }
+
+        .report-heading p {
+            margin: 8px 0 0;
+            color: #6c757d;
+        }
+
+    .report-back-button {
+        min-height: 46px;
+        padding: 11px 18px;
+        border-radius: 13px;
+        font-weight: 800;
+    }
+
+    .report-filter-card {
+        padding: 22px;
+        border: none;
+        border-radius: 22px;
+        background: #ffffff;
+        box-shadow: 0 12px 34px rgba(24, 39, 75, 0.08);
+    }
+
+    .report-filter-title {
+        margin-bottom: 16px;
+        color: #172033;
+        font-size: 1.1rem;
+        font-weight: 850;
+    }
+
+    .report-control {
+        min-height: 47px;
+        border-radius: 13px;
+    }
+
+    .report-filter-button {
+        min-height: 47px;
+        border-radius: 13px;
+        font-weight: 800;
+    }
+
+    .report-stat-card {
+        height: 100%;
+        padding: 20px;
+        border: 1px solid rgba(20, 35, 60, 0.06);
+        border-radius: 20px;
+        background: #ffffff;
+        box-shadow: 0 10px 30px rgba(24, 39, 75, 0.07);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+        .report-stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 36px rgba(24, 39, 75, 0.11);
+        }
+
+    .report-stat-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+    }
+
+    .report-stat-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+        font-weight: 650;
+    }
+
+    .report-stat-number {
+        margin-top: 6px;
+        color: #172033;
+        font-size: 1.8rem;
+        font-weight: 900;
+    }
+
+        .report-stat-number.revenue {
+            font-size: clamp(1.25rem, 2vw, 1.7rem);
+        }
+
+    .report-stat-icon {
+        width: 50px;
+        height: 50px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        font-size: 1.35rem;
+    }
+
+    .report-icon-blue {
+        color: #0d6efd;
+        background: #eaf2ff;
+    }
+
+    .report-icon-green {
+        color: #146c43;
+        background: #d1e7dd;
+    }
+
+    .report-icon-orange {
+        color: #997404;
+        background: #fff3cd;
+    }
+
+    .report-icon-cyan {
+        color: #087990;
+        background: #cff4fc;
+    }
+
+    .report-icon-red {
+        color: #b02a37;
+        background: #f8d7da;
+    }
+
+    .report-panel {
+        height: 100%;
+        padding: 24px;
+        border: none;
+        border-radius: 22px;
+        background: #ffffff;
+        box-shadow: 0 12px 34px rgba(24, 39, 75, 0.08);
+    }
+
+    .report-panel-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+        .report-panel-header h2 {
+            margin: 0;
+            color: #172033;
+            font-size: 1.25rem;
+            font-weight: 900;
+        }
+
+    .report-panel-subtitle {
+        color: #7a8494;
+        font-size: 0.86rem;
+    }
+
+    .report-chart-wrapper {
+        position: relative;
+        min-height: 340px;
+    }
+
+    .report-table-card {
+        overflow: hidden;
+        border: none;
+        border-radius: 22px;
+        background: #ffffff;
+        box-shadow: 0 12px 34px rgba(24, 39, 75, 0.08);
+    }
+
+    .report-table-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 21px 24px;
+        border-bottom: 1px solid #edf0f4;
+    }
+
+        .report-table-header h2 {
+            margin: 0;
+            color: #172033;
+            font-size: 1.25rem;
+            font-weight: 900;
+        }
+
+    .report-period-badge {
+        padding: 7px 12px;
+        border-radius: 999px;
+        color: #0d6efd;
+        background: #eaf2ff;
+        font-size: 0.84rem;
+        font-weight: 800;
+    }
+
+    .report-table {
+        min-width: 850px;
+        margin: 0;
+    }
+
+        .report-table thead th {
+            padding: 15px 17px;
+            border-bottom: 1px solid #e8ecf1;
+            color: #5f6b7a;
+            background: #f8fafc;
+            font-size: 0.82rem;
+            font-weight: 850;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .report-table tbody td {
+            padding: 17px;
+            border-color: #eef1f4;
+            vertical-align: middle;
+        }
+
+        .report-table tbody tr:hover {
+            background: #fbfcff;
+        }
+
+    .report-code {
+        color: #0d6efd;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .report-customer {
+        color: #172033;
+        font-weight: 850;
+    }
+
+    .report-money {
+        color: #dc3545;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .report-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 11px;
+        border-radius: 999px;
+        font-size: 0.82rem;
+        font-weight: 850;
+        white-space: nowrap;
+    }
+
+    .report-status-success {
+        color: #146c43;
+        background: #d1e7dd;
+    }
+
+    .report-status-secondary {
+        color: #495057;
+        background: #e2e3e5;
+    }
+
+    .report-top-book {
+        display: grid;
+        gap: 12px;
+    }
+
+    .report-top-book-item {
+        display: grid;
+        grid-template-columns: 42px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 13px;
+        padding: 13px 0;
+        border-bottom: 1px dashed #e3e7ec;
+    }
+
+        .report-top-book-item:last-child {
+            border-bottom: none;
+        }
+
+    .report-rank {
+        width: 38px;
+        height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        color: #0d6efd;
+        background: #eaf2ff;
+        font-weight: 900;
+    }
+
+    .report-book-title {
+        overflow: hidden;
+        color: #172033;
+        font-weight: 850;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .report-book-meta {
+        margin-top: 3px;
+        color: #7a8494;
+        font-size: 0.82rem;
+    }
+
+    .report-book-revenue {
+        color: #dc3545;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .report-empty {
+        padding: 50px 20px;
+        color: #6c757d;
+        text-align: center;
+    }
+
+        .report-empty i {
+            display: block;
+            margin-bottom: 10px;
+            color: #0d6efd;
+            font-size: 2rem;
+        }
+
+    @@media (max-width: 767.98px) {
+        .report-page {
+            padding-top: 22px;
+        }
+
+        .report-heading {
+            align-items: stretch;
+        }
+
+        .report-back-button {
+            width: 100%;
+        }
+
+        .report-chart-wrapper {
+            min-height: 280px;
+        }
+
+        .report-top-book-item {
+            grid-template-columns: 38px minmax(0, 1fr);
+        }
+
+        .report-book-revenue {
+            grid-column: 2;
+        }
+    }
+</style>
+
+<div class="report-page">
+    <div class="container-fluid px-3 px-lg-4">
+
+        <div class="report-heading">
+            <div>
+                <h1>
+                    <i class="bi bi-bar-chart-line-fill me-2 text-primary"></i>
+                    Báo cáo doanh thu
+                </h1>
+
+                <p>
+                    Theo dõi doanh thu, đơn thuê và sách được thuê nhiều nhất.
+                </p>
+            </div>
+
+            <a asp-controller="Staff"
+               asp-action="Index"
+               class="btn btn-outline-primary report-back-button">
+                <i class="bi bi-arrow-left me-2"></i>
+                Về trang quản lý
+            </a>
+        </div>
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show shadow-sm"
+                 role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                @TempData["SuccessMessage"]
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Đóng">
+                </button>
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show shadow-sm"
+                 role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                @TempData["ErrorMessage"]
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Đóng">
+                </button>
+            </div>
+        }
+
+        <div class="report-filter-card mb-4">
+            <div class="report-filter-title">
+                <i class="bi bi-calendar-range me-2 text-primary"></i>
+                Chọn khoảng thời gian báo cáo
+            </div>
+
+            <form asp-controller="Report"
+                  asp-action="Index"
+                  method="get">
+
+                <div class="row g-3 align-items-end">
+
+                    <div class="col-12 col-md-4">
+                        <label for="startDate"
+                               class="form-label fw-bold">
+                            Từ ngày
+                        </label>
+
+                        <input id="startDate"
+                               name="startDate"
+                               type="date"
+                               value="@Model.StartDate.ToString("yyyy-MM-dd")"
+                               class="form-control report-control" />
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                        <label for="endDate"
+                               class="form-label fw-bold">
+                            Đến ngày
+                        </label>
+
+                        <input id="endDate"
+                               name="endDate"
+                               type="date"
+                               value="@Model.EndDate.ToString("yyyy-MM-dd")"
+                               class="form-control report-control" />
+                    </div>
+
+                    <div class="col-12 col-md-auto">
+                        <button type="submit"
+                                class="btn btn-primary report-filter-button px-4">
+                            <i class="bi bi-funnel-fill me-2"></i>
+                            Xem báo cáo
+                        </button>
+                    </div>
+
+                    <div class="col-12 col-md-auto">
+                        <a asp-controller="Report"
+                           asp-action="Index"
+                           class="btn btn-outline-secondary report-filter-button px-4">
+                            <i class="bi bi-arrow-counterclockwise me-2"></i>
+                            Tháng hiện tại
+                        </a>
+                    </div>
+
+                    <div class="col-12 col-md-auto">
+                        <a asp-controller="ReportExport"
+                           asp-action="RevenueExcel"
+                           asp-route-startDate="@Model.StartDate.ToString("yyyy-MM-dd")"
+                           asp-route-endDate="@Model.EndDate.ToString("yyyy-MM-dd")"
+                           class="btn btn-success report-filter-button px-4">
+                            <i class="bi bi-file-earmark-excel-fill me-2"></i>
+                            Xuất Excel đẹp
+                        </a>
+                    </div>
+
+                </div>
+            </form>
+        </div>
+
+        <div class="row g-3">
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="report-stat-card">
+                    <div class="report-stat-top">
+                        <div>
+                            <div class="report-stat-label">
+                                Tổng doanh thu
+                            </div>
+
+                            <div class="report-stat-number revenue">
+                                @Model.TotalRevenue.ToString("N0") VNĐ
+                            </div>
+                        </div>
+
+                        <div class="report-stat-icon report-icon-green">
+                            <i class="bi bi-cash-stack"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="report-stat-card">
+                    <div class="report-stat-top">
+                        <div>
+                            <div class="report-stat-label">
+                                Tổng đơn thuê
+                            </div>
+
+                            <div class="report-stat-number">
+                                @Model.TotalRentals
+                            </div>
+                        </div>
+
+                        <div class="report-stat-icon report-icon-blue">
+                            <i class="bi bi-receipt-cutoff"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="report-stat-card">
+                    <div class="report-stat-top">
+                        <div>
+                            <div class="report-stat-label">
+                                Thanh toán thành công
+                            </div>
+
+                            <div class="report-stat-number">
+                                @Model.PaidPayments
+                            </div>
+                        </div>
+
+                        <div class="report-stat-icon report-icon-cyan">
+                            <i class="bi bi-credit-card-2-front-fill"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="report-stat-card">
+                    <div class="report-stat-top">
+                        <div>
+                            <div class="report-stat-label">
+                                Thanh toán chờ xử lý
+                            </div>
+
+                            <div class="report-stat-number">
+                                @Model.PendingPayments
+                            </div>
+                        </div>
+
+                        <div class="report-stat-icon report-icon-orange">
+                            <i class="bi bi-hourglass-split"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="row g-4 mt-1">
+
+            <div class="col-12 col-xl-8">
+                <div class="report-panel">
+
+                    <div class="report-panel-header">
+                        <div>
+                            <h2>
+                                <i class="bi bi-graph-up-arrow me-2 text-primary"></i>
+                                Doanh thu 6 tháng gần nhất
+                            </h2>
+
+                            <div class="report-panel-subtitle">
+                                Chỉ tính thanh toán đã được xác nhận.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="report-chart-wrapper">
+                        <canvas id="monthlyRevenueChart"></canvas>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="col-12 col-xl-4">
+                <div class="report-panel">
+
+                    <div class="report-panel-header">
+                        <div>
+                            <h2>
+                                <i class="bi bi-pie-chart-fill me-2 text-primary"></i>
+                                Trạng thái đơn thuê
+                            </h2>
+
+                            <div class="report-panel-subtitle">
+                                Trong khoảng thời gian đã chọn.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="report-chart-wrapper">
+                        <canvas id="rentalStatusChart"></canvas>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+        <div class="row g-4 mt-1">
+
+            <div class="col-12 col-xl-5">
+                <div class="report-panel">
+
+                    <div class="report-panel-header">
+                        <div>
+                            <h2>
+                                <i class="bi bi-trophy-fill me-2 text-warning"></i>
+                                Sách được thuê nhiều
+                            </h2>
+
+                            <div class="report-panel-subtitle">
+                                Top 5 sách theo số lượng thuê đã thanh toán.
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (Model.TopBooks.Any())
+                    {
+                        <div class="report-top-book">
+
+                            @{
+                                var rank = 1;
+                            }
+
+                            @foreach (var book in Model.TopBooks)
+                            {
+                                <div class="report-top-book-item">
+
+                                    <span class="report-rank">
+                                        @rank
+                                    </span>
+
+                                    <div>
+                                        <div class="report-book-title"
+                                             title="@book.Title">
+                                            @book.Title
+                                        </div>
+
+                                        <div class="report-book-meta">
+                                            @book.Quantity lượt thuê
+                                        </div>
+                                    </div>
+
+                                    <div class="report-book-revenue">
+                                        @book.Revenue.ToString("N0") VNĐ
+                                    </div>
+
+                                </div>
+
+                                rank++;
+                            }
+
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="report-empty">
+                            <i class="bi bi-book"></i>
+                            Chưa có dữ liệu sách đã thanh toán trong thời gian này.
+                        </div>
+                    }
+
+                </div>
+            </div>
+
+            <div class="col-12 col-xl-7">
+
+                <div class="row g-3 h-100">
+
+                    <div class="col-12 col-md-4">
+                        <div class="report-stat-card">
+                            <div class="report-stat-label">
+                                Đơn đang thuê
+                            </div>
+
+                            <div class="report-stat-number">
+                                @Model.BorrowingRentals
+                            </div>
+
+                            <div class="mt-3 text-info fs-3">
+                                <i class="bi bi-book-half"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                        <div class="report-stat-card">
+                            <div class="report-stat-label">
+                                Đơn đã trả
+                            </div>
+
+                            <div class="report-stat-number">
+                                @Model.ReturnedRentals
+                            </div>
+
+                            <div class="mt-3 text-success fs-3">
+                                <i class="bi bi-check-circle-fill"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                        <div class="report-stat-card">
+                            <div class="report-stat-label">
+                                Đơn đã hủy
+                            </div>
+
+                            <div class="report-stat-number">
+                                @Model.CancelledRentals
+                            </div>
+
+                            <div class="mt-3 text-danger fs-3">
+                                <i class="bi bi-x-circle-fill"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="report-table-card mt-4">
+
+            <div class="report-table-header">
+                <h2>
+                    <i class="bi bi-list-check me-2 text-primary"></i>
+                    Giao dịch gần đây
+                </h2>
+
+                <span class="report-period-badge">
+                    @Model.StartDate.ToString("dd/MM/yyyy")
+                    -
+                    @Model.EndDate.ToString("dd/MM/yyyy")
+                </span>
+            </div>
+
+            @if (Model.RecentTransactions.Any())
+            {
+                <div class="table-responsive">
+
+                    <table class="table report-table align-middle">
+
+                        <thead>
+                            <tr>
+                                <th>Mã thanh toán</th>
+                                <th>Đơn thuê</th>
+                                <th>Khách hàng</th>
+                                <th>Ngày thuê</th>
+                                <th>Phương thức</th>
+                                <th class="text-end">Số tiền</th>
+                                <th>Trạng thái</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            @foreach (var transaction in Model.RecentTransactions)
+                            {
+                                <tr>
+                                    <td>
+                                        <span class="report-code">
+                                            #PAY-@transaction.PaymentId.ToString("D4")
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        <a asp-controller="Staff"
+                                           asp-action="RentalDetails"
+                                           asp-route-id="@transaction.RentalId"
+                                           class="report-code text-decoration-none">
+
+                                            #RENT-@transaction.RentalId.ToString("D4")
+                                        </a>
+                                    </td>
+
+                                    <td>
+                                        <span class="report-customer">
+                                            @transaction.CustomerName
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        @transaction.RentalDate.ToString("dd/MM/yyyy")
+                                    </td>
+
+                                    <td>
+                                        @transaction.PaymentMethod
+                                    </td>
+
+                                    <td class="text-end">
+                                        <span class="report-money">
+                                            @transaction.Amount.ToString("N0") VNĐ
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        <span class="report-status @GetPaymentStatusClass(transaction.PaymentStatus)">
+                                            <i class="bi bi-check-circle-fill"></i>
+                                            @GetPaymentStatusText(transaction.PaymentStatus)
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+            }
+            else
+            {
+                <div class="report-empty">
+                    <i class="bi bi-receipt"></i>
+                    Chưa có giao dịch đã thanh toán trong khoảng thời gian này.
+                </div>
+            }
+
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        const revenueLabels =
+        @Html.Raw(
+            JsonSerializer.Serialize(
+                revenueLabels
+            )
+        );
+
+        const revenueValues =
+        @Html.Raw(
+            JsonSerializer.Serialize(
+                revenueValues
+            )
+        );
+
+        const revenueRentalCounts =
+        @Html.Raw(
+            JsonSerializer.Serialize(
+                revenueRentalCounts
+            )
+        );
+
+        const statusLabels =
+        @Html.Raw(
+            JsonSerializer.Serialize(
+                statusLabels
+            )
+        );
+
+        const statusValues =
+        @Html.Raw(
+            JsonSerializer.Serialize(
+                statusValues
+            )
+        );
+
+        const monthlyRevenueContext =
+        document.getElementById(
+        "monthlyRevenueChart"
+        );
+
+        new Chart(
+        monthlyRevenueContext,
+        {
+        type: "line",
+
+        data: {
+        labels: revenueLabels,
+
+        datasets: [
+        {
+        label: "Doanh thu (VNĐ)",
+        data: revenueValues,
+        borderColor: "#0d6efd",
+        backgroundColor: "rgba(13, 110, 253, 0.12)",
+        fill: true,
+        tension: 0.35,
+        pointRadius: 5,
+        pointHoverRadius: 7
+        }
+        ]
+        },
+
+        options: {
+        responsive: true,
+        maintainAspectRatio: false,
+
+        interaction: {
+        mode: "index",
+        intersect: false
+        },
+
+        plugins: {
+        legend: {
+        display: false
+        },
+
+        tooltip: {
+        callbacks: {
+        afterLabel: function (context) {
+        const rentalCount =
+        revenueRentalCounts[
+        context.dataIndex
+        ];
+
+        return rentalCount +
+        " đơn đã thanh toán";
+        },
+
+        label: function (context) {
+        return Number(
+        context.raw
+        )
+        .toLocaleString("vi-VN") +
+        " VNĐ";
+        }
+        }
+        }
+        },
+
+        scales: {
+        y: {
+        beginAtZero: true,
+
+        ticks: {
+        callback: function (value) {
+        return Number(value)
+        .toLocaleString("vi-VN");
+        }
+        }
+        }
+        }
+        }
+        }
+        );
+
+        const rentalStatusContext =
+        document.getElementById(
+        "rentalStatusChart"
+        );
+
+        new Chart(
+        rentalStatusContext,
+        {
+        type: "doughnut",
+
+        data: {
+        labels: statusLabels,
+
+        datasets: [
+        {
+        data: statusValues,
+        backgroundColor: [
+        "#ffc107",
+        "#0d6efd",
+        "#0dcaf0",
+        "#198754",
+        "#dc3545"
+        ],
+        borderWidth: 0
+        }
+        ]
+        },
+
+        options: {
+        responsive: true,
+        maintainAspectRatio: false,
+
+        plugins: {
+        legend: {
+        position: "bottom",
+        labels: {
+        usePointStyle: true,
+        padding: 18
+        }
+        }
+        }
+        }
+        }
+        );
+    </script>
+}

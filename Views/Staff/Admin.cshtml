@@ -1,33 +1,307 @@
 ﻿@{
-    ViewData["Title"] = "Trang nhân viên";
-    var fullName = Context.Session.GetString("FullName") ?? "Nhân viên";
-    var userRole = Context.Session.GetString("UserRole") ?? "Staff";
+    ViewData["Title"] = "Trang quản lý nhân viên";
+
+    var totalBooks = ViewBag.TotalBooks ?? 0;
+    var availableBooks = ViewBag.AvailableBooks ?? 0;
+    var totalRentals = ViewBag.TotalRentals ?? 0;
+    var pendingRentals = ViewBag.PendingRentals ?? 0;
+    var approvedRentals = ViewBag.ApprovedRentals ?? 0;
+    var borrowingRentals = ViewBag.BorrowingRentals ?? 0;
+    var returnedRentals = ViewBag.ReturnedRentals ?? 0;
+    var cancelledRentals = ViewBag.CancelledRentals ?? 0;
+    var pendingPayments = ViewBag.PendingPayments ?? 0;
+    var paidPayments = ViewBag.PaidPayments ?? 0;
+    var rejectedPayments = ViewBag.RejectedPayments ?? 0;
+    var totalRevenue = ViewBag.TotalRevenue ?? 0m;
+
+    var fullName =
+        Context.Session.GetString("FullName")
+        ?? Context.Session.GetString("UserName")
+        ?? "Nhân viên";
+
+    var userRole =
+        Context.Session.GetString("UserRole")
+        ?? "Staff";
 }
 
-<div class="staff-dashboard">
-    <div class="container py-4">
+<style>
+    .staff-dashboard-page {
+        min-height: 100vh;
+        padding: 32px 0 60px;
+        background: radial-gradient(circle at top right, rgba(13, 110, 253, 0.11), transparent 32%), #f5f7fb;
+    }
 
-        <div class="dashboard-header mb-4">
+    .welcome-card {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 24px;
+        border: none;
+        border-radius: 22px;
+        background: #ffffff;
+        box-shadow: 0 12px 34px rgba(24, 39, 75, 0.08);
+    }
+
+        .welcome-card h1 {
+            margin: 0;
+            color: #172033;
+            font-size: clamp(1.75rem, 3vw, 2.35rem);
+            font-weight: 800;
+        }
+
+        .welcome-card p {
+            margin: 8px 0 0;
+            color: #6c757d;
+        }
+
+    .welcome-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .welcome-button {
+        min-height: 44px;
+        padding: 10px 17px;
+        border-radius: 12px;
+        font-weight: 700;
+    }
+
+    .stat-card {
+        height: 100%;
+        padding: 20px;
+        border: 1px solid rgba(20, 35, 60, 0.06);
+        border-radius: 20px;
+        background: #ffffff;
+        box-shadow: 0 10px 28px rgba(24, 39, 75, 0.07);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 36px rgba(24, 39, 75, 0.11);
+        }
+
+    .stat-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+    }
+
+    .stat-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    .stat-number {
+        margin-top: 6px;
+        color: #172033;
+        font-size: 1.8rem;
+        font-weight: 900;
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        font-size: 1.35rem;
+    }
+
+    .icon-blue {
+        color: #0d6efd;
+        background: #eaf2ff;
+    }
+
+    .icon-green {
+        color: #146c43;
+        background: #d1e7dd;
+    }
+
+    .icon-orange {
+        color: #997404;
+        background: #fff3cd;
+    }
+
+    .icon-cyan {
+        color: #087990;
+        background: #cff4fc;
+    }
+
+    .icon-red {
+        color: #b02a37;
+        background: #f8d7da;
+    }
+
+    .icon-purple {
+        color: #6f42c1;
+        background: #eee7ff;
+    }
+
+    .section-title {
+        margin: 30px 0 16px;
+        color: #172033;
+        font-size: 1.3rem;
+        font-weight: 800;
+    }
+
+    .management-card {
+        height: 100%;
+        padding: 26px;
+        border: none;
+        border-radius: 22px;
+        background: #ffffff;
+        box-shadow: 0 12px 34px rgba(24, 39, 75, 0.08);
+    }
+
+    .management-icon {
+        width: 58px;
+        height: 58px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 16px;
+        border-radius: 18px;
+        font-size: 1.55rem;
+    }
+
+    .management-card h2 {
+        margin-bottom: 8px;
+        color: #172033;
+        font-size: 1.35rem;
+        font-weight: 800;
+    }
+
+    .management-card p {
+        min-height: 48px;
+        margin-bottom: 18px;
+        color: #6c757d;
+    }
+
+    .management-button {
+        min-height: 44px;
+        border-radius: 12px;
+        font-weight: 700;
+    }
+
+    .revenue-card {
+        padding: 24px;
+        border: none;
+        border-radius: 22px;
+        color: #ffffff;
+        background: linear-gradient(135deg, #0d6efd, #111827);
+        box-shadow: 0 14px 36px rgba(13, 110, 253, 0.22);
+    }
+
+    .revenue-label {
+        color: rgba(255, 255, 255, 0.78);
+        font-weight: 600;
+    }
+
+    .revenue-value {
+        margin-top: 7px;
+        font-size: clamp(1.9rem, 4vw, 2.8rem);
+        font-weight: 900;
+    }
+
+    .status-panel {
+        height: 100%;
+        padding: 24px;
+        border: none;
+        border-radius: 22px;
+        background: #ffffff;
+        box-shadow: 0 12px 34px rgba(24, 39, 75, 0.08);
+    }
+
+        .status-panel h2 {
+            margin-bottom: 18px;
+            color: #172033;
+            font-size: 1.25rem;
+            font-weight: 800;
+        }
+
+    .status-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 13px 0;
+        border-bottom: 1px dashed #e3e7ec;
+    }
+
+        .status-row:last-child {
+            border-bottom: none;
+        }
+
+    .status-name {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: #495057;
+        font-weight: 700;
+    }
+
+    .status-value {
+        color: #172033;
+        font-weight: 900;
+    }
+
+    @@media (max-width: 767.98px) {
+        .staff-dashboard-page {
+            padding-top: 22px;
+        }
+
+        .welcome-actions,
+        .welcome-button {
+            width: 100%;
+        }
+
+        .welcome-button {
+            text-align: center;
+        }
+    }
+</style>
+
+<div class="staff-dashboard-page">
+    <div class="container">
+
+        <div class="welcome-card">
             <div>
-                <h2 class="fw-bold mb-1">
+                <h1>
                     Trang quản lý nhân viên
-                </h2>
+                </h1>
 
-                <p class="text-muted mb-0">
-                    Xin chào <strong>@fullName</strong> - Quyền: @userRole
+                <p>
+                    Xin chào <strong>@fullName</strong>
+                    · Quyền: <strong>@userRole</strong>
                 </p>
             </div>
 
-            <div class="dashboard-actions">
+            <div class="welcome-actions">
                 <a asp-controller="Home"
                    asp-action="Index"
-                   class="btn btn-outline-primary">
+                   class="btn btn-outline-primary welcome-button">
+                    <i class="bi bi-house-door me-2"></i>
                     Về trang chủ
+                </a>
+
+                <a asp-controller="Profile"
+                   asp-action="Index"
+                   class="btn btn-outline-dark welcome-button">
+                    <i class="bi bi-person-circle me-2"></i>
+                    Hồ sơ cá nhân
                 </a>
 
                 <a asp-controller="Account"
                    asp-action="Logout"
-                   class="btn btn-danger">
+                   class="btn btn-danger welcome-button">
+                    <i class="bi bi-box-arrow-right me-2"></i>
                     Đăng xuất
                 </a>
             </div>
@@ -35,258 +309,379 @@
 
         @if (TempData["SuccessMessage"] != null)
         {
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <div class="alert alert-success alert-dismissible fade show shadow-sm mt-3"
+                 role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>
                 @TempData["SuccessMessage"]
 
                 <button type="button"
                         class="btn-close"
-                        data-bs-dismiss="alert">
+                        data-bs-dismiss="alert"
+                        aria-label="Đóng">
                 </button>
             </div>
         }
 
         @if (TempData["ErrorMessage"] != null)
         {
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <div class="alert alert-danger alert-dismissible fade show shadow-sm mt-3"
+                 role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
                 @TempData["ErrorMessage"]
 
                 <button type="button"
                         class="btn-close"
-                        data-bs-dismiss="alert">
+                        data-bs-dismiss="alert"
+                        aria-label="Đóng">
                 </button>
             </div>
         }
 
-        <div class="row g-4 mb-4">
+        <div class="row g-3 mt-1">
 
-            <div class="col-md-6 col-xl-3">
+            <div class="col-12 col-sm-6 col-xl-3">
                 <div class="stat-card">
-                    <div class="stat-icon">
-                        📚
-                    </div>
+                    <div class="stat-top">
+                        <div>
+                            <div class="stat-label">Tổng số sách</div>
+                            <div class="stat-number">@totalBooks</div>
+                        </div>
 
-                    <div>
-                        <p class="stat-label">
-                            Tổng số sách
-                        </p>
-
-                        <h3 class="stat-value">
-                            @ViewBag.TotalBooks
-                        </h3>
+                        <div class="stat-icon icon-blue">
+                            <i class="bi bi-bookshelf"></i>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="col-md-6 col-xl-3">
+            <div class="col-12 col-sm-6 col-xl-3">
                 <div class="stat-card">
-                    <div class="stat-icon">
-                        ✅
-                    </div>
+                    <div class="stat-top">
+                        <div>
+                            <div class="stat-label">Sách còn hàng</div>
+                            <div class="stat-number">@availableBooks</div>
+                        </div>
 
-                    <div>
-                        <p class="stat-label">
-                            Sách còn hàng
-                        </p>
-
-                        <h3 class="stat-value">
-                            @ViewBag.AvailableBooks
-                        </h3>
+                        <div class="stat-icon icon-green">
+                            <i class="bi bi-check-square-fill"></i>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="col-md-6 col-xl-3">
+            <div class="col-12 col-sm-6 col-xl-3">
                 <div class="stat-card">
-                    <div class="stat-icon">
-                        📦
-                    </div>
+                    <div class="stat-top">
+                        <div>
+                            <div class="stat-label">Tổng đơn thuê</div>
+                            <div class="stat-number">@totalRentals</div>
+                        </div>
 
-                    <div>
-                        <p class="stat-label">
-                            Tổng đơn thuê
-                        </p>
-
-                        <h3 class="stat-value">
-                            @ViewBag.TotalRentals
-                        </h3>
+                        <div class="stat-icon icon-orange">
+                            <i class="bi bi-box-seam-fill"></i>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="col-md-6 col-xl-3">
+            <div class="col-12 col-sm-6 col-xl-3">
                 <div class="stat-card">
-                    <div class="stat-icon">
-                        💳
-                    </div>
+                    <div class="stat-top">
+                        <div>
+                            <div class="stat-label">Thanh toán chờ xử lý</div>
+                            <div class="stat-number">@pendingPayments</div>
+                        </div>
 
-                    <div>
-                        <p class="stat-label">
-                            Thanh toán chờ xử lý
-                        </p>
-
-                        <h3 class="stat-value">
-                            @ViewBag.PendingPayments
-                        </h3>
+                        <div class="stat-icon icon-cyan">
+                            <i class="bi bi-credit-card-2-front-fill"></i>
+                        </div>
                     </div>
                 </div>
             </div>
 
         </div>
 
+        <h2 class="section-title">
+            <i class="bi bi-grid-fill me-2 text-primary"></i>
+            Chức năng quản lý
+        </h2>
+
         <div class="row g-4">
 
-            <div class="col-md-6">
-                <div class="feature-card h-100">
-                    <div class="feature-icon">
-                        📖
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="management-card text-center">
+                    <div class="management-icon icon-blue">
+                        <i class="bi bi-book-half"></i>
                     </div>
 
-                    <h4 class="fw-bold">
-                        Quản lý sách
-                    </h4>
+                    <h2>Quản lý sách</h2>
 
-                    <p class="text-muted">
+                    <p>
                         Xem danh sách sách, số lượng còn lại và thông tin thể loại.
                     </p>
 
                     <a asp-controller="Staff"
                        asp-action="Books"
-                       class="btn btn-primary">
+                       class="btn btn-primary management-button px-4">
+                        <i class="bi bi-book me-2"></i>
                         Xem danh sách sách
                     </a>
                 </div>
             </div>
 
-            <div class="col-md-6">
-                <div class="feature-card h-100">
-                    <div class="feature-icon">
-                        🧾
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="management-card text-center">
+                    <div class="management-icon icon-cyan">
+                        <i class="bi bi-tags-fill"></i>
                     </div>
 
-                    <h4 class="fw-bold">
-                        Quản lý đơn thuê
-                    </h4>
+                    <h2>Quản lý thể loại</h2>
 
-                    <p class="text-muted">
+                    <p>
+                        Thêm, chỉnh sửa và kiểm soát các nhóm sách trong hệ thống.
+                    </p>
+
+                    <a asp-controller="Category"
+                       asp-action="Index"
+                       class="btn btn-info text-white management-button px-4">
+                        <i class="bi bi-tags me-2"></i>
+                        Xem thể loại
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="management-card text-center">
+                    <div class="management-icon icon-green">
+                        <i class="bi bi-receipt-cutoff"></i>
+                    </div>
+
+                    <h2>Quản lý đơn thuê</h2>
+
+                    <p>
                         Theo dõi các đơn thuê sách và thông tin khách hàng.
                     </p>
 
                     <a asp-controller="Staff"
                        asp-action="Rentals"
-                       class="btn btn-success">
+                       class="btn btn-success management-button px-4">
+                        <i class="bi bi-list-check me-2"></i>
                         Xem đơn thuê
                     </a>
                 </div>
             </div>
 
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="management-card text-center">
+                    <div class="management-icon icon-purple">
+                        <i class="bi bi-credit-card"></i>
+                    </div>
+
+                    <h2>Quản lý thanh toán</h2>
+
+                    <p>
+                        Kiểm tra, xác nhận hoặc từ chối các giao dịch thanh toán.
+                    </p>
+
+                    <a asp-controller="Staff"
+                       asp-action="Payments"
+                       class="btn btn-dark management-button px-4">
+                        <i class="bi bi-cash-coin me-2"></i>
+                        Xem thanh toán
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="management-card text-center">
+                    <div class="management-icon icon-orange">
+                        <i class="bi bi-bar-chart-line-fill"></i>
+                    </div>
+
+                    <h2>Báo cáo doanh thu</h2>
+
+                    <p>
+                        Xem doanh thu, biểu đồ đơn thuê và các sách được thuê nhiều.
+                    </p>
+
+                    <a asp-controller="Report"
+                       asp-action="Index"
+                       class="btn btn-warning management-button px-4">
+                        <i class="bi bi-graph-up-arrow me-2"></i>
+                        Xem báo cáo
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="management-card text-center">
+                    <div class="management-icon icon-red">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                    </div>
+
+                    <h2>Đơn thuê quá hạn</h2>
+
+                    <p>
+                        Kiểm tra các đơn chưa trả đúng hạn và xác nhận hoàn trả sách.
+                    </p>
+
+                    <a asp-controller="Overdue"
+                       asp-action="Index"
+                       class="btn btn-danger management-button px-4">
+                        <i class="bi bi-calendar-x me-2"></i>
+                        Xem đơn quá hạn
+                    </a>
+                </div>
+            </div>
+
+            @if (string.Equals(
+                    userRole,
+                    "Admin",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                <div class="col-12 col-md-6 col-xl-4">
+                    <div class="management-card text-center">
+                        <div class="management-icon icon-purple">
+                            <i class="bi bi-people-fill"></i>
+                        </div>
+
+                        <h2>Quản lý người dùng</h2>
+
+                        <p>
+                            Phân quyền, khóa tài khoản và đặt lại mật khẩu người dùng.
+                        </p>
+
+                        <a asp-controller="UserManagement"
+                           asp-action="Index"
+                           class="btn btn-secondary management-button px-4">
+                            <i class="bi bi-person-gear me-2"></i>
+                            Xem người dùng
+                        </a>
+                    </div>
+                </div>
+            }
+
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="management-card text-center">
+                    <div class="management-icon icon-cyan">
+                        <i class="bi bi-bell-fill"></i>
+                    </div>
+
+                    <h2>Trung tâm thông báo</h2>
+
+                    <p>
+                        Xem nhanh đơn chờ duyệt, thanh toán, quá hạn và sách sắp hết.
+                    </p>
+
+                    <a asp-controller="Notification"
+                       asp-action="Index"
+                       class="btn btn-info text-white management-button px-4">
+                        <i class="bi bi-bell me-2"></i>
+                        Xem thông báo
+                    </a>
+                </div>
+            </div>
+
         </div>
+
+        <h2 class="section-title">
+            <i class="bi bi-bar-chart-fill me-2 text-primary"></i>
+            Tổng quan hoạt động
+        </h2>
+
+        <div class="row g-4">
+
+            <div class="col-12 col-lg-5">
+                <div class="revenue-card h-100">
+                    <div class="revenue-label">
+                        Tổng doanh thu đã xác nhận
+                    </div>
+
+                    <div class="revenue-value">
+                        @Convert.ToDecimal(totalRevenue).ToString("N0") VNĐ
+                    </div>
+
+                    <div class="mt-3">
+                        <i class="bi bi-shield-check me-2"></i>
+                        Chỉ tính giao dịch đã thanh toán hoặc hoàn tất.
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-lg-7">
+                <div class="status-panel">
+                    <h2>
+                        <i class="bi bi-activity me-2 text-primary"></i>
+                        Trạng thái hệ thống
+                    </h2>
+
+                    <div class="row">
+
+                        <div class="col-12 col-md-6">
+                            <div class="status-row">
+                                <span class="status-name">
+                                    <i class="bi bi-hourglass-split text-warning"></i>
+                                    Đơn chờ duyệt
+                                </span>
+                                <span class="status-value">@pendingRentals</span>
+                            </div>
+
+                            <div class="status-row">
+                                <span class="status-name">
+                                    <i class="bi bi-check-circle text-primary"></i>
+                                    Đơn đã duyệt
+                                </span>
+                                <span class="status-value">@approvedRentals</span>
+                            </div>
+
+                            <div class="status-row">
+                                <span class="status-name">
+                                    <i class="bi bi-book text-info"></i>
+                                    Đơn đang thuê
+                                </span>
+                                <span class="status-value">@borrowingRentals</span>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <div class="status-row">
+                                <span class="status-name">
+                                    <i class="bi bi-check-square text-success"></i>
+                                    Đơn đã trả
+                                </span>
+                                <span class="status-value">@returnedRentals</span>
+                            </div>
+
+                            <div class="status-row">
+                                <span class="status-name">
+                                    <i class="bi bi-x-circle text-danger"></i>
+                                    Đơn đã hủy
+                                </span>
+                                <span class="status-value">@cancelledRentals</span>
+                            </div>
+
+                            <div class="status-row">
+                                <span class="status-name">
+                                    <i class="bi bi-credit-card text-success"></i>
+                                    Thanh toán thành công
+                                </span>
+                                <span class="status-value">@paidPayments</span>
+                            </div>
+
+                            <div class="status-row">
+                                <span class="status-name">
+                                    <i class="bi bi-exclamation-circle text-danger"></i>
+                                    Thanh toán bị từ chối
+                                </span>
+                                <span class="status-value">@rejectedPayments</span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
     </div>
 </div>
-
-<style>
-    body {
-        background: #f4f7fb;
-    }
-
-    .staff-dashboard {
-        min-height: 90vh;
-    }
-
-    .dashboard-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 20px;
-        padding: 25px;
-        background: white;
-        border-radius: 18px;
-        box-shadow: 0 8px 25px rgba(15, 23, 42, .08);
-    }
-
-    .dashboard-actions {
-        display: flex;
-        gap: 10px;
-    }
-
-    .stat-card {
-        height: 100%;
-        display: flex;
-        align-items: center;
-        gap: 18px;
-        padding: 24px;
-        background: white;
-        border-radius: 18px;
-        box-shadow: 0 8px 25px rgba(15, 23, 42, .08);
-        transition: transform .2s ease, box-shadow .2s ease;
-    }
-
-        .stat-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 30px rgba(15, 23, 42, .14);
-        }
-
-    .stat-icon {
-        width: 58px;
-        height: 58px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #e8f0ff;
-        border-radius: 16px;
-        font-size: 28px;
-    }
-
-    .stat-label {
-        margin-bottom: 4px;
-        color: #64748b;
-        font-size: 15px;
-    }
-
-    .stat-value {
-        margin: 0;
-        color: #1e3a8a;
-        font-weight: 800;
-    }
-
-    .feature-card {
-        padding: 30px;
-        background: white;
-        border-radius: 20px;
-        box-shadow: 0 8px 25px rgba(15, 23, 42, .08);
-        text-align: center;
-        transition: transform .2s ease, box-shadow .2s ease;
-    }
-
-        .feature-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 30px rgba(15, 23, 42, .14);
-        }
-
-    .feature-icon {
-        width: 75px;
-        height: 75px;
-        margin: 0 auto 18px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        background: linear-gradient(135deg, #dbeafe, #eff6ff);
-        border-radius: 22px;
-        font-size: 36px;
-    }
-
-    @@media (max-width: 768px) {
-        .dashboard-header {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-
-        .dashboard-actions {
-            width: 100%;
-            flex-direction: column;
-        }
-
-            .dashboard-actions .btn {
-                width: 100%;
-            }
-    }
-</style>

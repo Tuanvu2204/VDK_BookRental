@@ -1,175 +1,990 @@
-﻿@model IEnumerable<VDK_BookRental.Models.User>
+﻿@model VDK_BookRental.ViewModels.AdminUsersViewModel
 
 @{
-    ViewData["Title"] = "Quản lý người dùng";
+    ViewData["Title"] =
+        "Quản lý người dùng";
+
+    string GetInitials(
+        string? fullName,
+        string? userName)
+    {
+        var displayName =
+            !string.IsNullOrWhiteSpace(fullName)
+                ? fullName.Trim()
+                : userName?.Trim() ?? "U";
+
+        var words =
+            displayName.Split(
+                ' ',
+                StringSplitOptions.RemoveEmptyEntries);
+
+        var initials =
+            string.Join(
+                "",
+                words
+                    .TakeLast(2)
+                    .Select(word =>
+                        char.ToUpperInvariant(
+                            word[0])));
+
+        return string.IsNullOrWhiteSpace(initials)
+            ? "U"
+            : initials;
+    }
+
+    string GetRoleText(string? role)
+    {
+        return role switch
+        {
+            "Admin" => "Quản trị viên",
+            "Staff" => "Nhân viên",
+            _ => "Khách hàng"
+        };
+    }
+
+    string GetRoleClass(string? role)
+    {
+        return role switch
+        {
+            "Admin" => "role-admin",
+            "Staff" => "role-staff",
+            _ => "role-customer"
+        };
+    }
+
+    string GetAvatarUrl(string? avatarUrl)
+    {
+        if (string.IsNullOrWhiteSpace(
+                avatarUrl))
+        {
+            return string.Empty;
+        }
+
+        return Url.Content(avatarUrl);
+    }
 }
 
-<div class="container py-5">
+@section Styles {
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h1 class="fw-bold mb-1">
-                👥 Quản lý người dùng
-            </h1>
+    <link rel="stylesheet"
+          href="~/css/admin-users.css"
+          asp-append-version="true" />
 
-            <p class="text-muted mb-0">
-                Phân quyền, khóa và mở khóa tài khoản.
-            </p>
+}
+
+<div class="admin-users-page">
+
+    <div class="container-fluid
+        admin-users-container">
+
+        <!-- =================================================
+             TIÊU ĐỀ
+        ================================================== -->
+
+        <div class="admin-users-heading">
+
+            <div>
+
+                <div class="admin-heading-label">
+
+                    <i class="bi bi-shield-lock-fill"></i>
+                    Trung tâm quản trị tài khoản
+
+                </div>
+
+                <h1>
+
+                    <i class="bi bi-people-fill"></i>
+                    Quản lý người dùng
+
+                </h1>
+
+                <p>
+                    Theo dõi hồ sơ, ảnh đại diện, quyền hạn
+                    và trạng thái của toàn bộ tài khoản.
+                </p>
+
+            </div>
+
+            <a asp-controller="Admin"
+               asp-action="Index"
+               class="btn admin-dashboard-button">
+
+                <i class="bi bi-arrow-left"></i>
+                Quay lại Dashboard
+
+            </a>
+
         </div>
 
-        <a asp-controller="Admin"
-           asp-action="Index"
-           class="btn btn-outline-secondary">
-            ← Quay lại Dashboard
-        </a>
-    </div>
+        <!-- =================================================
+             THÔNG BÁO
+        ================================================== -->
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success
+                alert-dismissible fade show
+                admin-alert"
+                 role="alert">
 
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div class="alert alert-success">
-            @TempData["SuccessMessage"]
-        </div>
-    }
+                <i class="bi bi-check-circle-fill"></i>
 
-    @if (TempData["ErrorMessage"] != null)
-    {
-        <div class="alert alert-danger">
-            @TempData["ErrorMessage"]
-        </div>
-    }
+                <span>
+                    @TempData["SuccessMessage"]
+                </span>
 
-    <div class="card border-0 shadow-sm rounded-4">
-        <div class="card-body p-4">
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Đóng">
+                </button>
 
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover align-middle">
+            </div>
+        }
 
-                    <thead class="table-dark">
-                        <tr>
-                            <th>ID</th>
-                            <th>Họ tên</th>
-                            <th>Email</th>
-                            <th>Số điện thoại</th>
-                            <th>Quyền</th>
-                            <th>Trạng thái</th>
-                            <th>Ngày tạo</th>
-                            <th>Thao tác</th>
-                        </tr>
-                    </thead>
+        @if (TempData["InfoMessage"] != null)
+        {
+            <div class="alert alert-info
+                alert-dismissible fade show
+                admin-alert"
+                 role="alert">
 
-                    <tbody>
+                <i class="bi bi-info-circle-fill"></i>
 
-                        @foreach (var user in Model)
-                        {
-                            <tr>
-                                <td>@user.Id</td>
+                <span>
+                    @TempData["InfoMessage"]
+                </span>
 
-                                <td class="fw-bold">
-                                    @user.FullName
-                                </td>
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Đóng">
+                </button>
 
-                                <td>@user.Email</td>
+            </div>
+        }
 
-                                <td>@user.Phone</td>
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger
+                alert-dismissible fade show
+                admin-alert"
+                 role="alert">
 
-                                <td style="min-width:220px;">
+                <i class="bi bi-exclamation-triangle-fill"></i>
 
-                                    <form asp-controller="Admin"
-                                          asp-action="ChangeRole"
-                                          method="post"
-                                          class="d-flex gap-2">
+                <span>
+                    @TempData["ErrorMessage"]
+                </span>
 
-                                        @Html.AntiForgeryToken()
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Đóng">
+                </button>
 
-                                        <input type="hidden"
-                                               name="userId"
-                                               value="@user.Id" />
+            </div>
+        }
 
-                                        <select name="role"
-                                                class="form-select form-select-sm">
+        <!-- =================================================
+             THỐNG KÊ
+        ================================================== -->
 
-                                            <option value="Customer"
-                                                    selected="@(user.Role == "Customer")">
-                                                Customer
-                                            </option>
+        <div class="row g-3 admin-stat-row">
 
-                                            <option value="Staff"
-                                                    selected="@(user.Role == "Staff")">
-                                                Staff
-                                            </option>
+            <div class="col-6 col-xl-3">
 
-                                            <option value="Admin"
-                                                    selected="@(user.Role == "Admin")">
-                                                Admin
-                                            </option>
+                <article class="admin-stat-card">
 
-                                        </select>
+                    <div>
 
-                                        <button type="submit"
-                                                class="btn btn-sm btn-primary">
-                                            Lưu
-                                        </button>
+                        <span class="admin-stat-label">
+                            Tổng tài khoản
+                        </span>
 
-                                    </form>
+                        <strong>
+                            @Model.TotalUsers
+                        </strong>
 
-                                </td>
+                        <small>
+                            Toàn hệ thống
+                        </small>
 
-                                <td>
-                                    @if (user.IsLocked)
-                                    {
-                                        <span class="badge bg-danger">
-                                            Đã khóa
-                                        </span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-success">
-                                            Hoạt động
-                                        </span>
-                                    }
-                                </td>
+                    </div>
 
-                                <td>
-                                    @user.CreatedAt.ToString("dd/MM/yyyy")
-                                </td>
+                    <span class="admin-stat-icon stat-blue">
 
-                                <td>
-                                    <form asp-controller="Admin"
-                                          asp-action="ToggleLock"
-                                          method="post">
+                        <i class="bi bi-people-fill"></i>
 
-                                        @Html.AntiForgeryToken()
+                    </span>
 
-                                        <input type="hidden"
-                                               name="userId"
-                                               value="@user.Id" />
+                </article>
 
-                                        @if (user.IsLocked)
-                                        {
-                                            <button type="submit"
-                                                    class="btn btn-sm btn-success">
-                                                Mở khóa
-                                            </button>
-                                        }
-                                        else
-                                        {
-                                            <button type="submit"
-                                                    class="btn btn-sm btn-danger">
-                                                Khóa tài khoản
-                                            </button>
-                                        }
+            </div>
 
-                                    </form>
-                                </td>
-                            </tr>
-                        }
+            <div class="col-6 col-xl-3">
 
-                    </tbody>
+                <article class="admin-stat-card">
 
-                </table>
+                    <div>
+
+                        <span class="admin-stat-label">
+                            Đang hoạt động
+                        </span>
+
+                        <strong>
+                            @Model.ActiveUsers
+                        </strong>
+
+                        <small>
+                            Có thể đăng nhập
+                        </small>
+
+                    </div>
+
+                    <span class="admin-stat-icon stat-green">
+
+                        <i class="bi bi-person-check-fill"></i>
+
+                    </span>
+
+                </article>
+
+            </div>
+
+            <div class="col-6 col-xl-3">
+
+                <article class="admin-stat-card">
+
+                    <div>
+
+                        <span class="admin-stat-label">
+                            Đang bị khóa
+                        </span>
+
+                        <strong>
+                            @Model.LockedUsers
+                        </strong>
+
+                        <small>
+                            Không thể đăng nhập
+                        </small>
+
+                    </div>
+
+                    <span class="admin-stat-icon stat-red">
+
+                        <i class="bi bi-person-lock"></i>
+
+                    </span>
+
+                </article>
+
+            </div>
+
+            <div class="col-6 col-xl-3">
+
+                <article class="admin-stat-card">
+
+                    <div>
+
+                        <span class="admin-stat-label">
+                            Phân quyền
+                        </span>
+
+                        <strong class="admin-role-stat">
+
+                            @Model.AdminUsers /
+                            @Model.StaffUsers /
+                            @Model.CustomerUsers
+
+                        </strong>
+
+                        <small>
+                            Admin / Staff / Customer
+                        </small>
+
+                    </div>
+
+                    <span class="admin-stat-icon stat-purple">
+
+                        <i class="bi bi-shield-check"></i>
+
+                    </span>
+
+                </article>
+
             </div>
 
         </div>
+
+        <!-- =================================================
+             BỘ LỌC
+        ================================================== -->
+
+        <section class="admin-filter-card">
+
+            <form asp-controller="Admin"
+                  asp-action="Users"
+                  method="get"
+                  id="adminUserFilterForm">
+
+                <div class="row g-3
+                    align-items-end">
+
+                    <div class="col-12 col-lg-5">
+
+                        <label for="search"
+                               class="form-label">
+
+                            Tìm kiếm tài khoản
+
+                        </label>
+
+                        <div class="admin-input-wrapper">
+
+                            <i class="bi bi-search"></i>
+
+                            <input id="search"
+                                   name="search"
+                                   value="@Model.Search"
+                                   class="form-control"
+                                   placeholder="Tên, username, email hoặc số điện thoại..." />
+
+                        </div>
+
+                    </div>
+
+                    <div class="col-6 col-lg-2">
+
+                        <label for="role"
+                               class="form-label">
+
+                            Quyền
+
+                        </label>
+
+                        <select id="role"
+                                name="role"
+                                data-selected="@Model.RoleFilter"
+                                class="form-select">
+
+                            <option value="">
+                                Tất cả quyền
+                            </option>
+
+                            <option value="Admin">
+                                Quản trị viên
+                            </option>
+
+                            <option value="Staff">
+                                Nhân viên
+                            </option>
+
+                            <option value="Customer">
+                                Khách hàng
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                    <div class="col-6 col-lg-2">
+
+                        <label for="status"
+                               class="form-label">
+
+                            Trạng thái
+
+                        </label>
+
+                        <select id="status"
+                                name="status"
+                                data-selected="@Model.StatusFilter"
+                                class="form-select">
+
+                            <option value="">
+                                Tất cả
+                            </option>
+
+                            <option value="Active">
+                                Đang hoạt động
+                            </option>
+
+                            <option value="Locked">
+                                Đã khóa
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                    <div class="col-12 col-sm-6
+                        col-lg-auto">
+
+                        <button type="submit"
+                                class="btn admin-search-button">
+
+                            <i class="bi bi-search"></i>
+                            Tìm kiếm
+
+                        </button>
+
+                    </div>
+
+                    <div class="col-12 col-sm-6
+                        col-lg-auto">
+
+                        <a asp-controller="Admin"
+                           asp-action="Users"
+                           class="btn admin-reset-button">
+
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                            Đặt lại
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+        </section>
+
+        <!-- =================================================
+             DANH SÁCH
+        ================================================== -->
+
+        <section class="admin-user-list-card">
+
+            <div class="admin-list-header">
+
+                <div>
+
+                    <h2>
+
+                        <i class="bi bi-person-vcard-fill"></i>
+                        Danh sách tài khoản
+
+                    </h2>
+
+                    <p>
+                        Ảnh đại diện được đồng bộ từ hồ sơ cá nhân.
+                    </p>
+
+                </div>
+
+                <span class="admin-result-count">
+
+                    <strong>
+                        @Model.Users.Count
+                    </strong>
+
+                    kết quả
+
+                </span>
+
+            </div>
+
+            @if (!Model.Users.Any())
+            {
+                <div class="admin-empty-state">
+
+                    <span>
+                        <i class="bi bi-person-x"></i>
+                    </span>
+
+                    <h3>
+                        Không tìm thấy tài khoản
+                    </h3>
+
+                    <p>
+                        Hãy thử thay đổi từ khóa hoặc đặt lại bộ lọc.
+                    </p>
+
+                    <a asp-controller="Admin"
+                       asp-action="Users"
+                       class="btn btn-primary px-4">
+
+                        Đặt lại tìm kiếm
+
+                    </a>
+
+                </div>
+            }
+            else
+            {
+                <!-- DESKTOP TABLE -->
+                <div class="table-responsive
+                    admin-users-table-wrapper">
+
+                    <table class="table
+                        admin-users-table
+                        align-middle">
+
+                        <thead>
+
+                            <tr>
+
+                                <th>
+                                    Người dùng
+                                </th>
+
+                                <th>
+                                    Liên hệ
+                                </th>
+
+                                <th>
+                                    Quyền
+                                </th>
+
+                                <th>
+                                    Trạng thái
+                                </th>
+
+                                <th class="text-center">
+                                    Đơn thuê
+                                </th>
+
+                                <th class="text-end">
+                                    Thao tác
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                            @foreach (var user in Model.Users)
+                            {
+                                var avatarUrl =
+                                    GetAvatarUrl(
+                                        user.AvatarUrl);
+
+                                var displayName =
+                                    string.IsNullOrWhiteSpace(
+                                        user.FullName)
+                                        ? user.UserName
+                                        : user.FullName;
+
+                                <tr class="@(user.IsLocked
+                                                                        ? "admin-user-locked-row"
+                                                                        : "")">
+
+                                    <!-- NGƯỜI DÙNG -->
+                                    <td>
+
+                                        <div class="admin-user-profile">
+
+                                            <button type="button"
+                                                    class="admin-user-avatar-button"
+                                                    data-avatar-url="@avatarUrl"
+                                                    data-user-name="@displayName"
+                                                    aria-label="Xem ảnh đại diện của @displayName">
+
+                                                @if (user.HasAvatar)
+                                                {
+                                                    <img src="@avatarUrl"
+                                                         alt="Ảnh đại diện của @displayName"
+                                                         class="admin-user-avatar-image"
+                                                         loading="lazy"
+                                                         onerror="this.classList.add('d-none');this.nextElementSibling.classList.remove('d-none');" />
+
+                                                    <span class="admin-user-avatar-fallback d-none">
+
+                                                        @GetInitials(
+                                                            user.FullName,
+                                                            user.UserName)
+
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="admin-user-avatar-fallback">
+
+                                                        @GetInitials(
+                                                            user.FullName,
+                                                            user.UserName)
+
+                                                    </span>
+                                                }
+
+                                                <span class="admin-avatar-status
+                                                    @(user.IsLocked
+                                                          ? "avatar-status-locked"
+                                                          : "avatar-status-active")">
+                                                </span>
+
+                                            </button>
+
+                                            <div class="admin-user-identity">
+
+                                                <div class="admin-user-full-name">
+
+                                                    @displayName
+
+                                                </div>
+
+                                                <div class="admin-user-name">
+
+                                                    @("@" + user.UserName)
+
+                                                </div>
+
+                                                <div class="admin-user-meta">
+
+                                                    <span>
+                                                        ID #@user.Id
+                                                    </span>
+
+                                                    <span class="admin-meta-separator">
+                                                        •
+                                                    </span>
+
+                                                    <span>
+                                                        @user.CreatedAt.ToString("dd/MM/yyyy")
+                                                    </span>
+
+                                                </div>
+
+                                                @if (user.IsCurrentUser)
+                                                {
+                                                    <span class="admin-current-user-badge">
+
+                                                        <i class="bi bi-person-check-fill"></i>
+                                                        Tài khoản của bạn
+
+                                                    </span>
+                                                }
+
+                                            </div>
+
+                                        </div>
+
+                                    </td>
+
+                                    <!-- LIÊN HỆ -->
+                                    <td>
+
+                                        <div class="admin-contact-list">
+
+                                            <div title="@user.Email">
+
+                                                <i class="bi bi-envelope"></i>
+
+                                                <span>
+
+                                                    @(string.IsNullOrWhiteSpace(
+                                                        user.Email)
+                                                            ? "Chưa cập nhật"
+                                                            : user.Email)
+
+                                                </span>
+
+                                            </div>
+
+                                            <div>
+
+                                                <i class="bi bi-telephone"></i>
+
+                                                <span>
+
+                                                    @(string.IsNullOrWhiteSpace(
+                                                        user.Phone)
+                                                            ? "Chưa cập nhật"
+                                                            : user.Phone)
+
+                                                </span>
+
+                                            </div>
+
+                                        </div>
+
+                                    </td>
+
+                                    <!-- QUYỀN -->
+                                    <td>
+
+                                        <span class="admin-role-badge
+                                            @GetRoleClass(user.Role)">
+
+                                            <i class="bi bi-shield-check"></i>
+
+                                            @GetRoleText(user.Role)
+
+                                        </span>
+
+                                        @if (!user.IsCurrentUser)
+                                        {
+                                            <form asp-controller="Admin"
+                                                  asp-action="UpdateRole"
+                                                  method="post"
+                                                  class="admin-role-form">
+
+                                                @Html.AntiForgeryToken()
+
+                                                <input type="hidden"
+                                                       name="id"
+                                                       value="@user.Id" />
+
+                                                <input type="hidden"
+                                                       name="search"
+                                                       value="@Model.Search" />
+
+                                                <input type="hidden"
+                                                       name="filterRole"
+                                                       value="@Model.RoleFilter" />
+
+                                                <input type="hidden"
+                                                       name="status"
+                                                       value="@Model.StatusFilter" />
+
+                                                <select name="role"
+                                                        data-current-role="@user.Role"
+                                                        class="form-select admin-role-select">
+
+                                                    @if (user.Role == "Admin")
+                                                    {
+                                                        <option value="Admin" selected>
+                                                            Admin
+                                                        </option>
+                                                    }
+                                                    else
+                                                    {
+                                                        <option value="Admin">
+                                                            Admin
+                                                        </option>
+                                                    }
+
+                                                    @if (user.Role == "Staff")
+                                                    {
+                                                        <option value="Staff" selected>
+                                                            Staff
+                                                        </option>
+                                                    }
+                                                    else
+                                                    {
+                                                        <option value="Staff">
+                                                            Staff
+                                                        </option>
+                                                    }
+
+                                                    @if (user.Role == "Customer")
+                                                    {
+                                                        <option value="Customer" selected>
+                                                            Customer
+                                                        </option>
+                                                    }
+                                                    else
+                                                    {
+                                                        <option value="Customer">
+                                                            Customer
+                                                        </option>
+                                                    }
+
+                                                </select>
+
+                                                <button type="submit"
+                                                        class="btn admin-save-role-button"
+                                                        disabled>
+
+                                                    <i class="bi bi-floppy"></i>
+                                                    Lưu quyền
+
+                                                </button>
+
+                                            </form>
+                                        }
+
+                                    </td>
+
+                                    <!-- TRẠNG THÁI -->
+                                    <td>
+
+                                        @if (user.IsLocked)
+                                        {
+                                            <span class="admin-account-status
+                                                account-status-locked">
+
+                                                <i class="bi bi-lock-fill"></i>
+                                                Đã khóa
+
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="admin-account-status
+                                                account-status-active">
+
+                                                <i class="bi bi-check-circle-fill"></i>
+                                                Hoạt động
+
+                                            </span>
+                                        }
+
+                                    </td>
+
+                                    <!-- ĐƠN THUÊ -->
+                                    <td class="text-center">
+
+                                        <span class="admin-rental-count">
+
+                                            <i class="bi bi-receipt"></i>
+                                            @user.RentalCount
+
+                                        </span>
+
+                                    </td>
+
+                                    <!-- THAO TÁC -->
+                                    <td class="text-end">
+
+                                        @if (!user.IsCurrentUser)
+                                        {
+                                            <form asp-controller="Admin"
+                                                  asp-action="ToggleLock"
+                                                  method="post"
+                                                  class="admin-lock-form"
+                                                  data-user-name="@displayName"
+                                                  data-is-locked="@user.IsLocked.ToString().ToLowerInvariant()">
+
+                                                @Html.AntiForgeryToken()
+
+                                                <input type="hidden"
+                                                       name="id"
+                                                       value="@user.Id" />
+
+                                                <input type="hidden"
+                                                       name="search"
+                                                       value="@Model.Search" />
+
+                                                <input type="hidden"
+                                                       name="filterRole"
+                                                       value="@Model.RoleFilter" />
+
+                                                <input type="hidden"
+                                                       name="status"
+                                                       value="@Model.StatusFilter" />
+
+                                                <button type="submit"
+                                                        class="btn @(user.IsLocked
+                                                                                                                    ? "admin-unlock-button"
+                                                                                                                    : "admin-lock-button")">
+
+                                                    <i class="bi @(user.IsLocked
+                                                                                                               ? "bi-unlock-fill"
+                                                                                                               : "bi-lock-fill")">
+                                                    </i>
+
+                                                    @(user.IsLocked
+                                                        ? "Mở khóa"
+                                                        : "Khóa")
+
+                                                </button>
+
+                                            </form>
+                                        }
+                                        else
+                                        {
+                                            <span class="admin-protected-account">
+
+                                                <i class="bi bi-shield-lock-fill"></i>
+                                                Đang đăng nhập
+
+                                            </span>
+                                        }
+
+                                    </td>
+
+                                </tr>
+                            }
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+            }
+
+        </section>
+
     </div>
 
 </div>
+
+<!-- =====================================================
+     MODAL XEM AVATAR
+====================================================== -->
+
+<div class="modal fade"
+     id="adminAvatarModal"
+     tabindex="-1"
+     aria-labelledby="adminAvatarModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog
+        modal-dialog-centered
+        admin-avatar-modal-dialog">
+
+        <div class="modal-content
+            admin-avatar-modal-content">
+
+            <div class="modal-header">
+
+                <div>
+
+                    <small>
+                        Ảnh đại diện
+                    </small>
+
+                    <h5 id="adminAvatarModalLabel"
+                        class="modal-title">
+
+                        Người dùng
+
+                    </h5>
+
+                </div>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Đóng">
+                </button>
+
+            </div>
+
+            <div class="modal-body">
+
+                <img id="adminAvatarModalImage"
+                     src=""
+                     alt="Ảnh đại diện người dùng" />
+
+                <div id="adminAvatarModalEmpty"
+                     class="admin-avatar-modal-empty d-none">
+
+                    <i class="bi bi-person-circle"></i>
+
+                    <span>
+                        Tài khoản chưa cập nhật ảnh đại diện
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+@section Scripts {
+
+    <script src="~/js/admin-users.js"
+            asp-append-version="true">
+    </script>
+
+}

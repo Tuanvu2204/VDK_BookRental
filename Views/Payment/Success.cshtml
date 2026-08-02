@@ -1,62 +1,468 @@
-﻿@{
-    ViewData["Title"] = "Gửi yêu cầu thanh toán thành công";
+﻿@model VDK_BookRental.Models.Rental?
+
+@{
+    ViewData["Title"] = "Gửi thanh toán thành công";
+
+    var paymentStatus = Model?.Payment?.Status ?? "AwaitingConfirmation";
+    var isPaid = paymentStatus == "Paid" || paymentStatus == "Completed";
+    var isAwaiting = paymentStatus == "AwaitingConfirmation";
+    var isRejected = paymentStatus == "Rejected";
 }
 
-<div class="container py-5">
+<style>
+    .payment-success-page {
+        min-height: 82vh;
+        display: flex;
+        align-items: center;
+        padding: 48px 0;
+        background: radial-gradient(circle at top left, rgba(13, 110, 253, 0.13), transparent 34%), radial-gradient(circle at bottom right, rgba(25, 135, 84, 0.12), transparent 32%), var(--bs-body-bg);
+    }
 
-    <div class="row justify-content-center">
+    .payment-success-card {
+        max-width: 920px;
+        margin: 0 auto;
+        overflow: hidden;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 26px;
+        background: var(--bs-body-bg);
+        box-shadow: 0 24px 65px rgba(15, 23, 42, 0.12);
+    }
 
-        <div class="col-lg-7">
+    .payment-success-hero {
+        padding: 42px 30px 34px;
+        text-align: center;
+        background: linear-gradient(135deg, rgba(13, 110, 253, 0.12), rgba(25, 135, 84, 0.08));
+    }
 
-            <div class="card border-0 shadow-lg rounded-4">
+    .payment-success-icon {
+        width: 92px;
+        height: 92px;
+        display: grid;
+        place-items: center;
+        margin: 0 auto 20px;
+        border-radius: 50%;
+        font-size: 2.7rem;
+    }
 
-                <div class="card-body text-center p-5">
+    .icon-awaiting {
+        color: #9a6700;
+        background: rgba(255, 193, 7, 0.18);
+        box-shadow: 0 0 0 10px rgba(255, 193, 7, 0.08);
+    }
 
-                    <div class="display-3 mb-3">
-                        ✅
+    .icon-paid {
+        color: #157347;
+        background: rgba(25, 135, 84, 0.18);
+        box-shadow: 0 0 0 10px rgba(25, 135, 84, 0.08);
+    }
+
+    .icon-rejected {
+        color: #b02a37;
+        background: rgba(220, 53, 69, 0.16);
+        box-shadow: 0 0 0 10px rgba(220, 53, 69, 0.07);
+    }
+
+    .payment-success-title {
+        margin-bottom: 10px;
+        font-size: clamp(1.8rem, 4vw, 2.6rem);
+        font-weight: 850;
+    }
+
+    .payment-success-subtitle {
+        max-width: 680px;
+        margin: 0 auto;
+        color: #64748b;
+        font-size: 1.02rem;
+        line-height: 1.7;
+    }
+
+    .payment-success-body {
+        padding: 30px;
+    }
+
+    .payment-summary-card {
+        height: 100%;
+        padding: 18px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 17px;
+        background: rgba(148, 163, 184, 0.055);
+    }
+
+    .payment-summary-label {
+        display: block;
+        margin-bottom: 5px;
+        color: #64748b;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+
+    .payment-summary-value {
+        font-size: 1rem;
+        font-weight: 800;
+        word-break: break-word;
+    }
+
+    .payment-book-list {
+        padding: 0;
+        margin: 0;
+        list-style: none;
+    }
+
+    .payment-book-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 15px 0;
+        border-bottom: 1px dashed rgba(148, 163, 184, 0.32);
+    }
+
+        .payment-book-item:last-child {
+            border-bottom: none;
+        }
+
+    .payment-book-name {
+        font-weight: 800;
+    }
+
+    .payment-book-meta {
+        margin-top: 3px;
+        color: #64748b;
+        font-size: 0.88rem;
+    }
+
+    .payment-next-step {
+        padding: 18px;
+        border: 1px solid rgba(13, 110, 253, 0.24);
+        border-radius: 17px;
+        background: rgba(13, 110, 253, 0.075);
+    }
+
+    .payment-action-group {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 28px;
+    }
+
+    .payment-action-button {
+        min-width: 180px;
+        min-height: 48px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        border-radius: 13px;
+        font-weight: 750;
+    }
+
+    @@media (max-width: 575.98px) {
+        .payment-success-page {
+            padding: 24px 0;
+        }
+
+        .payment-success-card {
+            border-radius: 20px;
+        }
+
+        .payment-success-hero,
+        .payment-success-body {
+            padding-left: 20px;
+            padding-right: 20px;
+        }
+
+        .payment-book-item {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .payment-action-group {
+            flex-direction: column;
+        }
+
+        .payment-action-button {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="payment-success-page">
+    <div class="container">
+        <div class="payment-success-card">
+
+            <div class="payment-success-hero">
+
+                @if (isPaid)
+                {
+                    <div class="payment-success-icon icon-paid">
+                        <i class="bi bi-check-circle-fill"></i>
                     </div>
 
-                    <h1 class="fw-bold text-success mb-3">
-                        Đã gửi xác nhận thanh toán
+                    <h1 class="payment-success-title text-success">
+                        Thanh toán đã được xác nhận
                     </h1>
 
-                    <p class="fs-5 text-muted">
-                        Hệ thống đã ghi nhận thông tin chuyển khoản của bạn.
+                    <p class="payment-success-subtitle">
+                        Giao dịch của bạn đã được nhân viên xác nhận thành công.
+                        Đơn thuê sẽ tiếp tục được xử lý theo quy trình giao sách.
                     </p>
+                }
+                else if (isRejected)
+                {
+                    <div class="payment-success-icon icon-rejected">
+                        <i class="bi bi-x-circle-fill"></i>
+                    </div>
 
-                    <div class="alert alert-warning mt-4">
+                    <h1 class="payment-success-title text-danger">
+                        Thanh toán bị từ chối
+                    </h1>
 
-                        Thanh toán đang chờ quản trị viên kiểm tra và xác nhận.
+                    <p class="payment-success-subtitle">
+                        Nhân viên chưa xác minh được giao dịch. Bạn có thể quay lại
+                        trang thanh toán để kiểm tra thông tin và gửi yêu cầu lại.
+                    </p>
+                }
+                else
+                {
+                    <div class="payment-success-icon icon-awaiting">
+                        <i class="bi bi-hourglass-split"></i>
+                    </div>
+
+                    <h1 class="payment-success-title">
+                        Đã gửi yêu cầu thanh toán
+                    </h1>
+
+                    <p class="payment-success-subtitle">
+                        Hệ thống đã ghi nhận xác nhận của bạn. Giao dịch đang chờ
+                        nhân viên kiểm tra trước khi chuyển sang trạng thái đã thanh toán.
+                    </p>
+                }
+
+            </div>
+
+            <div class="payment-success-body">
+
+                @if (TempData["SuccessMessage"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        @TempData["SuccessMessage"]
+                        <button type="button"
+                                class="btn-close"
+                                data-bs-dismiss="alert"
+                                aria-label="Đóng">
+                        </button>
+                    </div>
+                }
+
+                @if (TempData["ErrorMessage"] != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        @TempData["ErrorMessage"]
+                        <button type="button"
+                                class="btn-close"
+                                data-bs-dismiss="alert"
+                                aria-label="Đóng">
+                        </button>
+                    </div>
+                }
+
+                @if (Model != null)
+                {
+                    <div class="row g-3 mb-4">
+
+                        <div class="col-12 col-md-6">
+                            <div class="payment-summary-card">
+                                <span class="payment-summary-label">Mã đơn thuê</span>
+                                <div class="payment-summary-value text-primary">
+                                    #RENT-@Model.Id.ToString("D4")
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <div class="payment-summary-card">
+                                <span class="payment-summary-label">Mã thanh toán</span>
+                                <div class="payment-summary-value">
+                                    @(Model.Payment != null
+                                        ? $"#PAY-{Model.Payment.Id:D4}"
+                                        : "Chưa có dữ liệu")
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <div class="payment-summary-card">
+                                <span class="payment-summary-label">Phương thức</span>
+                                <div class="payment-summary-value">
+                                    @(Model.Payment?.PaymentMethod ?? "Chưa chọn")
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <div class="payment-summary-card">
+                                <span class="payment-summary-label">Số tiền</span>
+                                <div class="payment-summary-value text-danger">
+                                    @Model.TotalAmount.ToString("N0") VNĐ
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <div class="payment-summary-card">
+                                <span class="payment-summary-label">Ngày thuê</span>
+                                <div class="payment-summary-value">
+                                    @Model.RentalDate.ToString("dd/MM/yyyy")
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <div class="payment-summary-card">
+                                <span class="payment-summary-label">Ngày trả dự kiến</span>
+                                <div class="payment-summary-value">
+                                    @Model.ReturnDate.ToString("dd/MM/yyyy")
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="payment-summary-card">
+                                <span class="payment-summary-label">Nội dung chuyển khoản</span>
+                                <div class="payment-summary-value">
+                                    @(Model.Payment?.TransferContent ?? $"RENTAL_{Model.Id}")
+                                </div>
+                            </div>
+                        </div>
 
                     </div>
 
-                    <div class="d-flex justify-content-center
-                        gap-3 flex-wrap mt-4">
+                    @if (Model.RentalDetails != null && Model.RentalDetails.Any())
+                    {
+                        <div class="mb-4">
+                            <h5 class="fw-bold mb-3">
+                                <i class="bi bi-book me-2 text-primary"></i>
+                                Sách trong đơn thuê
+                            </h5>
+
+                            <ul class="payment-book-list">
+                                @foreach (var detail in Model.RentalDetails)
+                                {
+                                    <li class="payment-book-item">
+                                        <div>
+                                            <div class="payment-book-name">
+                                                @(detail.Book?.Title ?? "Sách không tồn tại")
+                                            </div>
+
+                                            <div class="payment-book-meta">
+                                                @detail.Quantity cuốn · @detail.RentalDays ngày ·
+                                                @detail.Price.ToString("N0") VNĐ/ngày
+                                            </div>
+                                        </div>
+
+                                        <strong class="text-danger">
+                                            @detail.SubTotal.ToString("N0") VNĐ
+                                        </strong>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    }
+
+                    <div class="payment-next-step">
+                        <div class="d-flex align-items-start gap-3">
+                            <i class="bi bi-info-circle-fill text-primary fs-4"></i>
+
+                            <div>
+                                <h6 class="fw-bold mb-2">Bước tiếp theo</h6>
+
+                                @if (isPaid)
+                                {
+                                    <p class="mb-0 text-muted">
+                                        Nhân viên sẽ duyệt đơn và cập nhật trạng thái giao sách.
+                                        Bạn có thể theo dõi tại lịch sử thuê sách.
+                                    </p>
+                                }
+                                else if (isRejected)
+                                {
+                                    <p class="mb-0 text-muted">
+                                        Hãy quay lại trang thanh toán, kiểm tra đúng số tiền và
+                                        nội dung chuyển khoản trước khi gửi yêu cầu lại.
+                                    </p>
+                                }
+                                else
+                                {
+                                    <p class="mb-0 text-muted">
+                                        Vui lòng chờ nhân viên kiểm tra giao dịch. Không cần gửi
+                                        lại nhiều lần khi trạng thái đang chờ xác nhận.
+                                    </p>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="payment-action-group">
+
+                        @if (isRejected)
+                        {
+                            <a asp-controller="Payment"
+                               asp-action="Checkout"
+                               asp-route-rentalId="@Model.Id"
+                               class="btn btn-danger payment-action-button">
+                                <i class="bi bi-arrow-repeat"></i>
+                                Thanh toán lại
+                            </a>
+                        }
 
                         <a asp-controller="Rental"
                            asp-action="History"
-                           class="btn btn-primary btn-lg">
-
-                            Xem lịch sử thuê
-
+                           class="btn btn-primary payment-action-button">
+                            <i class="bi bi-clock-history"></i>
+                            Lịch sử thuê sách
                         </a>
 
                         <a asp-controller="Books"
                            asp-action="Index"
-                           class="btn btn-outline-secondary btn-lg">
-
+                           class="btn btn-outline-secondary payment-action-button">
+                            <i class="bi bi-book"></i>
                             Tiếp tục xem sách
-
                         </a>
 
                     </div>
+                }
+                else
+                {
+                    <div class="payment-next-step text-center">
+                        <h5 class="fw-bold mb-2">Yêu cầu đã được ghi nhận</h5>
+                        <p class="text-muted mb-0">
+                            Bạn có thể mở lịch sử thuê sách để theo dõi trạng thái đơn hàng.
+                        </p>
+                    </div>
 
-                </div>
+                    <div class="payment-action-group">
+                        <a asp-controller="Rental"
+                           asp-action="History"
+                           class="btn btn-primary payment-action-button">
+                            <i class="bi bi-clock-history"></i>
+                            Lịch sử thuê sách
+                        </a>
+
+                        <a asp-controller="Books"
+                           asp-action="Index"
+                           class="btn btn-outline-secondary payment-action-button">
+                            <i class="bi bi-book"></i>
+                            Tiếp tục xem sách
+                        </a>
+                    </div>
+                }
 
             </div>
-
         </div>
-
     </div>
-
 </div>

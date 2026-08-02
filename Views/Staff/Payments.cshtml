@@ -1,0 +1,495 @@
+﻿@model IEnumerable<VDK_BookRental.Models.Payment>
+
+@{
+    ViewData["Title"] = "Quản lý thanh toán";
+
+    var selectedStatus = ViewBag.SelectedStatus as string;
+    var payments = Model?.ToList() ?? new List<VDK_BookRental.Models.Payment>();
+
+    string StatusText(string? status) => status switch
+    {
+        "Pending" => "Chờ thanh toán",
+        "AwaitingConfirmation" => "Chờ xác nhận",
+        "Paid" => "Đã thanh toán",
+        "Completed" => "Đã hoàn tất",
+        "Rejected" => "Bị từ chối",
+        "Cancelled" => "Đã hủy",
+        _ => status ?? "Không xác định"
+    };
+
+    string StatusClass(string? status) => status switch
+    {
+        "Pending" => "bg-warning text-dark",
+        "AwaitingConfirmation" => "bg-info text-dark",
+        "Paid" or "Completed" => "bg-success",
+        "Rejected" => "bg-danger",
+        "Cancelled" => "bg-secondary",
+        _ => "bg-secondary"
+    };
+}
+
+<style>
+    .payment-page {
+        min-height: 100vh;
+        padding: 32px 0 60px;
+        background: #f5f7fb;
+    }
+
+    .page-title {
+        color: #172033;
+        font-weight: 800;
+    }
+
+    .summary-card,
+    .filter-card,
+    .table-card {
+        border: 0;
+        border-radius: 20px;
+        background: #fff;
+        box-shadow: 0 10px 30px rgba(24, 39, 75, .08);
+    }
+
+    .summary-card {
+        height: 100%;
+        padding: 20px;
+    }
+
+    .summary-number {
+        color: #172033;
+        font-size: 1.8rem;
+        font-weight: 800;
+    }
+
+    .summary-label {
+        color: #6c757d;
+        font-weight: 600;
+    }
+
+    .summary-icon {
+        width: 48px;
+        height: 48px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 15px;
+        background: #eaf2ff;
+        color: #0d6efd;
+        font-size: 1.3rem;
+    }
+
+    .filter-card {
+        margin-top: 24px;
+        padding: 20px;
+    }
+
+    .table-card {
+        margin-top: 24px;
+        overflow: hidden;
+    }
+
+    .table-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 20px 24px;
+        border-bottom: 1px solid #edf0f4;
+    }
+
+    .payment-table {
+        min-width: 1050px;
+        margin-bottom: 0;
+    }
+
+        .payment-table th {
+            padding: 15px 16px;
+            background: #f8fafc;
+            color: #5f6b7a;
+            font-size: .82rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .payment-table td {
+            padding: 16px;
+            vertical-align: middle;
+        }
+
+    .code-text {
+        color: #0d6efd;
+        font-weight: 800;
+    }
+
+    .customer-name {
+        color: #172033;
+        font-weight: 700;
+    }
+
+    .amount-text {
+        color: #dc3545;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 11px;
+        border-radius: 999px;
+        font-size: .82rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .action-group {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 7px;
+    }
+
+    .action-button {
+        border-radius: 10px;
+        font-size: .82rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .empty-state {
+        padding: 70px 20px;
+        text-align: center;
+        color: #6c757d;
+    }
+</style>
+
+<div class="payment-page">
+    <div class="container-fluid px-3 px-lg-4">
+
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+            <div>
+                <h1 class="page-title mb-1">
+                    <i class="bi bi-credit-card-2-front me-2 text-primary"></i>
+                    Quản lý thanh toán
+                </h1>
+                <p class="text-muted mb-0">
+                    Kiểm tra, xác nhận hoặc từ chối giao dịch thuê sách.
+                </p>
+            </div>
+
+            <a asp-controller="Staff"
+               asp-action="Index"
+               class="btn btn-outline-primary px-4 py-2 rounded-3 fw-bold">
+                <i class="bi bi-grid-1x2-fill me-2"></i>
+                Bảng điều khiển
+            </a>
+        </div>
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show shadow-sm">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                @TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show shadow-sm">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                @TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <div class="row g-3">
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="summary-card d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="summary-label">Tổng giao dịch</div>
+                        <div class="summary-number">@payments.Count</div>
+                    </div>
+                    <div class="summary-icon"><i class="bi bi-receipt"></i></div>
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="summary-card d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="summary-label">Chờ xác nhận</div>
+                        <div class="summary-number">
+                            @payments.Count(x => x.Status == "AwaitingConfirmation")
+                        </div>
+                    </div>
+                    <div class="summary-icon"><i class="bi bi-hourglass-split"></i></div>
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="summary-card d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="summary-label">Đã thanh toán</div>
+                        <div class="summary-number">
+                            @payments.Count(x => x.Status == "Paid" || x.Status == "Completed")
+                        </div>
+                    </div>
+                    <div class="summary-icon"><i class="bi bi-check-circle-fill"></i></div>
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="summary-card d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="summary-label">Bị từ chối</div>
+                        <div class="summary-number">
+                            @payments.Count(x => x.Status == "Rejected")
+                        </div>
+                    </div>
+                    <div class="summary-icon"><i class="bi bi-x-circle-fill"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="filter-card">
+            <form asp-controller="Staff" asp-action="Payments" method="get">
+                <div class="row g-3 align-items-end">
+                    <div class="col-12 col-md-6">
+                        <label for="status" class="form-label fw-bold">
+                            Lọc theo trạng thái
+                        </label>
+                        <select id="status" name="status" class="form-select form-select-lg">
+                            <option value="">Tất cả giao dịch</option>
+                            <option value="Pending" selected="@(selectedStatus == "Pending")">Chờ thanh toán</option>
+                            <option value="AwaitingConfirmation" selected="@(selectedStatus == "AwaitingConfirmation")">Chờ xác nhận</option>
+                            <option value="Paid" selected="@(selectedStatus == "Paid")">Đã thanh toán</option>
+                            <option value="Completed" selected="@(selectedStatus == "Completed")">Đã hoàn tất</option>
+                            <option value="Rejected" selected="@(selectedStatus == "Rejected")">Bị từ chối</option>
+                            <option value="Cancelled" selected="@(selectedStatus == "Cancelled")">Đã hủy</option>
+                        </select>
+                    </div>
+
+                    <div class="col-12 col-md-auto">
+                        <button type="submit" class="btn btn-primary px-4 py-2 rounded-3 fw-bold">
+                            <i class="bi bi-funnel-fill me-2"></i>Lọc
+                        </button>
+                    </div>
+
+                    <div class="col-12 col-md-auto">
+                        <a asp-controller="Staff" asp-action="Payments"
+                           class="btn btn-outline-secondary px-4 py-2 rounded-3 fw-bold">
+                            <i class="bi bi-arrow-counterclockwise me-2"></i>Đặt lại
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="table-card">
+            <div class="table-header">
+                <h4 class="mb-0 fw-bold">
+                    <i class="bi bi-list-check me-2 text-primary"></i>
+                    Danh sách giao dịch
+                </h4>
+                <span class="badge bg-primary rounded-pill px-3 py-2">
+                    @payments.Count giao dịch
+                </span>
+            </div>
+
+            @if (payments.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table payment-table align-middle">
+                        <thead>
+                            <tr>
+                                <th>Mã thanh toán</th>
+                                <th>Đơn thuê</th>
+                                <th>Khách hàng</th>
+                                <th>Phương thức</th>
+                                <th>Nội dung</th>
+                                <th class="text-end">Số tiền</th>
+                                <th>Trạng thái</th>
+                                <th class="text-end">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var payment in payments)
+                            {
+                                var customerName = payment.Rental?.User?.FullName;
+                                if (string.IsNullOrWhiteSpace(customerName))
+                                {
+                                    customerName = payment.Rental?.User?.UserName ?? "Không xác định";
+                                }
+
+                                var method = string.IsNullOrWhiteSpace(payment.PaymentMethod)
+                                    ? "Chưa chọn"
+                                    : payment.PaymentMethod;
+
+                                var transferContent = string.IsNullOrWhiteSpace(payment.TransferContent)
+                                    ? $"RENTAL_{payment.RentalId}"
+                                    : payment.TransferContent;
+
+                                var amount = payment.Rental?.TotalAmount ?? 0;
+
+                                <tr>
+                                    <td class="code-text">#PAY-@payment.Id.ToString("D4")</td>
+
+                                    <td>
+                                        <a asp-controller="Staff"
+                                           asp-action="RentalDetails"
+                                           asp-route-id="@payment.RentalId"
+                                           class="fw-bold text-decoration-none">
+                                            #RENT-@payment.RentalId.ToString("D4")
+                                        </a>
+                                    </td>
+
+                                    <td>
+                                        <div class="customer-name">@customerName</div>
+                                        <small class="text-muted">Khách thuê sách</small>
+                                    </td>
+
+                                    <td>
+                                        <i class="bi bi-credit-card me-1 text-primary"></i>
+                                        <strong>@method</strong>
+                                    </td>
+
+                                    <td>
+                                        <code title="@transferContent">@transferContent</code>
+                                    </td>
+
+                                    <td class="text-end">
+                                        <span class="amount-text">@amount.ToString("N0") VNĐ</span>
+                                    </td>
+
+                                    <td>
+                                        <span class="status-badge @StatusClass(payment.Status)">
+                                            @StatusText(payment.Status)
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        <div class="action-group">
+                                            <a asp-controller="Staff"
+                                               asp-action="RentalDetails"
+                                               asp-route-id="@payment.RentalId"
+                                               class="btn btn-outline-primary btn-sm action-button">
+                                                <i class="bi bi-eye me-1"></i>Chi tiết
+                                            </a>
+
+                                            @if (payment.Status == "AwaitingConfirmation")
+                                            {
+                                                <form asp-controller="Staff"
+                                                      asp-action="ApprovePayment"
+                                                      method="post"
+                                                      class="approve-form">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="paymentId" value="@payment.Id" />
+                                                    <button type="submit" class="btn btn-success btn-sm action-button">
+                                                        <i class="bi bi-check-lg me-1"></i>Xác nhận
+                                                    </button>
+                                                </form>
+
+                                                <form asp-controller="Staff"
+                                                      asp-action="RejectPayment"
+                                                      method="post"
+                                                      class="reject-form">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="paymentId" value="@payment.Id" />
+                                                    <button type="submit" class="btn btn-danger btn-sm action-button">
+                                                        <i class="bi bi-x-lg me-1"></i>Từ chối
+                                                    </button>
+                                                </form>
+                                            }
+                                            else if (payment.Status == "Rejected" || payment.Status == "Cancelled")
+                                            {
+                                                <form asp-controller="Staff"
+                                                      asp-action="RetryPayment"
+                                                      method="post"
+                                                      class="retry-form">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="paymentId" value="@payment.Id" />
+                                                    <button type="submit" class="btn btn-warning btn-sm action-button">
+                                                        <i class="bi bi-arrow-repeat me-1"></i>Xử lý lại
+                                                    </button>
+                                                </form>
+                                            }
+                                            else if (payment.Status == "Pending")
+                                            {
+                                                <span class="text-muted small">Chờ khách thanh toán</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-success small fw-bold">
+                                                    <i class="bi bi-shield-check me-1"></i>Đã xử lý
+                                                </span>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <i class="bi bi-credit-card fs-1 text-primary"></i>
+                    <h4 class="mt-3 fw-bold text-dark">Chưa có giao dịch phù hợp</h4>
+                    <p class="mb-0">Hãy chọn trạng thái khác hoặc đặt lại bộ lọc.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        function bindConfirm(selector, options) {
+        document.querySelectorAll(selector).forEach(function (form) {
+        form.addEventListener("submit", function (event) {
+        event.preventDefault();
+
+        Swal.fire(options).then(function (result) {
+        if (result.isConfirmed) {
+        form.submit();
+        }
+        });
+        });
+        });
+        }
+
+        bindConfirm(".approve-form", {
+        title: "Xác nhận thanh toán?",
+        text: "Giao dịch sẽ chuyển sang trạng thái đã thanh toán.",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Xác nhận",
+        cancelButtonText: "Quay lại",
+        confirmButtonColor: "#198754"
+        });
+
+        bindConfirm(".reject-form", {
+        title: "Từ chối thanh toán?",
+        text: "Khách hàng sẽ phải thực hiện thanh toán lại.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Từ chối",
+        cancelButtonText: "Không",
+        confirmButtonColor: "#dc3545"
+        });
+
+        bindConfirm(".retry-form", {
+        title: "Mở lại thanh toán?",
+        text: "Giao dịch sẽ trở về trạng thái chờ thanh toán.",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Mở lại",
+        cancelButtonText: "Quay lại",
+        confirmButtonColor: "#ffc107"
+        });
+    </script>
+}

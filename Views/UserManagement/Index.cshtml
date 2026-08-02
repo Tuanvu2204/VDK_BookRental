@@ -1,0 +1,1014 @@
+﻿@model VDK_BookRental.ViewModels.UserManagementPageViewModel
+
+@{
+    ViewData["Title"] = "Quản lý người dùng";
+
+    var successMessage =
+        TempData["SuccessMessage"]?.ToString();
+
+    var errorMessage =
+        TempData["ErrorMessage"]?.ToString();
+
+    var temporaryPassword =
+        TempData["TemporaryPassword"]?.ToString();
+
+    var temporaryPasswordUser =
+        TempData["TemporaryPasswordUser"]?.ToString();
+
+    string GetRoleText(string? role)
+    {
+        return role switch
+        {
+            "Admin" => "Quản trị viên",
+            "Staff" => "Nhân viên",
+            _ => "Khách hàng"
+        };
+    }
+
+    string GetRoleClass(string? role)
+    {
+        return role switch
+        {
+            "Admin" => "user-role-admin",
+            "Staff" => "user-role-staff",
+            _ => "user-role-customer"
+        };
+    }
+
+    string GetInitials(
+        string? fullName,
+        string? userName)
+    {
+        var displayName =
+            !string.IsNullOrWhiteSpace(fullName)
+                ? fullName
+                : userName ?? "U";
+
+        var words = displayName.Split(
+            ' ',
+            StringSplitOptions.RemoveEmptyEntries
+        );
+
+        var initials = string.Join(
+            "",
+            words
+                .TakeLast(2)
+                .Select(word =>
+                    char.ToUpperInvariant(word[0]))
+        );
+
+        return string.IsNullOrWhiteSpace(initials)
+            ? "U"
+            : initials;
+    }
+}
+
+<style>
+    .user-management-page {
+        min-height: 100vh;
+        padding: 32px 0 60px;
+        background: radial-gradient( circle at top right, rgba(111, 66, 193, 0.11), transparent 31% ), #f5f7fb;
+    }
+
+    .user-heading {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 24px;
+    }
+
+        .user-heading h1 {
+            margin: 0;
+            color: #172033;
+            font-size: clamp(1.8rem, 3vw, 2.45rem);
+            font-weight: 900;
+        }
+
+        .user-heading p {
+            margin: 8px 0 0;
+            color: #6c757d;
+        }
+
+    .user-back-button,
+    .user-filter-button {
+        min-height: 46px;
+        padding: 10px 17px;
+        border-radius: 13px;
+        font-weight: 800;
+    }
+
+    .user-stat-card {
+        height: 100%;
+        padding: 20px;
+        border: 1px solid rgba(20, 35, 60, 0.06);
+        border-radius: 20px;
+        background: #ffffff;
+        box-shadow: 0 10px 30px rgba(24, 39, 75, 0.07);
+    }
+
+    .user-stat-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+    }
+
+    .user-stat-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+        font-weight: 650;
+    }
+
+    .user-stat-number {
+        margin-top: 6px;
+        color: #172033;
+        font-size: 1.8rem;
+        font-weight: 900;
+    }
+
+    .user-stat-icon {
+        width: 50px;
+        height: 50px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        font-size: 1.35rem;
+    }
+
+    .user-icon-blue {
+        color: #0d6efd;
+        background: #eaf2ff;
+    }
+
+    .user-icon-green {
+        color: #146c43;
+        background: #d1e7dd;
+    }
+
+    .user-icon-red {
+        color: #b02a37;
+        background: #f8d7da;
+    }
+
+    .user-icon-purple {
+        color: #6f42c1;
+        background: #eee7ff;
+    }
+
+    .user-filter-card {
+        margin-top: 24px;
+        padding: 21px;
+        border: none;
+        border-radius: 22px;
+        background: #ffffff;
+        box-shadow: 0 12px 34px rgba(24, 39, 75, 0.08);
+    }
+
+    .user-control {
+        min-height: 47px;
+        border-radius: 13px;
+    }
+
+    .user-list-card {
+        margin-top: 24px;
+        overflow: hidden;
+        border: none;
+        border-radius: 22px;
+        background: #ffffff;
+        box-shadow: 0 12px 34px rgba(24, 39, 75, 0.08);
+    }
+
+    .user-list-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 21px 24px;
+        border-bottom: 1px solid #edf0f4;
+    }
+
+        .user-list-header h2 {
+            margin: 0;
+            color: #172033;
+            font-size: 1.25rem;
+            font-weight: 900;
+        }
+
+    .user-count-badge {
+        padding: 7px 12px;
+        border-radius: 999px;
+        color: #6f42c1;
+        background: #eee7ff;
+        font-size: 0.84rem;
+        font-weight: 800;
+    }
+
+    .user-table {
+        min-width: 1260px;
+        margin: 0;
+    }
+
+        .user-table thead th {
+            padding: 15px 16px;
+            border-bottom: 1px solid #e8ecf1;
+            color: #5f6b7a;
+            background: #f8fafc;
+            font-size: 0.8rem;
+            font-weight: 850;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .user-table tbody td {
+            padding: 16px;
+            border-color: #eef1f4;
+            vertical-align: middle;
+        }
+
+        .user-table tbody tr:hover {
+            background: #fbfcff;
+        }
+
+    .user-profile {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        min-width: 230px;
+    }
+
+    .user-avatar {
+        width: 43px;
+        height: 43px;
+        flex: 0 0 43px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        color: #ffffff;
+        background: linear-gradient( 135deg, #0d6efd, #6f42c1 );
+        font-size: 0.88rem;
+        font-weight: 900;
+    }
+
+    .user-full-name {
+        color: #172033;
+        font-weight: 900;
+    }
+
+    .user-name,
+    .user-contact-sub {
+        margin-top: 3px;
+        color: #7a8494;
+        font-size: 0.81rem;
+    }
+
+    .user-contact {
+        max-width: 220px;
+    }
+
+    .user-contact-main {
+        overflow: hidden;
+        color: #344054;
+        font-weight: 750;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .user-role,
+    .user-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 11px;
+        border-radius: 999px;
+        font-size: 0.81rem;
+        font-weight: 850;
+        white-space: nowrap;
+    }
+
+    .user-role-admin,
+    .user-status-locked {
+        color: #842029;
+        background: #f8d7da;
+    }
+
+    .user-role-staff {
+        color: #084298;
+        background: #cfe2ff;
+    }
+
+    .user-role-customer,
+    .user-status-active {
+        color: #146c43;
+        background: #d1e7dd;
+    }
+
+    .user-rental-count {
+        color: #0d6efd;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .user-role-form {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        min-width: 238px;
+    }
+
+    .user-role-select {
+        min-height: 38px;
+        border-radius: 10px;
+        font-size: 0.84rem;
+        font-weight: 700;
+    }
+
+    .user-action-group {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 7px;
+        min-width: 220px;
+    }
+
+    .user-action-button {
+        min-height: 38px;
+        padding: 7px 11px;
+        border-radius: 10px;
+        font-size: 0.82rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .user-current-badge {
+        display: inline-block;
+        margin-top: 5px;
+        color: #6f42c1;
+        font-size: 0.76rem;
+        font-weight: 850;
+    }
+
+    .user-empty {
+        padding: 72px 20px;
+        text-align: center;
+    }
+
+    .user-empty-icon {
+        width: 82px;
+        height: 82px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 17px;
+        border-radius: 25px;
+        color: #6f42c1;
+        background: #eee7ff;
+        font-size: 2rem;
+    }
+
+    .user-empty h3 {
+        color: #172033;
+        font-weight: 900;
+    }
+
+    .user-empty p {
+        max-width: 500px;
+        margin: 8px auto 0;
+        color: #6c757d;
+    }
+
+    @@media (max-width: 767.98px) {
+        .user-management-page {
+            padding-top: 22px;
+        }
+
+        .user-heading {
+            align-items: stretch;
+        }
+
+        .user-back-button {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="user-management-page">
+    <div class="container-fluid px-3 px-lg-4">
+
+        <div class="user-heading">
+            <div>
+                <h1>
+                    <i class="bi bi-people-fill me-2 text-primary"></i>
+                    Quản lý người dùng
+                </h1>
+
+                <p>
+                    Tìm kiếm, phân quyền, khóa tài khoản và đặt lại mật khẩu.
+                </p>
+            </div>
+
+            <a asp-controller="Staff"
+               asp-action="Index"
+               class="btn btn-outline-primary user-back-button">
+                <i class="bi bi-arrow-left me-2"></i>
+                Về trang quản lý
+            </a>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(successMessage))
+        {
+            <div class="alert alert-success alert-dismissible fade show shadow-sm"
+                 role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                @successMessage
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Đóng">
+                </button>
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <div class="alert alert-danger alert-dismissible fade show shadow-sm"
+                 role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                @errorMessage
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Đóng">
+                </button>
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(temporaryPassword))
+        {
+            <div class="alert alert-warning shadow-sm"
+                 role="alert">
+                <div class="fw-bold mb-2">
+                    <i class="bi bi-key-fill me-2"></i>
+                    Mật khẩu tạm thời của
+                    @temporaryPasswordUser
+                </div>
+
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <code id="temporaryPassword"
+                          class="fs-5">
+                        @temporaryPassword
+                    </code>
+
+                    <button type="button"
+                            class="btn btn-sm btn-outline-dark"
+                            id="copyTemporaryPassword">
+                        <i class="bi bi-copy me-1"></i>
+                        Sao chép
+                    </button>
+                </div>
+
+                <small class="d-block mt-2">
+                    Mật khẩu chỉ hiển thị một lần. Hãy gửi riêng cho người dùng.
+                </small>
+            </div>
+        }
+
+        <div class="row g-3">
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="user-stat-card">
+                    <div class="user-stat-top">
+                        <div>
+                            <div class="user-stat-label">Tổng tài khoản</div>
+                            <div class="user-stat-number">@Model.TotalUsers</div>
+                        </div>
+
+                        <div class="user-stat-icon user-icon-blue">
+                            <i class="bi bi-people"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="user-stat-card">
+                    <div class="user-stat-top">
+                        <div>
+                            <div class="user-stat-label">Đang hoạt động</div>
+                            <div class="user-stat-number">@Model.ActiveUsers</div>
+                        </div>
+
+                        <div class="user-stat-icon user-icon-green">
+                            <i class="bi bi-person-check-fill"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="user-stat-card">
+                    <div class="user-stat-top">
+                        <div>
+                            <div class="user-stat-label">Đang bị khóa</div>
+                            <div class="user-stat-number">@Model.LockedUsers</div>
+                        </div>
+
+                        <div class="user-stat-icon user-icon-red">
+                            <i class="bi bi-person-lock"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="user-stat-card">
+                    <div class="user-stat-top">
+                        <div>
+                            <div class="user-stat-label">
+                                Admin / Staff / Khách
+                            </div>
+
+                            <div class="user-stat-number fs-5">
+                                @Model.AdminUsers /
+                                @Model.StaffUsers /
+                                @Model.CustomerUsers
+                            </div>
+                        </div>
+
+                        <div class="user-stat-icon user-icon-purple">
+                            <i class="bi bi-shield-check"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="user-filter-card">
+            <form asp-controller="UserManagement"
+                  asp-action="Index"
+                  method="get">
+
+                <div class="row g-3 align-items-end">
+
+                    <div class="col-12 col-lg-5">
+                        <label for="search"
+                               class="form-label fw-bold">
+                            Tìm kiếm
+                        </label>
+
+                        <input id="search"
+                               name="search"
+                               value="@Model.Search"
+                               class="form-control user-control"
+                               placeholder="Tên, tài khoản, email hoặc số điện thoại" />
+                    </div>
+
+                    <div class="col-12 col-md-4 col-lg-2">
+                        <label for="role"
+                               class="form-label fw-bold">
+                            Quyền
+                        </label>
+
+                        <select id="role"
+                                name="role"
+                                data-selected="@Model.RoleFilter"
+                                class="form-select user-control">
+                            <option value="">Tất cả quyền</option>
+                            <option value="Customer">Khách hàng</option>
+                            <option value="Staff">Nhân viên</option>
+                            <option value="Admin">Quản trị viên</option>
+                        </select>
+                    </div>
+
+                    <div class="col-12 col-md-4 col-lg-2">
+                        <label for="status"
+                               class="form-label fw-bold">
+                            Trạng thái
+                        </label>
+
+                        <select id="status"
+                                name="status"
+                                data-selected="@Model.StatusFilter"
+                                class="form-select user-control">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="Active">Đang hoạt động</option>
+                            <option value="Locked">Đang bị khóa</option>
+                        </select>
+                    </div>
+
+                    <div class="col-12 col-md-auto">
+                        <button type="submit"
+                                class="btn btn-primary user-filter-button px-4">
+                            <i class="bi bi-search me-2"></i>
+                            Tìm kiếm
+                        </button>
+                    </div>
+
+                    <div class="col-12 col-md-auto">
+                        <a asp-controller="UserManagement"
+                           asp-action="Index"
+                           class="btn btn-outline-secondary user-filter-button px-4">
+                            <i class="bi bi-arrow-counterclockwise me-2"></i>
+                            Đặt lại
+                        </a>
+                    </div>
+
+                </div>
+            </form>
+        </div>
+
+        <div class="user-list-card">
+
+            <div class="user-list-header">
+                <h2>
+                    <i class="bi bi-person-lines-fill me-2 text-primary"></i>
+                    Danh sách tài khoản
+                </h2>
+
+                <span class="user-count-badge">
+                    @Model.Users.Count kết quả
+                </span>
+            </div>
+
+            @if (Model.Users.Any())
+            {
+                <div class="table-responsive">
+
+                    <table class="table user-table align-middle">
+                        <thead>
+                            <tr>
+                                <th>Người dùng</th>
+                                <th>Liên hệ</th>
+                                <th>Quyền hiện tại</th>
+                                <th>Trạng thái</th>
+                                <th>Đơn thuê</th>
+                                <th>Thay đổi quyền</th>
+                                <th class="text-end">Thao tác</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var user in Model.Users)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="user-profile">
+                                            <div class="user-avatar">
+                                                @GetInitials(
+                                                    user.FullName,
+                                                    user.UserName
+                                                )
+                                            </div>
+
+                                            <div>
+                                                <div class="user-full-name">
+                                                    @(string.IsNullOrWhiteSpace(user.FullName)
+                                                        ? "Chưa cập nhật"
+                                                        : user.FullName)
+                                                </div>
+
+                                                <div class="user-name">
+                                                    @@user.UserName
+                                                </div>
+
+                                                @if (user.IsCurrentUser)
+                                                {
+                                                    <span class="user-current-badge">
+                                                        Tài khoản của bạn
+                                                    </span>
+                                                }
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        <div class="user-contact">
+                                            <div class="user-contact-main"
+                                                 title="@user.Email">
+                                                @(string.IsNullOrWhiteSpace(user.Email)
+                                                    ? "Chưa có email"
+                                                    : user.Email)
+                                            </div>
+
+                                            <div class="user-contact-sub">
+                                                @(string.IsNullOrWhiteSpace(user.Phone)
+                                                    ? "Chưa có số điện thoại"
+                                                    : user.Phone)
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        <span class="user-role @GetRoleClass(user.Role)">
+                                            <i class="bi bi-shield-check"></i>
+                                            @GetRoleText(user.Role)
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        @if (user.IsLocked)
+                                        {
+                                            <span class="user-status user-status-locked">
+                                                <i class="bi bi-lock-fill"></i>
+                                                Đã khóa
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="user-status user-status-active">
+                                                <i class="bi bi-check-circle-fill"></i>
+                                                Hoạt động
+                                            </span>
+                                        }
+                                    </td>
+
+                                    <td>
+                                        <span class="user-rental-count">
+                                            @user.RentalCount đơn
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        @if (!user.IsCurrentUser)
+                                        {
+                                            <form asp-controller="UserManagement"
+                                                  asp-action="ChangeRole"
+                                                  method="post"
+                                                  class="user-role-form change-role-form"
+                                                  data-user-name="@user.UserName">
+
+                                                @Html.AntiForgeryToken()
+
+                                                <input type="hidden"
+                                                       name="id"
+                                                       value="@user.Id" />
+
+                                                <select name="role"
+                                                        data-selected="@user.Role"
+                                                        class="form-select user-role-select role-select">
+                                                    <option value="Customer">Khách hàng</option>
+                                                    <option value="Staff">Nhân viên</option>
+                                                    <option value="Admin">Quản trị viên</option>
+                                                </select>
+
+                                                <button type="submit"
+                                                        class="btn btn-outline-primary user-action-button"
+                                                        title="Lưu quyền">
+                                                    <i class="bi bi-check-lg"></i>
+                                                </button>
+                                            </form>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">
+                                                Dùng tài khoản Admin khác để đổi quyền
+                                            </span>
+                                        }
+                                    </td>
+
+                                    <td>
+                                        <div class="user-action-group">
+                                            @if (!user.IsCurrentUser)
+                                            {
+                                                <form asp-controller="UserManagement"
+                                                      asp-action="ToggleLock"
+                                                      method="post"
+                                                      class="toggle-lock-form"
+                                                      data-user-name="@user.UserName"
+                                                      data-is-locked="@user.IsLocked.ToString().ToLowerInvariant()">
+
+                                                    @Html.AntiForgeryToken()
+
+                                                    <input type="hidden"
+                                                           name="id"
+                                                           value="@user.Id" />
+
+                                                    <button type="submit"
+                                                            class="btn @(user.IsLocked
+                                                                                                                            ? "btn-outline-success"
+                                                                                                                            : "btn-outline-danger") user-action-button">
+
+                                                        <i class="bi @(user.IsLocked
+                                                                                                                       ? "bi-unlock-fill"
+                                                                                                                       : "bi-lock-fill") me-1">
+                                                        </i>
+
+                                                        @(user.IsLocked
+                                                            ? "Mở khóa"
+                                                            : "Khóa")
+                                                    </button>
+                                                </form>
+
+                                                <form asp-controller="UserManagement"
+                                                      asp-action="ResetPassword"
+                                                      method="post"
+                                                      class="reset-password-form"
+                                                      data-user-name="@user.UserName">
+
+                                                    @Html.AntiForgeryToken()
+
+                                                    <input type="hidden"
+                                                           name="id"
+                                                           value="@user.Id" />
+
+                                                    <button type="submit"
+                                                            class="btn btn-outline-dark user-action-button">
+                                                        <i class="bi bi-key-fill me-1"></i>
+                                                        Đặt lại mật khẩu
+                                                    </button>
+                                                </form>
+                                            }
+                                            else
+                                            {
+                                                <a asp-controller="Profile"
+                                                   asp-action="Index"
+                                                   class="btn btn-outline-primary user-action-button">
+                                                    <i class="bi bi-person-gear me-1"></i>
+                                                    Hồ sơ của tôi
+                                                </a>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+
+                </div>
+            }
+            else
+            {
+                <div class="user-empty">
+                    <div class="user-empty-icon">
+                        <i class="bi bi-person-x"></i>
+                    </div>
+
+                    <h3>Không tìm thấy tài khoản</h3>
+
+                    <p>
+                        Hãy thay đổi từ khóa hoặc đặt lại bộ lọc để xem toàn bộ người dùng.
+                    </p>
+                </div>
+            }
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        document.querySelectorAll(
+        "select[data-selected]"
+        )
+        .forEach(function (select) {
+        select.value =
+        select.getAttribute("data-selected") || "";
+        });
+
+        document.querySelectorAll(".toggle-lock-form")
+        .forEach(function (form) {
+        form.addEventListener("submit", function (event) {
+        event.preventDefault();
+
+        const userName =
+        form.getAttribute("data-user-name");
+
+        const isLocked =
+        form.getAttribute("data-is-locked") === "true";
+
+        Swal.fire({
+        title: isLocked
+        ? "Mở khóa tài khoản?"
+        : "Khóa tài khoản?",
+
+        text: isLocked
+        ? "Tài khoản " + userName + " sẽ đăng nhập lại được."
+        : "Tài khoản " + userName + " sẽ không thể đăng nhập.",
+
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: isLocked
+        ? "Mở khóa"
+        : "Khóa tài khoản",
+        cancelButtonText: "Quay lại",
+        confirmButtonColor: isLocked
+        ? "#198754"
+        : "#dc3545"
+        })
+        .then(function (result) {
+        if (result.isConfirmed) {
+        form.submit();
+        }
+        });
+        });
+        });
+
+        document.querySelectorAll(".reset-password-form")
+        .forEach(function (form) {
+        form.addEventListener("submit", function (event) {
+        event.preventDefault();
+
+        const userName =
+        form.getAttribute("data-user-name");
+
+        Swal.fire({
+        title: "Đặt lại mật khẩu?",
+        text: "Hệ thống sẽ tạo mật khẩu tạm thời mới cho " + userName + ".",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Tạo mật khẩu mới",
+        cancelButtonText: "Quay lại",
+        confirmButtonColor: "#212529"
+        })
+        .then(function (result) {
+        if (result.isConfirmed) {
+        form.submit();
+        }
+        });
+        });
+        });
+
+        document.querySelectorAll(".change-role-form")
+        .forEach(function (form) {
+        form.addEventListener("submit", function (event) {
+        event.preventDefault();
+
+        const userName =
+        form.getAttribute("data-user-name");
+
+        const roleSelect =
+        form.querySelector("select[name='role']");
+
+        const roleText =
+        roleSelect.options[
+        roleSelect.selectedIndex
+        ].text;
+
+        Swal.fire({
+        title: "Thay đổi quyền?",
+        text: "Tài khoản " + userName + " sẽ được đổi thành " + roleText + ".",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Lưu thay đổi",
+        cancelButtonText: "Quay lại",
+        confirmButtonColor: "#0d6efd"
+        })
+        .then(function (result) {
+        if (result.isConfirmed) {
+        form.submit();
+        }
+        });
+        });
+        });
+
+        const copyButton =
+        document.getElementById(
+        "copyTemporaryPassword"
+        );
+
+        copyButton?.addEventListener(
+        "click",
+        async function () {
+        const password =
+        document.getElementById(
+        "temporaryPassword"
+        )?.textContent?.trim();
+
+        if (!password) {
+        return;
+        }
+
+        try {
+        await navigator.clipboard.writeText(
+        password
+        );
+
+        Swal.fire({
+        title: "Đã sao chép",
+        text: "Mật khẩu tạm thời đã được sao chép.",
+        icon: "success",
+        timer: 1500,
+        showConfirmButton: false
+        });
+        }
+        catch {
+        Swal.fire({
+        title: "Không thể sao chép tự động",
+        text: "Hãy bôi đen và sao chép mật khẩu thủ công.",
+        icon: "info",
+        confirmButtonText: "Đã hiểu"
+        });
+        }
+        }
+        );
+    </script>
+}

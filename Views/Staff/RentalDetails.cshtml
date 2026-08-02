@@ -1,0 +1,938 @@
+﻿@model VDK_BookRental.Models.Rental
+
+@{
+    ViewData["Title"] = "Chi tiết đơn thuê";
+
+    var customerName =
+        !string.IsNullOrWhiteSpace(Model.User?.FullName)
+            ? Model.User.FullName
+            : Model.User?.UserName ?? "Không xác định";
+
+    var customerEmail =
+        !string.IsNullOrWhiteSpace(Model.User?.Email)
+            ? Model.User.Email
+            : "Chưa cập nhật";
+
+    var customerPhone =
+        !string.IsNullOrWhiteSpace(Model.User?.Phone)
+            ? Model.User.Phone
+            : "Chưa cập nhật";
+
+    var rentalStatus = Model.Status ?? "Pending";
+    var paymentStatus = Model.Payment?.Status ?? "Pending";
+
+    string GetRentalStatusText(string? status)
+    {
+        return status switch
+        {
+            "Pending" => "Chờ duyệt",
+            "Approved" => "Đã duyệt",
+            "Borrowing" => "Đang thuê",
+            "Returned" => "Đã trả",
+            "Cancelled" => "Đã hủy",
+            _ => status ?? "Không xác định"
+        };
+    }
+
+    string GetRentalStatusClass(string? status)
+    {
+        return status switch
+        {
+            "Pending" => "status-warning",
+            "Approved" => "status-primary",
+            "Borrowing" => "status-info",
+            "Returned" => "status-success",
+            "Cancelled" => "status-danger",
+            _ => "status-secondary"
+        };
+    }
+
+    string GetPaymentStatusText(string? status)
+    {
+        return status switch
+        {
+            "Pending" => "Chờ thanh toán",
+            "AwaitingConfirmation" => "Chờ xác nhận",
+            "Paid" => "Đã thanh toán",
+            "Completed" => "Đã hoàn tất",
+            "Rejected" => "Bị từ chối",
+            "Cancelled" => "Đã hủy",
+            _ => status ?? "Không xác định"
+        };
+    }
+
+    string GetPaymentStatusClass(string? status)
+    {
+        return status switch
+        {
+            "Pending" => "status-warning",
+            "AwaitingConfirmation" => "status-info",
+            "Paid" => "status-success",
+            "Completed" => "status-success",
+            "Rejected" => "status-danger",
+            "Cancelled" => "status-secondary",
+            _ => "status-secondary"
+        };
+    }
+
+    bool IsPaymentConfirmed()
+    {
+        return paymentStatus == "Paid" ||
+               paymentStatus == "Completed";
+    }
+
+    bool CanApproveRental()
+    {
+        return rentalStatus == "Pending" &&
+               IsPaymentConfirmed();
+    }
+
+    bool CanDeliverRental()
+    {
+        return rentalStatus == "Approved" &&
+               IsPaymentConfirmed();
+    }
+
+    bool CanReturnRental()
+    {
+        return rentalStatus == "Borrowing";
+    }
+
+    bool CanCancelRental()
+    {
+        return rentalStatus == "Pending" ||
+               rentalStatus == "Approved";
+    }
+}
+
+<style>
+    .rental-detail-page {
+        min-height: 100vh;
+        padding: 32px 0 60px;
+        background: radial-gradient(circle at top right, rgba(13, 110, 253, 0.1), transparent 30%), #f5f7fb;
+    }
+
+    .page-heading {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 18px;
+        margin-bottom: 24px;
+    }
+
+        .page-heading h1 {
+            margin: 0;
+            color: #172033;
+            font-size: clamp(1.7rem, 3vw, 2.3rem);
+            font-weight: 800;
+        }
+
+        .page-heading p {
+            margin: 7px 0 0;
+            color: #6c757d;
+        }
+
+    .back-button {
+        min-height: 46px;
+        padding: 11px 18px;
+        border-radius: 13px;
+        font-weight: 700;
+    }
+
+    .detail-card {
+        border: none;
+        border-radius: 22px;
+        overflow: hidden;
+        background: #ffffff;
+        box-shadow: 0 12px 34px rgba(24, 39, 75, 0.08);
+    }
+
+    .detail-card-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid #edf0f4;
+        background: #ffffff;
+    }
+
+        .detail-card-header h2 {
+            margin: 0;
+            color: #172033;
+            font-size: 1.2rem;
+            font-weight: 800;
+        }
+
+    .detail-card-body {
+        padding: 24px;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+    }
+
+    .info-item {
+        padding: 16px;
+        border: 1px solid #edf0f4;
+        border-radius: 16px;
+        background: #fbfcfe;
+    }
+
+    .info-label {
+        display: block;
+        margin-bottom: 6px;
+        color: #7a8494;
+        font-size: 0.84rem;
+        font-weight: 700;
+    }
+
+    .info-value {
+        color: #172033;
+        font-weight: 800;
+        word-break: break-word;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-size: 0.86rem;
+        font-weight: 800;
+    }
+
+    .status-warning {
+        color: #997404;
+        background: #fff3cd;
+    }
+
+    .status-primary {
+        color: #084298;
+        background: #cfe2ff;
+    }
+
+    .status-info {
+        color: #087990;
+        background: #cff4fc;
+    }
+
+    .status-success {
+        color: #146c43;
+        background: #d1e7dd;
+    }
+
+    .status-danger {
+        color: #b02a37;
+        background: #f8d7da;
+    }
+
+    .status-secondary {
+        color: #495057;
+        background: #e2e3e5;
+    }
+
+    .book-table {
+        min-width: 760px;
+        margin: 0;
+    }
+
+        .book-table thead th {
+            padding: 14px 16px;
+            border-bottom: 1px solid #e8ecf1;
+            color: #5f6b7a;
+            background: #f8fafc;
+            font-size: 0.82rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .book-table tbody td {
+            padding: 17px 16px;
+            border-color: #eef1f4;
+            vertical-align: middle;
+        }
+
+    .book-title {
+        color: #172033;
+        font-weight: 800;
+    }
+
+    .amount-box {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 14px;
+        margin-top: 18px;
+        padding: 18px 20px;
+        border-radius: 16px;
+        background: #f8fafc;
+    }
+
+        .amount-box span:first-child {
+            color: #495057;
+            font-weight: 700;
+        }
+
+    .amount-total {
+        color: #dc3545;
+        font-size: 1.35rem;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .action-card {
+        position: sticky;
+        top: 20px;
+    }
+
+    .action-list {
+        display: grid;
+        gap: 12px;
+    }
+
+    .action-button {
+        min-height: 48px;
+        border-radius: 13px;
+        font-weight: 800;
+    }
+
+    .timeline {
+        position: relative;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+        .timeline::before {
+            content: "";
+            position: absolute;
+            top: 12px;
+            bottom: 12px;
+            left: 14px;
+            width: 2px;
+            background: #e1e5ea;
+        }
+
+    .timeline-item {
+        position: relative;
+        display: flex;
+        gap: 14px;
+        padding-bottom: 18px;
+    }
+
+        .timeline-item:last-child {
+            padding-bottom: 0;
+        }
+
+    .timeline-dot {
+        position: relative;
+        z-index: 1;
+        width: 30px;
+        height: 30px;
+        flex: 0 0 30px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        color: #ffffff;
+        background: #adb5bd;
+        font-size: 0.82rem;
+    }
+
+    .timeline-item.active .timeline-dot {
+        background: #0d6efd;
+    }
+
+    .timeline-item.done .timeline-dot {
+        background: #198754;
+    }
+
+    .timeline-content strong {
+        display: block;
+        color: #172033;
+    }
+
+    .timeline-content span {
+        color: #7a8494;
+        font-size: 0.86rem;
+    }
+
+    .note-box {
+        padding: 14px 16px;
+        border: 1px solid #ffe69c;
+        border-radius: 14px;
+        color: #664d03;
+        background: #fff3cd;
+        font-size: 0.9rem;
+    }
+
+    @@media (max-width: 991.98px) {
+        .action-card {
+            position: static;
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+        .rental-detail-page {
+            padding-top: 22px;
+        }
+
+        .page-heading {
+            align-items: stretch;
+        }
+
+        .back-button {
+            width: 100%;
+        }
+
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .detail-card-body {
+            padding: 18px;
+        }
+
+        .amount-box {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+    }
+</style>
+
+<div class="rental-detail-page">
+    <div class="container">
+
+        <div class="page-heading">
+            <div>
+                <h1>
+                    <i class="bi bi-receipt-cutoff me-2 text-primary"></i>
+                    Chi tiết đơn thuê #RENT-@Model.Id.ToString("D4")
+                </h1>
+
+                <p>
+                    Theo dõi thông tin khách hàng, sách thuê, thanh toán và tiến trình xử lý.
+                </p>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2">
+                <a asp-controller="Receipt"
+                   asp-action="Details"
+                   asp-route-id="@Model.Id"
+                   class="btn btn-outline-primary back-button">
+                    <i class="bi bi-printer-fill me-2"></i>
+                    In hóa đơn
+                </a>
+
+                <a asp-controller="Staff"
+                   asp-action="Rentals"
+                   class="btn btn-outline-secondary back-button">
+                    <i class="bi bi-arrow-left me-2"></i>
+                    Quay lại danh sách
+                </a>
+            </div>
+        </div>
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show shadow-sm"
+                 role="alert">
+
+                <i class="bi bi-check-circle-fill me-2"></i>
+                @TempData["SuccessMessage"]
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Đóng">
+                </button>
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show shadow-sm"
+                 role="alert">
+
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                @TempData["ErrorMessage"]
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Đóng">
+                </button>
+            </div>
+        }
+
+        <div class="row g-4">
+
+            <div class="col-12 col-lg-8">
+
+                <div class="detail-card mb-4">
+                    <div class="detail-card-header">
+                        <h2>
+                            <i class="bi bi-person-circle me-2 text-primary"></i>
+                            Thông tin khách thuê
+                        </h2>
+                    </div>
+
+                    <div class="detail-card-body">
+                        <div class="info-grid">
+
+                            <div class="info-item">
+                                <span class="info-label">Họ và tên</span>
+                                <div class="info-value">@customerName</div>
+                            </div>
+
+                            <div class="info-item">
+                                <span class="info-label">Tên đăng nhập</span>
+                                <div class="info-value">
+                                    @(Model.User?.UserName ?? "Không xác định")
+                                </div>
+                            </div>
+
+                            <div class="info-item">
+                                <span class="info-label">Email</span>
+                                <div class="info-value">@customerEmail</div>
+                            </div>
+
+                            <div class="info-item">
+                                <span class="info-label">Số điện thoại</span>
+                                <div class="info-value">@customerPhone</div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-card mb-4">
+                    <div class="detail-card-header">
+                        <h2>
+                            <i class="bi bi-calendar3 me-2 text-primary"></i>
+                            Thông tin đơn thuê
+                        </h2>
+                    </div>
+
+                    <div class="detail-card-body">
+                        <div class="info-grid">
+
+                            <div class="info-item">
+                                <span class="info-label">Ngày thuê</span>
+                                <div class="info-value">
+                                    @Model.RentalDate.ToString("dd/MM/yyyy")
+                                </div>
+                            </div>
+
+                            <div class="info-item">
+                                <span class="info-label">Ngày trả dự kiến</span>
+                                <div class="info-value">
+                                    @Model.ReturnDate.ToString("dd/MM/yyyy")
+                                </div>
+                            </div>
+
+                            <div class="info-item">
+                                <span class="info-label">Trạng thái đơn</span>
+
+                                <span class="status-badge @GetRentalStatusClass(rentalStatus)">
+                                    <i class="bi bi-circle-fill"></i>
+                                    @GetRentalStatusText(rentalStatus)
+                                </span>
+                            </div>
+
+                            <div class="info-item">
+                                <span class="info-label">Trạng thái thanh toán</span>
+
+                                <span class="status-badge @GetPaymentStatusClass(paymentStatus)">
+                                    <i class="bi bi-credit-card"></i>
+                                    @GetPaymentStatusText(paymentStatus)
+                                </span>
+                            </div>
+
+                            <div class="info-item">
+                                <span class="info-label">Phương thức thanh toán</span>
+                                <div class="info-value">
+                                    @(string.IsNullOrWhiteSpace(Model.Payment?.PaymentMethod)
+                                        ? "Chưa chọn"
+                                        : Model.Payment.PaymentMethod)
+                                </div>
+                            </div>
+
+                            <div class="info-item">
+                                <span class="info-label">Nội dung chuyển khoản</span>
+                                <div class="info-value">
+                                    @(string.IsNullOrWhiteSpace(Model.Payment?.TransferContent)
+                                        ? $"RENTAL_{Model.Id}"
+                                        : Model.Payment.TransferContent)
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-card">
+                    <div class="detail-card-header">
+                        <h2>
+                            <i class="bi bi-book-half me-2 text-primary"></i>
+                            Danh sách sách thuê
+                        </h2>
+                    </div>
+
+                    <div class="detail-card-body p-0">
+
+                        <div class="table-responsive">
+                            <table class="table book-table align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Sách</th>
+                                        <th class="text-center">Số lượng</th>
+                                        <th class="text-center">Số ngày</th>
+                                        <th class="text-end">Thành tiền</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    @if (Model.RentalDetails != null &&
+                                         Model.RentalDetails.Any())
+                                    {
+                                        @foreach (var detail in Model.RentalDetails)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <div class="book-title">
+                                                        @(detail.Book?.Title ?? "Không xác định")
+                                                    </div>
+                                                </td>
+
+                                                <td class="text-center">
+                                                    @detail.Quantity
+                                                </td>
+
+                                                <td class="text-center">
+                                                    @detail.RentalDays ngày
+                                                </td>
+
+                                                <td class="text-end fw-bold text-primary">
+                                                    @detail.SubTotal.ToString("N0") VNĐ
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="4"
+                                                class="text-center text-muted py-5">
+                                                Không có sách trong đơn thuê này.
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="px-4 pb-4">
+                            <div class="amount-box">
+                                <span>Tổng tiền đơn thuê</span>
+
+                                <span class="amount-total">
+                                    @Model.TotalAmount.ToString("N0") VNĐ
+                                </span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="col-12 col-lg-4">
+
+                <div class="detail-card action-card mb-4">
+                    <div class="detail-card-header">
+                        <h2>
+                            <i class="bi bi-lightning-charge-fill me-2 text-warning"></i>
+                            Thao tác xử lý
+                        </h2>
+                    </div>
+
+                    <div class="detail-card-body">
+
+                        @if (!IsPaymentConfirmed() &&
+                             rentalStatus == "Pending")
+                        {
+                            <div class="note-box mb-3">
+                                <i class="bi bi-info-circle-fill me-2"></i>
+                                Cần xác nhận thanh toán trước khi duyệt đơn.
+                            </div>
+                        }
+
+                        <div class="action-list">
+
+                            @if (CanApproveRental())
+                            {
+                                <form asp-controller="Staff"
+                                      asp-action="ApproveRental"
+                                      method="post"
+                                      class="approve-rental-form">
+
+                                    @Html.AntiForgeryToken()
+
+                                    <input type="hidden"
+                                           name="rentalId"
+                                           value="@Model.Id" />
+
+                                    <button type="submit"
+                                            class="btn btn-primary action-button w-100">
+                                        <i class="bi bi-check-circle me-2"></i>
+                                        Duyệt đơn thuê
+                                    </button>
+
+                                </form>
+                            }
+
+                            @if (CanDeliverRental())
+                            {
+                                <form asp-controller="Staff"
+                                      asp-action="ConfirmDelivery"
+                                      method="post"
+                                      class="delivery-rental-form">
+
+                                    @Html.AntiForgeryToken()
+
+                                    <input type="hidden"
+                                           name="rentalId"
+                                           value="@Model.Id" />
+
+                                    <button type="submit"
+                                            class="btn btn-info text-white action-button w-100">
+                                        <i class="bi bi-truck me-2"></i>
+                                        Xác nhận giao sách
+                                    </button>
+
+                                </form>
+                            }
+
+                            @if (CanReturnRental())
+                            {
+                                <form asp-controller="Staff"
+                                      asp-action="ConfirmReturn"
+                                      method="post"
+                                      class="return-rental-form">
+
+                                    @Html.AntiForgeryToken()
+
+                                    <input type="hidden"
+                                           name="rentalId"
+                                           value="@Model.Id" />
+
+                                    <button type="submit"
+                                            class="btn btn-success action-button w-100">
+                                        <i class="bi bi-journal-check me-2"></i>
+                                        Xác nhận trả sách
+                                    </button>
+
+                                </form>
+                            }
+
+                            @if (CanCancelRental())
+                            {
+                                <form asp-controller="Staff"
+                                      asp-action="CancelRental"
+                                      method="post"
+                                      class="cancel-rental-form">
+
+                                    @Html.AntiForgeryToken()
+
+                                    <input type="hidden"
+                                           name="rentalId"
+                                           value="@Model.Id" />
+
+                                    <button type="submit"
+                                            class="btn btn-outline-danger action-button w-100">
+                                        <i class="bi bi-x-circle me-2"></i>
+                                        Hủy đơn thuê
+                                    </button>
+
+                                </form>
+                            }
+
+                            @if (!CanApproveRental() &&
+                                 !CanDeliverRental() &&
+                                 !CanReturnRental() &&
+                                 !CanCancelRental())
+                            {
+                                <div class="alert alert-light border text-center mb-0">
+                                    <i class="bi bi-shield-check text-success fs-4 d-block mb-2"></i>
+                                    Đơn thuê không còn thao tác cần xử lý.
+                                </div>
+                            }
+
+                            <a asp-controller="Staff"
+                               asp-action="Payments"
+                               class="btn btn-outline-secondary action-button w-100">
+                                <i class="bi bi-credit-card me-2"></i>
+                                Quản lý thanh toán
+                            </a>
+
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-card">
+                    <div class="detail-card-header">
+                        <h2>
+                            <i class="bi bi-diagram-3-fill me-2 text-primary"></i>
+                            Tiến trình đơn thuê
+                        </h2>
+                    </div>
+
+                    <div class="detail-card-body">
+
+                        <ul class="timeline">
+
+                            <li class="timeline-item done">
+                                <span class="timeline-dot">
+                                    <i class="bi bi-check-lg"></i>
+                                </span>
+
+                                <div class="timeline-content">
+                                    <strong>Đã tạo đơn</strong>
+                                    <span>Khách hàng đã gửi yêu cầu thuê sách.</span>
+                                </div>
+                            </li>
+
+                            <li class="timeline-item
+                                @(rentalStatus == "Pending" ? "active" :
+                                  rentalStatus == "Approved" ||
+                                  rentalStatus == "Borrowing" ||
+                                  rentalStatus == "Returned" ? "done" : "")">
+
+                                <span class="timeline-dot">
+                                    <i class="bi bi-check2"></i>
+                                </span>
+
+                                <div class="timeline-content">
+                                    <strong>Duyệt đơn</strong>
+                                    <span>Nhân viên kiểm tra và xác nhận đơn thuê.</span>
+                                </div>
+                            </li>
+
+                            <li class="timeline-item
+                                @(rentalStatus == "Approved" ? "active" :
+                                  rentalStatus == "Borrowing" ||
+                                  rentalStatus == "Returned" ? "done" : "")">
+
+                                <span class="timeline-dot">
+                                    <i class="bi bi-truck"></i>
+                                </span>
+
+                                <div class="timeline-content">
+                                    <strong>Giao sách</strong>
+                                    <span>Đơn được bàn giao cho khách hàng.</span>
+                                </div>
+                            </li>
+
+                            <li class="timeline-item
+                                @(rentalStatus == "Borrowing" ? "active" :
+                                  rentalStatus == "Returned" ? "done" : "")">
+
+                                <span class="timeline-dot">
+                                    <i class="bi bi-book"></i>
+                                </span>
+
+                                <div class="timeline-content">
+                                    <strong>Đang thuê</strong>
+                                    <span>Khách hàng đang sử dụng sách.</span>
+                                </div>
+                            </li>
+
+                            <li class="timeline-item
+                                @(rentalStatus == "Returned" ? "done" : "")">
+
+                                <span class="timeline-dot">
+                                    <i class="bi bi-box-arrow-in-left"></i>
+                                </span>
+
+                                <div class="timeline-content">
+                                    <strong>Đã trả sách</strong>
+                                    <span>Đơn thuê được hoàn tất và sách đã về kho.</span>
+                                </div>
+                            </li>
+
+                        </ul>
+
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        function bindConfirmation(selector, options) {
+        document.querySelectorAll(selector)
+        .forEach(function (form) {
+        form.addEventListener("submit", function (event) {
+        event.preventDefault();
+
+        Swal.fire(options)
+        .then(function (result) {
+        if (result.isConfirmed) {
+        form.submit();
+        }
+        });
+        });
+        });
+        }
+
+        bindConfirmation(".approve-rental-form", {
+        title: "Duyệt đơn thuê?",
+        text: "Đơn thuê sẽ được chuyển sang trạng thái đã duyệt.",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Duyệt đơn",
+        cancelButtonText: "Quay lại",
+        confirmButtonColor: "#0d6efd"
+        });
+
+        bindConfirmation(".delivery-rental-form", {
+        title: "Xác nhận giao sách?",
+        text: "Hệ thống sẽ chuyển đơn sang trạng thái đang thuê.",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Đã giao sách",
+        cancelButtonText: "Quay lại",
+        confirmButtonColor: "#0dcaf0"
+        });
+
+        bindConfirmation(".return-rental-form", {
+        title: "Xác nhận trả sách?",
+        text: "Số lượng sách sẽ được hoàn lại vào kho.",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Đã nhận sách",
+        cancelButtonText: "Quay lại",
+        confirmButtonColor: "#198754"
+        });
+
+        bindConfirmation(".cancel-rental-form", {
+        title: "Hủy đơn thuê?",
+        text: "Đơn sẽ bị hủy và số lượng sách được hoàn lại vào kho.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Hủy đơn",
+        cancelButtonText: "Không",
+        confirmButtonColor: "#dc3545"
+        });
+    </script>
+}

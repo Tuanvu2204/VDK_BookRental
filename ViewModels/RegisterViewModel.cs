@@ -4,6 +4,13 @@ namespace VDK_BookRental.ViewModels
 {
     public class RegisterViewModel
     {
+        [Required(ErrorMessage = "Vui lòng nhập tên tài khoản.")]
+        [StringLength(
+            50,
+            MinimumLength = 4,
+            ErrorMessage = "Tên tài khoản phải từ 4 đến 50 ký tự.")]
+        public string UserName { get; set; } = string.Empty;
+
         [Required(ErrorMessage = "Vui lòng nhập họ và tên.")]
         [StringLength(
             100,

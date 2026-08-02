@@ -5,7 +5,8 @@ namespace VDK_BookRental.Data
 {
     public class AppDbContext : DbContext
     {
-        public AppDbContext(DbContextOptions<AppDbContext> options)
+        public AppDbContext(
+            DbContextOptions<AppDbContext> options)
             : base(options)
         {
         }
@@ -22,41 +23,62 @@ namespace VDK_BookRental.Data
 
         public DbSet<Payment> Payments { get; set; } = null!;
 
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        protected override void OnModelCreating(
+            ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // ==========================
-            // Book
-            // ==========================
+            // ========================================
+            // ĐỘ CHÍNH XÁC CỦA CÁC TRƯỜNG TIỀN
+            // ========================================
+
             modelBuilder.Entity<Book>()
-                .Property(b => b.RentalPrice)
+                .Property(book => book.RentalPrice)
                 .HasPrecision(18, 2);
 
-            // ==========================
-            // Payment
-            // ==========================
-            modelBuilder.Entity<Payment>()
-                .Property(p => p.Amount)
-                .HasPrecision(18, 2);
-
-            // ==========================
-            // Rental
-            // ==========================
             modelBuilder.Entity<Rental>()
-                .Property(r => r.TotalAmount)
-                .HasPrecision(18, 2);
-
-            // ==========================
-            // RentalDetail
-            // ==========================
-            modelBuilder.Entity<RentalDetail>()
-                .Property(rd => rd.Price)
+                .Property(rental => rental.TotalAmount)
                 .HasPrecision(18, 2);
 
             modelBuilder.Entity<RentalDetail>()
-                .Property(rd => rd.SubTotal)
+                .Property(detail => detail.Price)
                 .HasPrecision(18, 2);
+
+            modelBuilder.Entity<RentalDetail>()
+                .Property(detail => detail.SubTotal)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<Payment>()
+                .Property(payment => payment.Amount)
+                .HasPrecision(18, 2);
+
+            // ========================================
+            // KHÔNG CHO TRÙNG TÀI KHOẢN VÀ EMAIL
+            // ========================================
+
+            modelBuilder.Entity<User>()
+                .HasIndex(user => user.UserName)
+                .IsUnique();
+
+            modelBuilder.Entity<User>()
+                .HasIndex(user => user.Email)
+                .IsUnique();
+
+            // Một đơn thuê chỉ có một thanh toán
+            modelBuilder.Entity<Payment>()
+                .HasIndex(payment => payment.RentalId)
+                .IsUnique();
+
+            // ========================================
+            // RENTAL - PAYMENT: QUAN HỆ 1 - 1
+            // ========================================
+
+            modelBuilder.Entity<Rental>()
+                .HasOne(rental => rental.Payment)
+                .WithOne(payment => payment.Rental)
+                .HasForeignKey<Payment>(
+                    payment => payment.RentalId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

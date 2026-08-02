@@ -1,165 +1,256 @@
-﻿@model VDK_BookRental.Models.Book
+﻿@model VDK_BookRental.ViewModels.AdminBookFormViewModel
 
 @{
-    ViewData["Title"] = "Sửa sách";
-    var categories =
-        ViewBag.Categories as IEnumerable<VDK_BookRental.Models.Category>;
+    ViewData["Title"] = "Chỉnh sửa sách";
+
+    var currentImage =
+        string.IsNullOrWhiteSpace(
+            Model.ExistingImageUrl)
+            ? "/images/books/default-book.jpg"
+            : Model.ExistingImageUrl;
 }
 
-<div class="container py-5">
+@section Styles {
+    <link rel="stylesheet"
+          href="~/css/admin-books.css"
+          asp-append-version="true" />
+}
 
-    <div class="row justify-content-center">
+<div class="book-form-page">
 
-        <div class="col-lg-8">
+    <div class="container">
 
-            <div class="card border-0 shadow-sm rounded-4">
+        <div class="book-form-shell">
 
-                <div class="card-body p-4">
+            <section class="book-form-header">
 
-                    <h1 class="fw-bold mb-4">
-                        ✏️ Cập nhật sách
+                <div>
+
+                    <h1>
+                        ✏️ Chỉnh sửa sách
                     </h1>
 
-                    <form asp-controller="Admin"
-                          asp-action="EditBook"
-                          method="post">
-
-                        @Html.AntiForgeryToken()
-
-                        <input asp-for="Id" type="hidden" />
-
-                        <div asp-validation-summary="ModelOnly"
-                             class="text-danger mb-3"></div>
-
-                        <div class="mb-3">
-
-                            <label asp-for="Title"
-                                   class="form-label fw-bold">
-                                Tên sách
-                            </label>
-
-                            <input asp-for="Title"
-                                   class="form-control" />
-
-                        </div>
-
-                        <div class="mb-3">
-
-                            <label asp-for="Author"
-                                   class="form-label fw-bold">
-                                Tác giả
-                            </label>
-
-                            <input asp-for="Author"
-                                   class="form-control" />
-
-                        </div>
-
-                        <div class="mb-3">
-
-                            <label asp-for="CategoryId"
-                                   class="form-label fw-bold">
-                                Danh mục
-                            </label>
-
-                            <select asp-for="CategoryId"
-                                    class="form-select">
-
-                                @if (categories != null)
-                                {
-                                    @foreach (var category in categories)
-                                    {
-                                        <option value="@category.Id">
-                                            @category.Name
-                                        </option>
-                                    }
-                                }
-
-                            </select>
-
-                        </div>
-
-                        <div class="row">
-
-                            <div class="col-md-6 mb-3">
-
-                                <label asp-for="RentalPrice"
-                                       class="form-label fw-bold">
-                                    Giá thuê mỗi ngày
-                                </label>
-
-                                <input asp-for="RentalPrice"
-                                       type="number"
-                                       min="0"
-                                       class="form-control" />
-
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-
-                                <label asp-for="Quantity"
-                                       class="form-label fw-bold">
-                                    Số lượng
-                                </label>
-
-                                <input asp-for="Quantity"
-                                       type="number"
-                                       min="0"
-                                       class="form-control" />
-
-                            </div>
-
-                        </div>
-
-                        <div class="mb-3">
-
-                            <label asp-for="ImageUrl"
-                                   class="form-label fw-bold">
-                                Đường dẫn ảnh
-                            </label>
-
-                            <input asp-for="ImageUrl"
-                                   class="form-control" />
-
-                        </div>
-
-                        <div class="mb-4">
-
-                            <label asp-for="Description"
-                                   class="form-label fw-bold">
-                                Mô tả
-                            </label>
-
-                            <textarea asp-for="Description"
-                                      rows="5"
-                                      class="form-control"></textarea>
-
-                        </div>
-
-                        <div class="d-flex gap-2">
-
-                            <button type="submit"
-                                    class="btn btn-warning">
-
-                                Cập nhật
-
-                            </button>
-
-                            <a asp-controller="Admin"
-                               asp-action="Books"
-                               class="btn btn-outline-secondary">
-
-                                Hủy
-
-                            </a>
-
-                        </div>
-
-                    </form>
+                    <p>
+                        Cập nhật thông tin, giá thuê,
+                        ảnh bìa và số lượng tồn kho.
+                    </p>
 
                 </div>
 
-            </div>
+                <a asp-controller="Admin"
+                   asp-action="Books"
+                   class="btn btn-outline-light fw-bold">
+
+                    ← Quay lại danh sách
+
+                </a>
+
+            </section>
+
+            <form id="bookForm"
+                  asp-controller="Admin"
+                  asp-action="EditBook"
+                  asp-route-id="@Model.Id"
+                  method="post"
+                  enctype="multipart/form-data"
+                  class="book-form-card">
+
+                @Html.AntiForgeryToken()
+
+                <input asp-for="Id"
+                       type="hidden" />
+
+                <input asp-for="ExistingImageUrl"
+                       type="hidden" />
+
+                <div class="book-form-body">
+
+                    <div asp-validation-summary="ModelOnly"
+                         class="alert alert-danger">
+                    </div>
+
+                    <div class="row g-4">
+
+                        <div class="col-12 col-lg-8">
+
+                            <div class="row g-3">
+
+                                <div class="col-12">
+
+                                    <label asp-for="Title"
+                                           class="form-label">
+                                    </label>
+
+                                    <input asp-for="Title"
+                                           class="form-control book-form-control"
+                                           autocomplete="off" />
+
+                                    <span asp-validation-for="Title"
+                                          class="text-danger small">
+                                    </span>
+
+                                </div>
+
+                                <div class="col-12">
+
+                                    <label asp-for="Author"
+                                           class="form-label">
+                                    </label>
+
+                                    <input asp-for="Author"
+                                           class="form-control book-form-control"
+                                           autocomplete="off" />
+
+                                    <span asp-validation-for="Author"
+                                          class="text-danger small">
+                                    </span>
+
+                                </div>
+
+                                <div class="col-12 col-md-6">
+
+                                    <label asp-for="CategoryId"
+                                           class="form-label">
+                                    </label>
+
+                                    <select asp-for="CategoryId"
+                                            asp-items="Model.Categories"
+                                            class="form-select book-form-control">
+
+                                        <option value="">
+                                            -- Chọn thể loại --
+                                        </option>
+
+                                    </select>
+
+                                    <span asp-validation-for="CategoryId"
+                                          class="text-danger small">
+                                    </span>
+
+                                </div>
+
+                                <div class="col-12 col-md-6">
+
+                                    <label asp-for="Quantity"
+                                           class="form-label">
+                                    </label>
+
+                                    <input asp-for="Quantity"
+                                           type="number"
+                                           min="0"
+                                           class="form-control book-form-control" />
+
+                                    <span asp-validation-for="Quantity"
+                                          class="text-danger small">
+                                    </span>
+
+                                </div>
+
+                                <div class="col-12">
+
+                                    <label asp-for="RentalPrice"
+                                           class="form-label">
+                                    </label>
+
+                                    <div class="input-group">
+
+                                        <input asp-for="RentalPrice"
+                                               type="number"
+                                               min="0"
+                                               step="1000"
+                                               class="form-control book-form-control" />
+
+                                        <span class="input-group-text">
+                                            VNĐ/ngày
+                                        </span>
+
+                                    </div>
+
+                                    <span asp-validation-for="RentalPrice"
+                                          class="text-danger small">
+                                    </span>
+
+                                </div>
+
+                                <div class="col-12">
+
+                                    <label asp-for="ImageFile"
+                                           class="form-label">
+                                    </label>
+
+                                    <input asp-for="ImageFile"
+                                           id="ImageFile"
+                                           type="file"
+                                           accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                                           class="form-control book-form-control" />
+
+                                    <div class="form-hint">
+
+                                        Để trống nếu muốn giữ ảnh hiện tại.
+                                        Ảnh mới tối đa 5 MB.
+
+                                    </div>
+
+                                    <span asp-validation-for="ImageFile"
+                                          class="text-danger small">
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <div class="col-12 col-lg-4">
+
+                            <div class="image-panel">
+
+                                <img id="bookImagePreview"
+                                     src="@currentImage"
+                                     alt="Ảnh bìa hiện tại"
+                                     class="image-preview"
+                                     onerror="this.src='/images/books/default-book.jpg';" />
+
+                                <div class="fw-bold text-dark">
+
+                                    Ảnh bìa hiện tại
+
+                                </div>
+
+                                <div class="form-hint">
+
+                                    Chọn tệp mới để thay ảnh này.
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="book-form-footer">
+
+                    <a asp-controller="Admin"
+                       asp-action="Books"
+                       class="btn btn-outline-secondary book-form-button">
+
+                        Hủy
+
+                    </a>
+
+                    <button type="submit"
+                            class="btn btn-primary book-form-button">
+
+                        💾 Lưu thay đổi
+
+                    </button>
+
+                </div>
+
+            </form>
 
         </div>
 
@@ -169,4 +260,8 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <script src="~/js/admin-books.js"
+            asp-append-version="true">
+    </script>
 }

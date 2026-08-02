@@ -1,0 +1,672 @@
+﻿@model IEnumerable<VDK_BookRental.Models.Category>
+
+@{
+    ViewData["Title"] = "Quản lý thể loại";
+
+    var categories = Model?.ToList()
+        ?? new List<VDK_BookRental.Models.Category>();
+
+    var bookCounts =
+        ViewBag.BookCounts as Dictionary<int, int>
+        ?? new Dictionary<int, int>();
+
+    var totalBooks = bookCounts.Values.Sum();
+}
+
+<style>
+    .category-page {
+        min-height: 100vh;
+        padding: 32px 0 60px;
+        background: radial-gradient(circle at top right, rgba(13, 110, 253, 0.11), transparent 31%), #f5f7fb;
+    }
+
+    .category-heading {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 24px;
+    }
+
+        .category-heading h1 {
+            margin: 0;
+            color: #172033;
+            font-size: clamp(1.75rem, 3vw, 2.35rem);
+            font-weight: 900;
+        }
+
+        .category-heading p {
+            margin: 7px 0 0;
+            color: #6c757d;
+        }
+
+    .category-back-button {
+        min-height: 46px;
+        padding: 11px 18px;
+        border-radius: 13px;
+        font-weight: 800;
+    }
+
+    .category-summary-card {
+        height: 100%;
+        padding: 20px;
+        border: 1px solid rgba(20, 35, 60, 0.06);
+        border-radius: 20px;
+        background: #ffffff;
+        box-shadow: 0 10px 30px rgba(24, 39, 75, 0.07);
+    }
+
+    .category-summary-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+    }
+
+    .category-summary-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+        font-weight: 650;
+    }
+
+    .category-summary-number {
+        margin-top: 5px;
+        color: #172033;
+        font-size: 1.8rem;
+        font-weight: 900;
+    }
+
+    .category-summary-icon {
+        width: 49px;
+        height: 49px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        font-size: 1.3rem;
+    }
+
+        .category-summary-icon.primary {
+            color: #0d6efd;
+            background: #eaf2ff;
+        }
+
+        .category-summary-icon.success {
+            color: #146c43;
+            background: #d1e7dd;
+        }
+
+    .category-create-card {
+        height: 100%;
+        padding: 24px;
+        border: none;
+        border-radius: 22px;
+        background: #ffffff;
+        box-shadow: 0 12px 34px rgba(24, 39, 75, 0.08);
+    }
+
+        .category-create-card h2 {
+            margin-bottom: 7px;
+            color: #172033;
+            font-size: 1.25rem;
+            font-weight: 900;
+        }
+
+        .category-create-card p {
+            margin-bottom: 20px;
+            color: #6c757d;
+        }
+
+    .category-form-control {
+        min-height: 48px;
+        border-radius: 13px;
+    }
+
+    .category-submit-button {
+        min-height: 48px;
+        border-radius: 13px;
+        font-weight: 800;
+    }
+
+    .category-list-card {
+        overflow: hidden;
+        border: none;
+        border-radius: 22px;
+        background: #ffffff;
+        box-shadow: 0 12px 34px rgba(24, 39, 75, 0.08);
+    }
+
+    .category-list-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 21px 24px;
+        border-bottom: 1px solid #edf0f4;
+    }
+
+        .category-list-header h2 {
+            margin: 0;
+            color: #172033;
+            font-size: 1.25rem;
+            font-weight: 900;
+        }
+
+    .category-count-badge {
+        padding: 7px 12px;
+        border-radius: 999px;
+        color: #0d6efd;
+        background: #eaf2ff;
+        font-size: 0.86rem;
+        font-weight: 800;
+    }
+
+    .category-table {
+        min-width: 720px;
+        margin: 0;
+    }
+
+        .category-table thead th {
+            padding: 15px 17px;
+            border-bottom: 1px solid #e8ecf1;
+            color: #5f6b7a;
+            background: #f8fafc;
+            font-size: 0.82rem;
+            font-weight: 850;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .category-table tbody td {
+            padding: 17px;
+            border-color: #eef1f4;
+            vertical-align: middle;
+        }
+
+        .category-table tbody tr:hover {
+            background: #fbfcff;
+        }
+
+    .category-id {
+        color: #0d6efd;
+        font-weight: 900;
+    }
+
+    .category-name {
+        color: #172033;
+        font-weight: 900;
+    }
+
+    .category-book-count {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 11px;
+        border-radius: 999px;
+        color: #495057;
+        background: #f0f2f5;
+        font-size: 0.84rem;
+        font-weight: 800;
+    }
+
+    .category-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+
+    .category-action-button {
+        min-height: 38px;
+        padding: 7px 12px;
+        border-radius: 10px;
+        font-size: 0.84rem;
+        font-weight: 800;
+    }
+
+    .category-empty {
+        padding: 70px 20px;
+        text-align: center;
+    }
+
+    .category-empty-icon {
+        width: 80px;
+        height: 80px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 17px;
+        border-radius: 25px;
+        color: #0d6efd;
+        background: #eaf2ff;
+        font-size: 2rem;
+    }
+
+    .category-empty h3 {
+        color: #172033;
+        font-weight: 900;
+    }
+
+    .category-empty p {
+        max-width: 480px;
+        margin: 8px auto 0;
+        color: #6c757d;
+    }
+
+    .category-modal .modal-content {
+        border: none;
+        border-radius: 20px;
+        box-shadow: 0 20px 55px rgba(24, 39, 75, 0.18);
+    }
+
+    .category-modal .modal-header,
+    .category-modal .modal-footer {
+        border-color: #edf0f4;
+    }
+
+    .category-modal .modal-title {
+        color: #172033;
+        font-weight: 900;
+    }
+
+    @@media (max-width: 767.98px) {
+        .category-page {
+            padding-top: 22px;
+        }
+
+        .category-heading {
+            align-items: stretch;
+        }
+
+        .category-back-button {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="category-page">
+    <div class="container">
+
+        <div class="category-heading">
+            <div>
+                <h1>
+                    <i class="bi bi-tags-fill me-2 text-primary"></i>
+                    Quản lý thể loại
+                </h1>
+
+                <p>
+                    Thêm, cập nhật và kiểm soát các nhóm sách trong hệ thống.
+                </p>
+            </div>
+
+            <a asp-controller="Staff"
+               asp-action="Index"
+               class="btn btn-outline-primary category-back-button">
+                <i class="bi bi-arrow-left me-2"></i>
+                Về trang quản lý
+            </a>
+        </div>
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show shadow-sm"
+                 role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                @TempData["SuccessMessage"]
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Đóng">
+                </button>
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show shadow-sm"
+                 role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                @TempData["ErrorMessage"]
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Đóng">
+                </button>
+            </div>
+        }
+
+        <div class="row g-3 mb-4">
+
+            <div class="col-12 col-md-6">
+                <div class="category-summary-card">
+                    <div class="category-summary-top">
+                        <div>
+                            <div class="category-summary-label">
+                                Tổng số thể loại
+                            </div>
+
+                            <div class="category-summary-number">
+                                @categories.Count
+                            </div>
+                        </div>
+
+                        <div class="category-summary-icon primary">
+                            <i class="bi bi-tags"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6">
+                <div class="category-summary-card">
+                    <div class="category-summary-top">
+                        <div>
+                            <div class="category-summary-label">
+                                Tổng sách đã phân loại
+                            </div>
+
+                            <div class="category-summary-number">
+                                @totalBooks
+                            </div>
+                        </div>
+
+                        <div class="category-summary-icon success">
+                            <i class="bi bi-book-half"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="row g-4">
+
+            <div class="col-12 col-lg-4">
+                <div class="category-create-card">
+
+                    <h2>
+                        <i class="bi bi-plus-circle-fill me-2 text-primary"></i>
+                        Thêm thể loại mới
+                    </h2>
+
+                    <p>
+                        Tên thể loại phải khác với những thể loại đã tồn tại.
+                    </p>
+
+                    <form asp-controller="Category"
+                          asp-action="Create"
+                          method="post"
+                          id="createCategoryForm">
+
+                        @Html.AntiForgeryToken()
+
+                        <div class="mb-3">
+                            <label for="categoryName"
+                                   class="form-label fw-bold">
+                                Tên thể loại
+                            </label>
+
+                            <input id="categoryName"
+                                   name="name"
+                                   class="form-control category-form-control"
+                                   maxlength="100"
+                                   autocomplete="off"
+                                   placeholder="Ví dụ: Kỹ năng sống"
+                                   required />
+                        </div>
+
+                        <button type="submit"
+                                class="btn btn-primary category-submit-button w-100">
+                            <i class="bi bi-plus-lg me-2"></i>
+                            Thêm thể loại
+                        </button>
+
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-12 col-lg-8">
+
+                <div class="category-list-card">
+
+                    <div class="category-list-header">
+                        <h2>
+                            <i class="bi bi-list-ul me-2 text-primary"></i>
+                            Danh sách thể loại
+                        </h2>
+
+                        <span class="category-count-badge">
+                            @categories.Count thể loại
+                        </span>
+                    </div>
+
+                    @if (categories.Any())
+                    {
+                        <div class="table-responsive">
+
+                            <table class="table category-table align-middle">
+
+                                <thead>
+                                    <tr>
+                                        <th>Mã</th>
+                                        <th>Tên thể loại</th>
+                                        <th>Số sách</th>
+                                        <th class="text-end">Thao tác</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+
+                                    @foreach (var category in categories)
+                                    {
+                                        var bookCount =
+                                            bookCounts.TryGetValue(
+                                                category.Id,
+                                                out var count)
+                                                    ? count
+                                                    : 0;
+
+                                        <tr>
+                                            <td>
+                                                <span class="category-id">
+                                                    #CAT-@category.Id.ToString("D3")
+                                                </span>
+                                            </td>
+
+                                            <td>
+                                                <div class="category-name">
+                                                    @category.Name
+                                                </div>
+                                            </td>
+
+                                            <td>
+                                                <span class="category-book-count">
+                                                    <i class="bi bi-book"></i>
+                                                    @bookCount cuốn
+                                                </span>
+                                            </td>
+
+                                            <td>
+                                                <div class="category-actions">
+
+                                                    <button type="button"
+                                                            class="btn btn-outline-primary category-action-button"
+                                                            data-bs-toggle="modal"
+                                                            data-bs-target="#editCategoryModal_@category.Id">
+
+                                                        <i class="bi bi-pencil-square me-1"></i>
+                                                        Sửa
+                                                    </button>
+
+                                                    <form asp-controller="Category"
+                                                          asp-action="Delete"
+                                                          method="post"
+                                                          class="delete-category-form"
+                                                          data-category-name="@category.Name"
+                                                          data-book-count="@bookCount">
+
+                                                        @Html.AntiForgeryToken()
+
+                                                        <input type="hidden"
+                                                               name="id"
+                                                               value="@category.Id" />
+
+                                                        <button type="submit"
+                                                                class="btn btn-outline-danger category-action-button"
+                                                                disabled="@(bookCount > 0 ? "disabled" : null)">
+
+                                                            <i class="bi bi-trash3 me-1"></i>
+                                                            Xóa
+                                                        </button>
+
+                                                    </form>
+
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                    }
+
+                                </tbody>
+                            </table>
+
+                        </div>
+
+                        @foreach (var category in categories)
+                        {
+                            <div class="modal fade category-modal"
+                                 id="editCategoryModal_@category.Id"
+                                 tabindex="-1"
+                                 aria-hidden="true">
+
+                                <div class="modal-dialog modal-dialog-centered">
+
+                                    <div class="modal-content">
+
+                                        <form asp-controller="Category"
+                                              asp-action="Edit"
+                                              method="post">
+
+                                            @Html.AntiForgeryToken()
+
+                                            <input type="hidden"
+                                                   name="id"
+                                                   value="@category.Id" />
+
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">
+                                                    <i class="bi bi-pencil-square me-2 text-primary"></i>
+                                                    Cập nhật thể loại
+                                                </h5>
+
+                                                <button type="button"
+                                                        class="btn-close"
+                                                        data-bs-dismiss="modal"
+                                                        aria-label="Đóng">
+                                                </button>
+                                            </div>
+
+                                            <div class="modal-body p-4">
+                                                <label class="form-label fw-bold">
+                                                    Tên thể loại
+                                                </label>
+
+                                                <input name="name"
+                                                       class="form-control category-form-control"
+                                                       value="@category.Name"
+                                                       maxlength="100"
+                                                       required />
+                                            </div>
+
+                                            <div class="modal-footer">
+                                                <button type="button"
+                                                        class="btn btn-outline-secondary category-action-button"
+                                                        data-bs-dismiss="modal">
+                                                    Hủy
+                                                </button>
+
+                                                <button type="submit"
+                                                        class="btn btn-primary category-action-button px-4">
+                                                    <i class="bi bi-check-lg me-1"></i>
+                                                    Lưu thay đổi
+                                                </button>
+                                            </div>
+
+                                        </form>
+
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="category-empty">
+                            <div class="category-empty-icon">
+                                <i class="bi bi-tags"></i>
+                            </div>
+
+                            <h3>Chưa có thể loại nào</h3>
+
+                            <p>
+                                Hãy nhập tên thể loại ở biểu mẫu bên cạnh để tạo dữ liệu đầu tiên.
+                            </p>
+                        </div>
+                    }
+
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        document.querySelectorAll(".delete-category-form")
+        .forEach(function (form) {
+        form.addEventListener("submit", function (event) {
+        event.preventDefault();
+
+        const categoryName =
+        form.getAttribute("data-category-name");
+
+        const bookCount =
+        Number(form.getAttribute("data-book-count") || "0");
+
+        if (bookCount > 0) {
+        Swal.fire({
+        title: "Không thể xóa",
+        text: "Thể loại đang có sách. Hãy chuyển sách sang thể loại khác trước.",
+        icon: "warning",
+        confirmButtonText: "Đã hiểu"
+        });
+
+        return;
+        }
+
+        Swal.fire({
+        title: "Xóa thể loại?",
+        text: "Bạn đang xóa thể loại “" + categoryName + "”.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Xóa",
+        cancelButtonText: "Không",
+        confirmButtonColor: "#dc3545"
+        }).then(function (result) {
+        if (result.isConfirmed) {
+        form.submit();
+        }
+        });
+        });
+        });
+    </script>
+}

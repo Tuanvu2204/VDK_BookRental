@@ -1,104 +1,102 @@
-﻿@model IEnumerable<VDK_BookRental.Models.Book>
+﻿@model VDK_BookRental.ViewModels.AdminBookListViewModel
 
 @{
     ViewData["Title"] = "Quản lý sách";
+
+    string StockLabel(int quantity)
+    {
+        if (quantity <= 0)
+        {
+            return "Hết sách";
+        }
+
+        if (quantity <= 3)
+        {
+            return "Sắp hết";
+        }
+
+        return "Còn sách";
+    }
+
+    string StockClass(int quantity)
+    {
+        if (quantity <= 0)
+        {
+            return "stock-out";
+        }
+
+        if (quantity <= 3)
+        {
+            return "stock-low";
+        }
+
+        return "stock-available";
+    }
 }
 
-<style>
-    .book-admin-page {
-        min-height: 75vh;
-        background: #f5f7fb;
-    }
+@section Styles {
+    <link rel="stylesheet"
+          href="~/css/admin-books.css"
+          asp-append-version="true" />
+}
 
-    .book-admin-header {
-        border-radius: 20px;
-        padding: 24px;
-        background: linear-gradient(135deg, #ffb300, #ff7a00);
-        color: white;
-        box-shadow: 0 10px 28px rgba(255, 145, 0, 0.2);
-    }
-
-    .book-table-card {
-        border: none;
-        border-radius: 18px;
-        overflow: hidden;
-        box-shadow: 0 8px 26px rgba(30, 42, 70, 0.08);
-    }
-
-    .book-cover-admin {
-        width: 72px;
-        height: 96px;
-        object-fit: contain;
-        border-radius: 8px;
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-    }
-
-    .book-title-admin {
-        min-width: 180px;
-        font-weight: 700;
-    }
-
-    .admin-action-group {
-        min-width: 150px;
-    }
-</style>
-
-<div class="book-admin-page py-5">
+<div class="admin-books-page">
 
     <div class="container">
 
-        <!-- TIÊU ĐỀ -->
-        <div class="book-admin-header mb-4">
+        <section class="admin-books-hero">
 
-            <div class="row align-items-center gy-3">
+            <div>
 
-                <div class="col-lg-7">
+                <h1>
+                    📚 Quản lý kho sách
+                </h1>
 
-                    <h1 class="fw-bold mb-2">
-                        📚 Quản lý sách
-                    </h1>
-
-                    <p class="mb-0 opacity-75">
-                        Thêm, sửa, xóa và cập nhật số lượng sách trong hệ thống.
-                    </p>
-
-                </div>
-
-                <div class="col-lg-5 text-lg-end">
-
-                    <a asp-controller="Admin"
-                       asp-action="CreateBook"
-                       class="btn btn-light fw-bold me-2">
-
-                        ➕ Thêm sách mới
-
-                    </a>
-
-                    <a asp-controller="Admin"
-                       asp-action="Index"
-                       class="btn btn-outline-light">
-
-                        ← Dashboard
-
-                    </a>
-
-                </div>
+                <p>
+                    Tìm kiếm, phân loại, cập nhật tồn kho
+                    và quản lý toàn bộ sách của
+                    VDK Book Rental.
+                </p>
 
             </div>
 
-        </div>
+            <div class="hero-actions">
 
-        <!-- THÔNG BÁO -->
+                <a asp-controller="Admin"
+                   asp-action="Index"
+                   class="btn btn-outline-light hero-button">
+
+                    ← Dashboard
+
+                </a>
+
+                <a asp-controller="Admin"
+                   asp-action="CreateBook"
+                   class="btn btn-light text-warning hero-button">
+
+                    ➕ Thêm sách mới
+
+                </a>
+
+            </div>
+
+        </section>
+
         @if (TempData["SuccessMessage"] != null)
         {
-            <div class="alert alert-success alert-dismissible fade show">
+            <div class="alert alert-success alert-dismissible fade show shadow-sm"
+                 role="alert">
+
+                <strong>
+                    Thành công:
+                </strong>
 
                 @TempData["SuccessMessage"]
 
                 <button type="button"
                         class="btn-close"
-                        data-bs-dismiss="alert">
+                        data-bs-dismiss="alert"
+                        aria-label="Đóng">
                 </button>
 
             </div>
@@ -106,206 +104,603 @@
 
         @if (TempData["ErrorMessage"] != null)
         {
-            <div class="alert alert-danger alert-dismissible fade show">
+            <div class="alert alert-danger alert-dismissible fade show shadow-sm"
+                 role="alert">
+
+                <strong>
+                    Không thể thực hiện:
+                </strong>
 
                 @TempData["ErrorMessage"]
 
                 <button type="button"
                         class="btn-close"
-                        data-bs-dismiss="alert">
+                        data-bs-dismiss="alert"
+                        aria-label="Đóng">
                 </button>
 
             </div>
         }
 
-        <!-- BẢNG SÁCH -->
-        <div class="card book-table-card">
+        <section class="stat-grid">
 
-            <div class="card-body p-4">
+            <article class="stat-card">
 
-                @if (Model == null || !Model.Any())
-                {
-                    <div class="text-center py-5">
+                <div class="stat-card-top">
 
-                        <div class="display-3 mb-3">
-                            📭
+                    <div>
+
+                        <div class="stat-label">
+                            Tổng đầu sách
                         </div>
 
-                        <h4 class="fw-bold">
-                            Chưa có sách trong hệ thống
-                        </h4>
-
-                        <p class="text-muted">
-                            Hãy thêm quyển sách đầu tiên.
-                        </p>
-
-                        <a asp-controller="Admin"
-                           asp-action="CreateBook"
-                           class="btn btn-success">
-
-                            Thêm sách mới
-
-                        </a>
+                        <div class="stat-number">
+                            @Model.TotalBooks
+                        </div>
 
                     </div>
-                }
-                else
-                {
-                    <div class="table-responsive">
 
-                        <table class="table table-bordered table-hover align-middle">
+                    <div class="stat-icon">
+                        📚
+                    </div>
 
-                            <thead class="table-dark">
+                </div>
 
-                                <tr>
-                                    <th class="text-center">Ảnh</th>
-                                    <th>Tên sách</th>
-                                    <th>Tác giả</th>
-                                    <th>Danh mục</th>
-                                    <th class="text-end">Giá thuê</th>
-                                    <th class="text-center">Số lượng</th>
-                                    <th class="text-center">Trạng thái</th>
-                                    <th class="text-center">Thao tác</th>
-                                </tr>
+            </article>
 
-                            </thead>
+            <article class="stat-card">
 
-                            <tbody>
+                <div class="stat-card-top">
 
-                                @foreach (var book in Model)
+                    <div>
+
+                        <div class="stat-label">
+                            Đang còn trong kho
+                        </div>
+
+                        <div class="stat-number text-success">
+                            @Model.AvailableBooks
+                        </div>
+
+                    </div>
+
+                    <div class="stat-icon">
+                        ✅
+                    </div>
+
+                </div>
+
+            </article>
+
+            <article class="stat-card">
+
+                <div class="stat-card-top">
+
+                    <div>
+
+                        <div class="stat-label">
+                            Sắp hết (1–3 cuốn)
+                        </div>
+
+                        <div class="stat-number text-warning">
+                            @Model.LowStockBooks
+                        </div>
+
+                    </div>
+
+                    <div class="stat-icon">
+                        ⚠️
+                    </div>
+
+                </div>
+
+            </article>
+
+            <article class="stat-card">
+
+                <div class="stat-card-top">
+
+                    <div>
+
+                        <div class="stat-label">
+                            Đã hết sách
+                        </div>
+
+                        <div class="stat-number text-danger">
+                            @Model.OutOfStockBooks
+                        </div>
+
+                    </div>
+
+                    <div class="stat-icon">
+                        ⛔
+                    </div>
+
+                </div>
+
+            </article>
+
+        </section>
+
+        <section class="filter-card">
+
+            <form asp-controller="Admin"
+                  asp-action="Books"
+                  method="get">
+
+                <div class="row g-3 align-items-end">
+
+                    <div class="col-12 col-lg-5">
+
+                        <label for="search"
+                               class="form-label fw-bold">
+
+                            Tìm kiếm
+
+                        </label>
+
+                        <input id="search"
+                               name="search"
+                               value="@Model.Search"
+                               class="form-control filter-control"
+                               autocomplete="off"
+                               placeholder="Nhập tên sách hoặc tác giả..." />
+
+                    </div>
+
+                    <div class="col-12 col-md-6 col-lg-3">
+
+                        <label for="categoryId"
+                               class="form-label fw-bold">
+
+                            Thể loại
+
+                        </label>
+
+                        <select id="categoryId"
+                                name="categoryId"
+                                class="form-select filter-control">
+
+                            <option value="">
+                                Tất cả thể loại
+                            </option>
+
+                            @foreach (var category in Model.Categories)
+                            {
+                                if (Model.CategoryId == category.Id)
                                 {
-                                    <tr>
+                                    <option value="@category.Id"
+                                            selected>
 
-                                        <td class="text-center">
+                                        @category.Name
 
-                                            <img src="@(string.IsNullOrWhiteSpace(book.ImageUrl)
-                                                                                                            ? "/images/books/default-book.jpg"
-                                                                                                            : book.ImageUrl)"
-                                                 alt="@book.Title"
-                                                 class="book-cover-admin"
-                                                 onerror="this.src='/images/books/default-book.jpg'" />
-
-                                        </td>
-
-                                        <td class="book-title-admin">
-
-                                            @book.Title
-
-                                        </td>
-
-                                        <td>
-
-                                            @book.Author
-
-                                        </td>
-
-                                        <td>
-
-                                            @if (book.Category != null)
-                                            {
-                                                <span class="badge bg-info text-dark">
-
-                                                    @book.Category.Name
-
-                                                </span>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-secondary">
-
-                                                    Chưa phân loại
-
-                                                </span>
-                                            }
-
-                                        </td>
-
-                                        <td class="text-end fw-bold text-success">
-
-                                            @book.RentalPrice.ToString("N0") VNĐ
-
-                                        </td>
-
-                                        <td class="text-center">
-
-                                            <span class="fw-bold">
-                                                @book.Quantity
-                                            </span>
-
-                                        </td>
-
-                                        <td class="text-center">
-
-                                            @if (book.Quantity > 0)
-                                            {
-                                                <span class="badge bg-success">
-
-                                                    Còn sách
-
-                                                </span>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-danger">
-
-                                                    Hết sách
-
-                                                </span>
-                                            }
-
-                                        </td>
-
-                                        <td class="admin-action-group">
-
-                                            <div class="d-flex justify-content-center gap-2">
-
-                                                <a asp-controller="Admin"
-                                                   asp-action="EditBook"
-                                                   asp-route-id="@book.Id"
-                                                   class="btn btn-sm btn-warning">
-
-                                                    ✏️ Sửa
-
-                                                </a>
-
-                                                <form asp-controller="Admin"
-                                                      asp-action="DeleteBook"
-                                                      method="post"
-                                                      onsubmit="return confirm('Bạn chắc chắn muốn xóa sách này?');">
-
-                                                    @Html.AntiForgeryToken()
-
-                                                    <input type="hidden"
-                                                           name="id"
-                                                           value="@book.Id" />
-
-                                                    <button type="submit"
-                                                            class="btn btn-sm btn-danger">
-
-                                                        🗑 Xóa
-
-                                                    </button>
-
-                                                </form>
-
-                                            </div>
-
-                                        </td>
-
-                                    </tr>
+                                    </option>
                                 }
+                                else
+                                {
+                                    <option value="@category.Id">
 
-                            </tbody>
+                                        @category.Name
 
-                        </table>
+                                    </option>
+                                }
+                            }
+
+                        </select>
 
                     </div>
-                }
+
+                    <div class="col-12 col-md-6 col-lg-2">
+
+                        <label for="stockStatus"
+                               class="form-label fw-bold">
+
+                            Tồn kho
+
+                        </label>
+
+                        <select id="stockStatus"
+                                name="stockStatus"
+                                class="form-select filter-control">
+
+                            <option value="">
+                                Tất cả
+                            </option>
+
+                            @if (Model.StockStatus == "available")
+                            {
+                                <option value="available"
+                                        selected>
+                                    Còn sách
+                                </option>
+                            }
+                            else
+                            {
+                                <option value="available">
+                                    Còn sách
+                                </option>
+                            }
+
+                            @if (Model.StockStatus == "low")
+                            {
+                                <option value="low"
+                                        selected>
+                                    Sắp hết
+                                </option>
+                            }
+                            else
+                            {
+                                <option value="low">
+                                    Sắp hết
+                                </option>
+                            }
+
+                            @if (Model.StockStatus == "out")
+                            {
+                                <option value="out"
+                                        selected>
+                                    Hết sách
+                                </option>
+                            }
+                            else
+                            {
+                                <option value="out">
+                                    Hết sách
+                                </option>
+                            }
+
+                        </select>
+
+                    </div>
+
+                    <div class="col-12 col-lg-2">
+
+                        <div class="d-grid gap-2">
+
+                            <button type="submit"
+                                    class="btn btn-primary filter-button">
+
+                                🔎 Lọc dữ liệu
+
+                            </button>
+
+                            <a asp-controller="Admin"
+                               asp-action="Books"
+                               class="btn btn-outline-secondary filter-button">
+
+                                ↻ Đặt lại
+
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+        </section>
+
+        <section class="book-table-card">
+
+            <div class="table-toolbar">
+
+                <h2>
+                    Danh sách sách
+                </h2>
+
+                <span class="result-count">
+
+                    @Model.TotalItems kết quả
+
+                </span>
 
             </div>
 
-        </div>
+            @if (Model.Books.Count == 0)
+            {
+                <div class="empty-state">
+
+                    <div class="empty-state-icon">
+                        📭
+                    </div>
+
+                    <h3>
+                        Không tìm thấy sách
+                    </h3>
+
+                    <p>
+                        Chưa có dữ liệu phù hợp với bộ lọc hiện tại.
+                        Hãy đặt lại bộ lọc hoặc thêm sách mới.
+                    </p>
+
+                    <a asp-controller="Admin"
+                       asp-action="CreateBook"
+                       class="btn btn-warning fw-bold px-4">
+
+                        ➕ Thêm sách mới
+
+                    </a>
+
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+
+                    <table class="table book-admin-table align-middle">
+
+                        <thead>
+
+                            <tr>
+
+                                <th class="text-center">
+                                    Ảnh
+                                </th>
+
+                                <th>
+                                    Tên sách
+                                </th>
+
+                                <th>
+                                    Tác giả
+                                </th>
+
+                                <th>
+                                    Thể loại
+                                </th>
+
+                                <th class="text-end">
+                                    Giá thuê
+                                </th>
+
+                                <th class="text-center">
+                                    Số lượng
+                                </th>
+
+                                <th class="text-center">
+                                    Trạng thái
+                                </th>
+
+                                <th class="text-end">
+                                    Thao tác
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                            @foreach (var book in Model.Books)
+                            {
+                                var imageUrl =
+                                    string.IsNullOrWhiteSpace(
+                                        book.ImageUrl)
+                                        ? "/images/books/default-book.jpg"
+                                        : book.ImageUrl;
+
+                                <tr>
+
+                                    <td class="text-center">
+
+                                        <img src="@imageUrl"
+                                             alt="Bìa sách @book.Title"
+                                             class="book-cover-admin"
+                                             loading="lazy"
+                                             onerror="this.onerror=null;this.src='/images/books/default-book.jpg';" />
+
+                                    </td>
+
+                                    <td>
+
+                                        <div class="book-name">
+                                            @book.Title
+                                        </div>
+
+                                        <small class="text-muted">
+
+                                            Mã BOOK-@book.Id.ToString("D3")
+
+                                        </small>
+
+                                    </td>
+
+                                    <td>
+
+                                        <div class="book-author">
+                                            @book.Author
+                                        </div>
+
+                                    </td>
+
+                                    <td>
+
+                                        <span class="category-badge">
+
+                                            🏷️
+
+                                            @(book.Category?.Name
+                                                ?? "Chưa phân loại")
+
+                                        </span>
+
+                                    </td>
+
+                                    <td class="text-end">
+
+                                        <span class="price-text">
+
+                                            @book.RentalPrice.ToString("N0")
+                                            VNĐ
+
+                                        </span>
+
+                                        <div class="small text-muted">
+                                            mỗi ngày
+                                        </div>
+
+                                    </td>
+
+                                    <td class="text-center">
+
+                                        <strong>
+                                            @book.Quantity
+                                        </strong>
+
+                                    </td>
+
+                                    <td class="text-center">
+
+                                        <span class="stock-badge @StockClass(book.Quantity)">
+
+                                            @StockLabel(book.Quantity)
+
+                                        </span>
+
+                                    </td>
+
+                                    <td>
+
+                                        <div class="action-group">
+
+                                            <a asp-controller="Admin"
+                                               asp-action="EditBook"
+                                               asp-route-id="@book.Id"
+                                               class="btn btn-outline-warning action-button">
+
+                                                ✏️ Sửa
+
+                                            </a>
+
+                                            <form asp-controller="Admin"
+                                                  asp-action="DeleteBook"
+                                                  method="post"
+                                                  class="delete-book-form"
+                                                  data-book-title="@book.Title">
+
+                                                @Html.AntiForgeryToken()
+
+                                                <input type="hidden"
+                                                       name="id"
+                                                       value="@book.Id" />
+
+                                                <button type="submit"
+                                                        class="btn btn-outline-danger action-button">
+
+                                                    🗑 Xóa
+
+                                                </button>
+
+                                            </form>
+
+                                        </div>
+
+                                    </td>
+
+                                </tr>
+                            }
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+                <div class="pagination-wrap">
+
+                    <div class="text-muted small">
+
+                        Trang @Model.PageNumber /
+                        @Model.TotalPages
+
+                    </div>
+
+                    <nav aria-label="Phân trang quản lý sách">
+
+                        <ul class="pagination">
+
+                            <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
+
+                                <a class="page-link"
+                                   asp-controller="Admin"
+                                   asp-action="Books"
+                                   asp-route-search="@Model.Search"
+                                   asp-route-categoryId="@Model.CategoryId"
+                                   asp-route-stockStatus="@Model.StockStatus"
+                                   asp-route-page="@(Model.PageNumber - 1)">
+
+                                    ‹
+
+                                </a>
+
+                            </li>
+
+                            @{
+                                var startPage =
+                                    Math.Max(
+                                        1,
+                                        Model.PageNumber - 2);
+
+                                var endPage =
+                                    Math.Min(
+                                        Model.TotalPages,
+                                        Model.PageNumber + 2);
+                            }
+
+                            @for (var pageNumber = startPage;
+                                  pageNumber <= endPage;
+                                  pageNumber++)
+                            {
+                                <li class="page-item @(pageNumber == Model.PageNumber ? "active" : "")">
+
+                                    <a class="page-link"
+                                       asp-controller="Admin"
+                                       asp-action="Books"
+                                       asp-route-search="@Model.Search"
+                                       asp-route-categoryId="@Model.CategoryId"
+                                       asp-route-stockStatus="@Model.StockStatus"
+                                       asp-route-page="@pageNumber">
+
+                                        @pageNumber
+
+                                    </a>
+
+                                </li>
+                            }
+
+                            <li class="page-item @(Model.HasNextPage ? "" : "disabled")">
+
+                                <a class="page-link"
+                                   asp-controller="Admin"
+                                   asp-action="Books"
+                                   asp-route-search="@Model.Search"
+                                   asp-route-categoryId="@Model.CategoryId"
+                                   asp-route-stockStatus="@Model.StockStatus"
+                                   asp-route-page="@(Model.PageNumber + 1)">
+
+                                    ›
+
+                                </a>
+
+                            </li>
+
+                        </ul>
+
+                    </nav>
+
+                </div>
+            }
+
+        </section>
 
     </div>
 
 </div>
+
+@section Scripts {
+    <script src="~/js/admin-books.js"
+            asp-append-version="true">
+    </script>
+}
