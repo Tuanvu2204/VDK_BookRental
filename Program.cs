@@ -9,8 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 // CẤU HÌNH CHUNG
 // =============================================================
 
-const long maximumUploadSize =
-    25L * 1024 * 1024;
+const long maximumUploadSize = 25L * 1024 * 1024;
 
 // =============================================================
 // MVC
@@ -20,12 +19,11 @@ builder.Services.AddControllersWithViews();
 
 // =============================================================
 // DATABASE
-// Không EnsureCreated, EnsureDeleted hoặc Migrate tự động.
+// Không tự động tạo, xóa hoặc cập nhật database.
 // =============================================================
 
 var connectionString =
-    builder.Configuration.GetConnectionString(
-        "DefaultConnection");
+    builder.Configuration.GetConnectionString("DefaultConnection");
 
 if (string.IsNullOrWhiteSpace(connectionString))
 {
@@ -59,21 +57,12 @@ builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(
     options =>
     {
-        options.IdleTimeout =
-            TimeSpan.FromHours(2);
+        options.IdleTimeout = TimeSpan.FromHours(2);
 
-        options.Cookie.Name =
-            ".VDKBookRental.Session";
-
-        options.Cookie.HttpOnly =
-            true;
-
-        options.Cookie.IsEssential =
-            true;
-
-        options.Cookie.SameSite =
-            SameSiteMode.Lax;
-
+        options.Cookie.Name = ".VDKBookRental.Session";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.IsEssential = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
         options.Cookie.SecurePolicy =
             CookieSecurePolicy.SameAsRequest;
     });
@@ -118,14 +107,10 @@ builder.WebHost.ConfigureKestrel(
 var app = builder.Build();
 
 // =============================================================
-// XỬ LÝ LỖI TOÀN CỤC
-//
-// Không dùng DeveloperExceptionPage ở đây để exception được
-// chuyển sang trang lỗi thay vì làm request bị treo.
+// XỬ LÝ LỖI
 // =============================================================
 
-app.UseExceptionHandler(
-    "/Error/ServerError");
+app.UseExceptionHandler("/Error/ServerError");
 
 app.UseStatusCodePagesWithReExecute(
     "/Error/StatusCode",
@@ -146,7 +131,6 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-// Session phải nằm trước khi controller chạy.
 app.UseSession();
 
 app.UseAuthorization();
@@ -157,8 +141,7 @@ app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern:
-        "{controller=Books}/{action=Index}/{id?}");
+    pattern: "{controller=Books}/{action=Index}/{id?}");
 
 // =============================================================
 // RUN
