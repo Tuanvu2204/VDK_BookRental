@@ -1,394 +1,796 @@
 ﻿@model List<VDK_BookRental.Models.Book>
 
 @{
-    ViewData["Title"] = "Danh sách sách";
+    ViewData["Title"] = "Trang chủ";
 
-    var educationBooks = Model.Where(b => b.Category != null && b.Category.Name == "Giáo dục").ToList();
-    var entertainmentBooks = Model.Where(b => b.Category != null && b.Category.Name == "Giải trí").ToList();
-    var sportBooks = Model.Where(b => b.Category != null && b.Category.Name == "Thể thao").ToList();
+    var educationBooks = Model
+        .Where(x => x.Category != null && x.Category.Name == "Giáo dục")
+        .ToList();
+
+    var entertainmentBooks = Model
+        .Where(x => x.Category != null && x.Category.Name == "Giải trí")
+        .ToList();
+
+    var sportBooks = Model
+        .Where(x => x.Category != null && x.Category.Name == "Thể thao")
+        .ToList();
 }
 
-<section class="book-hero mb-5">
-    <h1>📚 VDK Book Rental</h1>
-    <p>Thuê sách online nhanh chóng, tiện lợi, giá sinh viên</p>
+<!-- ================= HERO ================= -->
 
-    <div class="search-box">
-        <select id="categorySelect">
-            <option value="all">Tất cả danh mục</option>
-            <option value="Giáo dục">Giáo dục</option>
-            <option value="Giải trí">Giải trí</option>
-            <option value="Thể thao">Thể thao</option>
-        </select>
+<section class="book-hero">
 
-        <input id="searchInput"
-               autocomplete="off"
-               placeholder="Nhập G, T hoặc tên sách cần tìm..." />
+    <div class="container">
 
-        <button type="button" id="searchButton">Tìm kiếm</button>
+        <div class="hero-content">
+
+            <div class="hero-logo">
+
+                <i class="bi bi-book-half"></i>
+
+            </div>
+
+            <h1>
+
+                VDK BOOK RENTAL
+
+            </h1>
+
+            <p>
+
+                Hệ thống thuê sách trực tuyến dành cho sinh viên.
+                Khám phá hàng trăm đầu sách chất lượng với chi phí tiết kiệm.
+
+            </p>
+
+            <div class="search-box">
+
+                <select id="categorySelect"
+                        class="form-select">
+
+                    <option value="all">
+
+                        📚 Tất cả danh mục
+
+                    </option>
+
+                    <option value="Giáo dục">
+
+                        📘 Giáo dục
+
+                    </option>
+
+                    <option value="Giải trí">
+
+                        🎭 Giải trí
+
+                    </option>
+
+                    <option value="Thể thao">
+
+                        ⚽ Thể thao
+
+                    </option>
+
+                </select>
+
+                <input type="text"
+                       id="searchInput"
+                       class="form-control"
+                       placeholder="Nhập tên sách hoặc tác giả..." />
+
+                <button id="searchButton"
+                        type="button"
+                        class="btn btn-warning">
+
+                    <i class="bi bi-search"></i>
+
+                    Tìm kiếm
+
+                </button>
+
+            </div>
+
+            <div class="search-hint">
+
+                Hiện có
+
+                <strong>
+
+                    @Model.Count()
+
+                </strong>
+
+                đầu sách trong hệ thống
+
+            </div>
+
+        </div>
+
     </div>
 
-    <p id="searchHint" class="search-hint"></p>
 </section>
 
-<div class="container mb-5">
+<!-- ================= THỐNG KÊ ================= -->
 
-    <div class="category-section" data-section="giáo dục">
-        <h2 class="fw-bold mb-4">📘 Sách Giáo dục</h2>
+<section class="statistics-section">
 
-        <div class="row g-4 mb-5">
-            @foreach (var book in educationBooks)
-            {
-                <div class="col-xl-3 col-lg-4 col-md-6 book-item"
-                     data-title="@book.Title.ToLower()"
-                     data-author="@book.Author.ToLower()"
-                     data-category="@book.Category!.Name.ToLower()">
+    <div class="container">
 
-                    <div class="book-card">
-                        <div class="book-img-wrap">
-                            <img src="@(string.IsNullOrEmpty(book.ImageUrl) ? "/images/books/default-book.jpg" : book.ImageUrl)"
-                                 alt="@book.Title"
-                                 onerror="this.src='/images/books/default-book.jpg'" />
-                        </div>
+        <div class="row g-4">
 
-                        <div class="book-body">
-                            <span class="badge bg-info mb-2">@book.Category!.Name</span>
-                            <h5>@book.Title</h5>
-                            <p>@book.Author</p>
-                            <strong>@book.RentalPrice.ToString("N0") VNĐ / ngày</strong>
+            <div class="col-lg-3 col-md-6">
 
-                            <div class="d-grid gap-2 mt-3">
-                                <a class="btn btn-primary"
-                                       asp-controller="Books"
-                                       asp-action="Details"
-                                       asp-route-id="@book.Id">
-                                    Xem chi tiết
-                                </a>
+                <div class="stat-card">
 
-                                <a class="btn btn-outline-success">
-                                    Thuê sách
-                                </a>
-                            </div>
-                        </div>
-                    </div>
+                    <i class="bi bi-book-half"></i>
+
+                    <h2>
+
+                        @Model.Count()
+
+                    </h2>
+
+                    <span>
+
+                        Đầu sách
+
+                    </span>
+
                 </div>
-            }
-        </div>
-    </div>
 
-    <div class="category-section" data-section="giải trí">
-        <h2 class="fw-bold mb-4">🎭 Sách Giải trí</h2>
+            </div>
 
-        <div class="row g-4 mb-5">
-            @foreach (var book in entertainmentBooks)
-            {
-                <div class="col-xl-3 col-lg-4 col-md-6 book-item"
-                     data-title="@book.Title.ToLower()"
-                     data-author="@book.Author.ToLower()"
-                     data-category="@book.Category!.Name.ToLower()">
+            <div class="col-lg-3 col-md-6">
 
-                    <div class="book-card">
-                        <div class="book-img-wrap">
-                            <img src="@(string.IsNullOrEmpty(book.ImageUrl) ? "/images/books/default-book.jpg" : book.ImageUrl)"
-                                 alt="@book.Title"
-                                 onerror="this.src='/images/books/default-book.jpg'" />
-                        </div>
+                <div class="stat-card">
 
-                        <div class="book-body">
-                            <span class="badge bg-warning text-dark mb-2">@book.Category!.Name</span>
-                            <h5>@book.Title</h5>
-                            <p>@book.Author</p>
-                            <strong>@book.RentalPrice.ToString("N0") VNĐ / ngày</strong>
+                    <i class="bi bi-grid-fill"></i>
 
-                            <div class="d-grid gap-2 mt-3">
-                                <a class="btn btn-primary"
-                                       asp-controller="Books"
-                                       asp-action="Details"
-                                       asp-route-id="@book.Id">
-                                    Xem chi tiết
-                                </a>
+                    <h2>
 
-                                <a class="btn btn-outline-success">
-                                    Thuê sách
-                                </a>
-                            </div>
-                        </div>
-                    </div>
+                        3
+
+                    </h2>
+
+                    <span>
+
+                        Danh mục
+
+                    </span>
+
                 </div>
-            }
-        </div>
-    </div>
 
-    <div class="category-section" data-section="thể thao">
-        <h2 class="fw-bold mb-4">⚽ Sách Thể thao</h2>
+            </div>
 
-        <div class="row g-4 mb-5">
-            @foreach (var book in sportBooks)
-            {
-                <div class="col-xl-3 col-lg-4 col-md-6 book-item"
-                     data-title="@book.Title.ToLower()"
-                     data-author="@book.Author.ToLower()"
-                     data-category="@book.Category!.Name.ToLower()">
+            <div class="col-lg-3 col-md-6">
 
-                    <div class="book-card">
-                        <div class="book-img-wrap">
-                            <img src="@(string.IsNullOrEmpty(book.ImageUrl) ? "/images/books/default-book.jpg" : book.ImageUrl)"
-                                 alt="@book.Title"
-                                 onerror="this.src='/images/books/default-book.jpg'" />
-                        </div>
+                <div class="stat-card">
 
-                        <div class="book-body">
-                            <span class="badge bg-danger mb-2">@book.Category!.Name</span>
-                            <h5>@book.Title</h5>
-                            <p>@book.Author</p>
-                            <strong>@book.RentalPrice.ToString("N0") VNĐ / ngày</strong>
+                    <i class="bi bi-star-fill"></i>
 
-                            <div class="d-grid gap-2 mt-3">
-                                <a class="btn btn-primary"
-                                       asp-controller="Books"
-                                       asp-action="Details"
-                                       asp-route-id="@book.Id">
-                                    Xem chi tiết
-                                </a>
+                    <h2>
 
-                                <a class="btn btn-outline-success">
-                                    Thuê sách
-                                </a>
-                            </div>
-                        </div>
-                    </div>
+                        @Model.Count()
+
+                    </h2>
+
+                    <span>
+
+                        Sách nổi bật
+
+                    </span>
+
                 </div>
-            }
+
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+
+                <div class="stat-card">
+
+                    <i class="bi bi-people-fill"></i>
+
+                    <h2>
+
+                        100+
+
+                    </h2>
+
+                    <span>
+
+                        Người dùng
+
+                    </span>
+
+                </div>
+
+            </div>
+
         </div>
+
     </div>
 
-    <div id="noResult" class="alert alert-warning text-center d-none">
-        Không tìm thấy sách phù hợp.
+</section>
+
+<!-- ================= GIỚI THIỆU ================= -->
+
+<section class="intro-section">
+
+    <div class="container text-center">
+
+        <h2>
+
+            <i class="bi bi-stack"></i>
+
+            Danh mục sách
+
+        </h2>
+
+        <p>
+
+            Khám phá kho sách phong phú gồm sách Giáo dục,
+            Giải trí và Thể thao với giao diện hiện đại,
+            dễ tìm kiếm và dễ thuê.
+
+        </p>
+
     </div>
+
+</section>
+
+<div class="container">
+
+    <!-- ===== BẮT ĐẦU SÁCH GIÁO DỤC ===== -->
+    <!-- ================= SÁCH GIÁO DỤC ================= -->
+
+    <div class="category-section">
+
+        <div class="category-header">
+
+            <div>
+
+                <h2>📘 Sách Giáo dục</h2>
+
+                <p>
+                    Các đầu sách phục vụ học tập, nghiên                cứu và phát triển kỹ năng.
+                </p>
+
+            </div>
+
+            <a asp-controller="Books"
+               asp-action="Index"
+               class="btn btn-outline-primary">
+
+                Xem tất cả
+
+            </a>
+
+        </div>
+
+        @if (educationBooks.Any())
+        {
+
+            <div class="row g-4">
+
+                @foreach (var book in educationBooks)
+                {
+
+                    <div class="col-xl-3 col-lg-4 col-md-6 book-item"
+                         data-title="@book.Title.ToLower()"
+                         data-author="@book.Author.ToLower()"
+                         data-category="@book.Category!.Name.ToLower()">
+
+                        <div class="card book-card h-100">
+
+                            <div class="book-img-wrap">
+
+                                <img src="@(string.IsNullOrWhiteSpace(book.ImageUrl)
+                                                                             ? "/images/books/default-book.jpg"
+                                                                             : book.ImageUrl)"
+                                     class="card-img-top"
+                                     alt="@book.Title"
+                                     onerror="this.src='/images/books/default-book.jpg'" />
+
+                            </div>
+
+                            <div class="card-body book-body">
+
+                                <span class="badge bg-primary mb-2">
+
+                                    @book.Category.Name
+
+                                </span>
+
+                                <h5 class="card-title">
+
+                                    @book.Title
+
+                                </h5>
+
+                                <p class="text-muted mb-2">
+
+                                    <i class="bi bi-person-fill"></i>
+
+                                    @book.Author
+
+                                </p>
+
+                                <div class="mb-3">
+
+                                    <span class="fw-bold text-primary fs-5">
+
+                                        @book.RentalPrice.ToString("N0") VNĐ
+
+                                    </span>
+
+                                    <small class="text-muted">
+
+                                        / ngày
+
+                                    </small>
+
+                                </div>
+
+                                <div class="d-grid gap-2">
+
+                                    <a asp-controller="Books"
+                                       asp-action="Details"
+                                       asp-route-id="@book.Id"
+                                       class="btn btn-primary">
+
+                                        <i class="bi bi-eye-fill me-1"></i>
+
+                                        Xem chi tiết
+
+                                    </a>
+
+                                    <a href="#"
+                                       class="btn btn-outline-success">
+
+                                        <i class="bi bi-cart-plus-fill me-1"></i>
+
+                                        Thuê ngay
+
+                                    </a>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                }
+
+            </div>
+
+        }
+        else
+        {
+
+            <div class="empty-category">
+
+                <i class="bi bi-journal-x"></i>
+
+                <h4>Chưa có sách Giáo dục</h4>
+
+                <p>
+
+                    Hiện chưa có dữ liệu trong danh mục này.
+
+                </p>
+
+            </div>
+
+        }
+
+        <div class="text-center mt-4">
+
+            <a asp-controller="Books"
+               asp-action="Index"
+               class="btn btn-primary btn-lg px-5">
+
+                Xem thêm sách
+
+            </a>
+
+        </div>
+
+    </div>
+
+    <!-- ===== BẮT ĐẦU SÁCH GIẢI TRÍ ===== -->
+    <!-- ================= SÁCH GIẢI TRÍ ================= -->
+
+    <div class="category-section">
+
+        <div class="category-header">
+
+            <div>
+
+                <h2>🎭 Sách Giải trí</h2>
+
+                <p>
+
+                    Tiểu thuyết, truyện tranh, văn học và những đầu sách thư giãn hấp dẫn.
+
+                </p>
+
+            </div>
+
+            <a asp-controller="Books"
+               asp-action="Index"
+               class="btn btn-outline-primary">
+
+                Xem tất cả
+
+            </a>
+
+        </div>
+
+        @if (entertainmentBooks.Any())
+        {
+
+            <div class="row g-4">
+
+                @foreach (var book in entertainmentBooks)
+                {
+
+                    <div class="col-xl-3 col-lg-4 col-md-6 book-item"
+                         data-title="@book.Title.ToLower()"
+                         data-author="@book.Author.ToLower()"
+                         data-category="@book.Category!.Name.ToLower()">
+
+                        <div class="card book-card h-100">
+
+                            <div class="book-img-wrap">
+
+                                <img src="@(string.IsNullOrWhiteSpace(book.ImageUrl)
+                                                                             ? "/images/books/default-book.jpg"
+                                                                             : book.ImageUrl)"
+                                     class="card-img-top"
+                                     alt="@book.Title"
+                                     onerror="this.src='/images/books/default-book.jpg'" />
+
+                            </div>
+
+                            <div class="card-body book-body">
+
+                                <span class="badge bg-warning text-dark mb-2">
+
+                                    @book.Category.Name
+
+                                </span>
+
+                                <h5 class="card-title">
+
+                                    @book.Title
+
+                                </h5>
+
+                                <p class="text-muted mb-2">
+
+                                    <i class="bi bi-person-fill me-1"></i>
+
+                                    @book.Author
+
+                                </p>
+
+                                <div class="mb-3">
+
+                                    <span class="fw-bold text-primary fs-5">
+
+                                        @book.RentalPrice.ToString("N0") VNĐ
+
+                                    </span>
+
+                                    <small class="text-muted">
+
+                                        / ngày
+
+                                    </small>
+
+                                </div>
+
+                                <div class="d-grid gap-2">
+
+                                    <a asp-controller="Books"
+                                       asp-action="Details"
+                                       asp-route-id="@book.Id"
+                                       class="btn btn-primary">
+
+                                        <i class="bi bi-eye-fill me-1"></i>
+
+                                        Xem chi tiết
+
+                                    </a>
+
+                                    <a href="#"
+                                       class="btn btn-outline-success">
+
+                                        <i class="bi bi-cart-plus-fill me-1"></i>
+
+                                        Thuê ngay
+
+                                    </a>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                }
+
+            </div>
+
+        }
+        else
+        {
+
+            <div class="empty-category">
+
+                <i class="bi bi-emoji-smile"></i>
+
+                <h4>Chưa có sách Giải trí</h4>
+
+                <p>
+
+                    Danh mục này sẽ được cập nhật trong thời gian tới.
+
+                </p>
+
+            </div>
+
+        }
+
+        <div class="text-center mt-4">
+
+            <a asp-controller="Books"
+               asp-action="Index"
+               class="btn btn-primary btn-lg px-5">
+
+                Xem thêm sách
+
+            </a>
+
+        </div>
+
+    </div>
+
+    <!-- ===== BẮT ĐẦU SÁCH THỂ THAO ===== -->
+    <!-- ================= SÁCH THỂ THAO ================= -->
+
+    <div class="category-section">
+
+        <div class="category-header">
+
+            <div>
+
+                <h2>⚽ Sách Thể thao</h2>
+
+                <p>
+
+                    Kiến thức về luyện tập, dinh dưỡng, chiến thuật và các môn thể thao hiện đại.
+
+                </p>
+
+            </div>
+
+            <a asp-controller="Books"
+               asp-action="Index"
+               class="btn btn-outline-primary">
+
+                Xem tất cả
+
+            </a>
+
+        </div>
+
+        @if (sportBooks.Any())
+        {
+
+            <div class="row g-4">
+
+                @foreach (var book in sportBooks)
+                {
+
+                    <div class="col-xl-3 col-lg-4 col-md-6 book-item"
+                         data-title="@book.Title.ToLower()"
+                         data-author="@book.Author.ToLower()"
+                         data-category="@book.Category!.Name.ToLower()">
+
+                        <div class="card book-card h-100">
+
+                            <div class="book-img-wrap">
+
+                                <img src="@(string.IsNullOrWhiteSpace(book.ImageUrl)
+                                                                     ? "/images/books/default-book.jpg"
+                                                                     : book.ImageUrl)"
+                                     class="card-img-top"
+                                     alt="@book.Title"
+                                     onerror="this.src='/images/books/default-book.jpg'" />
+
+                            </div>
+
+                            <div class="card-body book-body">
+
+                                <span class="badge bg-success mb-2">
+
+                                    @book.Category.Name
+
+                                </span>
+
+                                <h5 class="card-title">
+
+                                    @book.Title
+
+                                </h5>
+
+                                <p class="text-muted mb-2">
+
+                                    <i class="bi bi-person-fill me-1"></i>
+
+                                    @book.Author
+
+                                </p>
+
+                                <div class="mb-3">
+
+                                    <span class="fw-bold text-primary fs-5">
+
+                                        @book.RentalPrice.ToString("N0") VNĐ
+
+                                    </span>
+
+                                    <small class="text-muted">
+
+                                        / ngày
+
+                                    </small>
+
+                                </div>
+
+                                <div class="d-grid gap-2">
+
+                                    <a asp-controller="Books"
+                                       asp-action="Details"
+                                       asp-route-id="@book.Id"
+                                       class="btn btn-primary">
+
+                                        <i class="bi bi-eye-fill me-1"></i>
+
+                                        Xem chi tiết
+
+                                    </a>
+
+                                    <a href="#"
+                                       class="btn btn-outline-success">
+
+                                        <i class="bi bi-cart-plus-fill me-1"></i>
+
+                                        Thuê ngay
+
+                                    </a>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                }
+
+            </div>
+
+        }
+        else
+        {
+
+            <div class="empty-category">
+
+                <i class="bi bi-trophy-fill"></i>
+
+                <h4>Chưa có sách Thể thao</h4>
+
+                <p>
+
+                    Danh mục này sẽ được cập nhật trong thời gian tới.
+
+                </p>
+
+            </div>
+
+        }
+
+        <div class="text-center mt-4 mb-5">
+
+            <a asp-controller="Books"
+               asp-action="Index"
+               class="btn btn-primary btn-lg px-5">
+
+                Xem thêm sách
+
+            </a>
+
+        </div>
+
+    </div>
+
 </div>
 
-<style>
-    .book-hero {
-        background: linear-gradient(135deg, #0d6efd, #111827);
-        border-radius: 24px;
-        padding: 70px 20px;
-        text-align: center;
-        color: white;
-    }
+@section Scripts {
 
-        .book-hero h1 {
-            font-size: 48px;
-            font-weight: 800;
-        }
+    <script>
 
-        .book-hero p {
-            font-size: 20px;
-            opacity: .9;
-        }
+        document.addEventListener("DOMContentLoaded", function () {
 
-    .search-box {
-        max-width: 950px;
-        margin: 30px auto 0;
-        display: flex;
-        gap: 12px;
-    }
+            const input = document.getElementById("searchInput");
+            const category = document.getElementById("categorySelect");
+            const button = document.getElementById("searchButton");
+            const hint = document.getElementById("searchHint");
 
-        .search-box select,
-        .search-box input {
-            border-radius: 14px;
-            border: none;
-            padding: 16px 20px;
-            outline: none;
-            font-size: 16px;
-        }
+            function filterBooks() {
 
-        .search-box select {
-            width: 190px;
-        }
+                const keyword = input.value.toLowerCase().trim();
+                const cate = category.value.toLowerCase();
 
-        .search-box input {
-            flex: 1;
-        }
+                let visible = 0;
 
-        .search-box button {
-            border: none;
-            border-radius: 14px;
-            padding: 0 35px;
-            background: #ffc107;
-            font-weight: bold;
-            transition: 0.3s;
-        }
+                document.querySelectorAll(".book-item").forEach(function(item){
 
-            .search-box button:hover {
-                background: #ffca2c;
+                    const title = item.dataset.title;
+                    const author = item.dataset.author;
+                    const c = item.dataset.category;
+
+                    const matchKeyword =
+                        title.includes(keyword) ||
+                        author.includes(keyword);
+
+                    const matchCategory =
+                        cate === "all" || c === cate;
+
+                    if(matchKeyword && matchCategory){
+
+                        item.style.display="";
+
+                        visible++;
+
+                    }
+                    else{
+
+                        item.style.display="none";
+
+                    }
+
+                });
+
+                hint.innerHTML =
+                    "Tìm thấy <strong>" + visible + "</strong> cuốn sách";
+
             }
 
-    .search-hint {
-        margin-top: 15px;
-        font-size: 15px;
-        font-weight: 600;
-        min-height: 24px;
-    }
+            button.addEventListener("click", filterBooks);
 
-    .hint-ok {
-        color: #e5e7eb;
-    }
+            input.addEventListener("keyup", function(e){
 
-    .hint-error {
-        color: #ff4d4f;
-    }
+                if(e.key==="Enter"){
 
-    .book-card {
-        background: #1f2937;
-        border-radius: 22px;
-        overflow: hidden;
-        height: 100%;
-        box-shadow: 0 12px 30px rgba(0,0,0,.25);
-        transition: .25s;
-    }
+                    filterBooks();
 
-        .book-card:hover {
-            transform: translateY(-8px);
-        }
+                }
 
-    .book-img-wrap {
-        background: white;
-        height: 320px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 18px;
-    }
+            });
 
-        .book-img-wrap img {
-            max-height: 100%;
-            max-width: 100%;
-            object-fit: contain;
-        }
+            category.addEventListener("change", filterBooks);
 
-    .book-body {
-        padding: 22px;
-    }
-
-        .book-body h5 {
-            color: white;
-            font-weight: 800;
-            min-height: 55px;
-        }
-
-        .book-body p {
-            color: #cbd5e1;
-            margin-bottom: 8px;
-        }
-
-        .book-body strong {
-            color: #38bdf8;
-        }
-</style>
-
-<script>
-    const searchInput = document.getElementById("searchInput");
-    const categorySelect = document.getElementById("categorySelect");
-    const searchButton = document.getElementById("searchButton");
-    const bookItems = document.querySelectorAll(".book-item");
-    const sections = document.querySelectorAll(".category-section");
-    const noResult = document.getElementById("noResult");
-    const searchHint = document.getElementById("searchHint");
-
-    function removeVietnameseTones(str) {
-        return str
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .replace(/đ/g, "d")
-            .replace(/Đ/g, "D")
-            .toLowerCase();
-    }
-
-    function showHint(keyword) {
-        const key = removeVietnameseTones(keyword.trim());
-
-        searchHint.classList.remove("hint-ok", "hint-error");
-
-        if (key === "") {
-            searchHint.innerText = "";
-            return;
-        }
-
-        if ("giao duc".startsWith(key) || "giai tri".startsWith(key)) {
-            searchHint.innerText = "Gợi ý: Giáo dục, Giải trí";
-            searchHint.classList.add("hint-ok");
-            return;
-        }
-
-        if ("the thao".startsWith(key)) {
-            searchHint.innerText = "Gợi ý: Thể thao";
-            searchHint.classList.add("hint-ok");
-            return;
-        }
-
-        const hasBookMatch = Array.from(bookItems).some(item => {
-            const title = removeVietnameseTones(item.dataset.title);
-            const author = removeVietnameseTones(item.dataset.author);
-            return title.includes(key) || author.includes(key);
         });
 
-        if (hasBookMatch) {
-            searchHint.innerText = "";
-        } else {
-            searchHint.innerText = "❌ Vui lòng nhập từ khóa phù hợp!";
-            searchHint.classList.add("hint-error");
-        }
-    }
+    </script>
 
-    function filterBooks() {
-        const keyword = searchInput.value.trim();
-        const key = removeVietnameseTones(keyword);
-        const selectedCategory = removeVietnameseTones(categorySelect.value);
-
-        let visibleCount = 0;
-
-        showHint(keyword);
-
-        bookItems.forEach(item => {
-            const title = removeVietnameseTones(item.dataset.title);
-            const author = removeVietnameseTones(item.dataset.author);
-            const category = removeVietnameseTones(item.dataset.category);
-
-            const matchKeyword =
-                key === "" ||
-                title.includes(key) ||
-                author.includes(key) ||
-                category.includes(key);
-
-            const matchCategory =
-                selectedCategory === "all" ||
-                category === selectedCategory;
-
-            if (matchKeyword && matchCategory) {
-                item.classList.remove("d-none");
-                visibleCount++;
-            } else {
-                item.classList.add("d-none");
-            }
-        });
-
-        sections.forEach(section => {
-            const visibleBooks = section.querySelectorAll(".book-item:not(.d-none)");
-
-            if (visibleBooks.length === 0) {
-                section.classList.add("d-none");
-            } else {
-                section.classList.remove("d-none");
-            }
-        });
-
-        if (visibleCount === 0) {
-            noResult.classList.remove("d-none");
-        } else {
-            noResult.classList.add("d-none");
-        }
-    }
-
-    searchInput.addEventListener("input", filterBooks);
-    categorySelect.addEventListener("change", filterBooks);
-    searchButton.addEventListener("click", filterBooks);
-</script>
+}
