@@ -1,7 +1,14 @@
+using System.Net.Http;
+using System.Net.Http.Headers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using VDK_BookRental.Core.AI;
 using VDK_BookRental.Data;
+using VDK_BookRental.Infrastructure.AI;
+using VDK_BookRental.Infrastructure.Errors;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,14 +20,25 @@ const long maximumUploadSize =
     25L * 1024 * 1024;
 
 // =============================================================
-// MVC
+// MVC + GLOBAL EXCEPTION HANDLER
 // =============================================================
 
 builder.Services.AddControllersWithViews();
 
+builder.Services.AddProblemDetails();
+
+builder.Services.AddExceptionHandler<
+    GlobalExceptionHandler>();
+
 // =============================================================
 // DATABASE
-// Không EnsureCreated, EnsureDeleted hoặc Migrate tự động.
+//
+// Không tự động:
+// - EnsureCreated
+// - EnsureDeleted
+// - Migrate
+//
+// Vì vậy không thay đổi database khi khởi động.
 // =============================================================
 
 var connectionString =
@@ -51,10 +69,22 @@ builder.Services.AddDbContext<AppDbContext>(
     });
 
 // =============================================================
-// SESSION
+// CACHE
+//
+// AddMemoryCache:
+// Dịch vụ AI dùng để cache danh mục sách.
+//
+// AddDistributedMemoryCache:
+// Session sử dụng.
 // =============================================================
 
+builder.Services.AddMemoryCache();
+
 builder.Services.AddDistributedMemoryCache();
+
+// =============================================================
+// SESSION
+// =============================================================
 
 builder.Services.AddSession(
     options =>
@@ -77,6 +107,100 @@ builder.Services.AddSession(
         options.Cookie.SecurePolicy =
             CookieSecurePolicy.SameAsRequest;
     });
+
+// =============================================================
+// GEMINI OPTIONS
+//
+// ApiKey:
+// - Đọc từ User Secrets.
+//
+// Model, BaseUrl, TimeoutSeconds...:
+// - Đọc từ appsettings.json.
+// =============================================================
+
+builder.Services
+    .AddOptions<GeminiOptions>()
+    .Bind(
+        builder.Configuration.GetSection(
+            GeminiOptions.SectionName))
+    .ValidateDataAnnotations();
+
+// =============================================================
+// GEMINI TYPED HTTP CLIENT
+//
+// Tách AddHttpClient và ConfigureHttpClient để tránh
+// nhầm overload Func<HttpClient, IServiceProvider, TImplementation>.
+// =============================================================
+
+builder.Services
+    .AddHttpClient<
+        IEnterpriseChatService,
+        GeminiEnterpriseChatService>()
+    .ConfigureHttpClient(
+        (
+            IServiceProvider serviceProvider,
+            HttpClient httpClient
+        ) =>
+        {
+            var geminiOptions =
+                serviceProvider
+                    .GetRequiredService<
+                        IOptions<GeminiOptions>>()
+                    .Value;
+
+            if (string.IsNullOrWhiteSpace(
+                    geminiOptions.BaseUrl))
+            {
+                throw new InvalidOperationException(
+                    "Gemini:BaseUrl chưa được cấu hình.");
+            }
+
+            var normalizedBaseUrl =
+                geminiOptions.BaseUrl
+                    .Trim()
+                    .TrimEnd('/') + "/";
+
+            if (!Uri.TryCreate(
+                    normalizedBaseUrl,
+                    UriKind.Absolute,
+                    out var baseAddress))
+            {
+                throw new InvalidOperationException(
+                    "Gemini:BaseUrl không phải URL hợp lệ.");
+            }
+
+            if (geminiOptions.TimeoutSeconds < 5)
+            {
+                throw new InvalidOperationException(
+                    "Gemini:TimeoutSeconds phải từ 5 giây trở lên.");
+            }
+
+            httpClient.BaseAddress =
+                baseAddress;
+
+            httpClient.Timeout =
+                TimeSpan.FromSeconds(
+                    geminiOptions.TimeoutSeconds);
+
+            httpClient.DefaultRequestHeaders
+                .Accept
+                .Clear();
+
+            httpClient.DefaultRequestHeaders
+                .Accept
+                .Add(
+                    new MediaTypeWithQualityHeaderValue(
+                        "application/json"));
+
+            httpClient.DefaultRequestHeaders
+                .UserAgent
+                .Clear();
+
+            httpClient.DefaultRequestHeaders
+                .UserAgent
+                .ParseAdd(
+                    "VDK-BookRental-AI/1.0");
+        });
 
 // =============================================================
 // UPLOAD FILE
@@ -115,17 +239,18 @@ builder.WebHost.ConfigureKestrel(
 // BUILD
 // =============================================================
 
-var app = builder.Build();
+var app =
+    builder.Build();
 
 // =============================================================
-// XỬ LÝ LỖI TOÀN CỤC
+// GLOBAL EXCEPTION HANDLING
 //
-// Không dùng DeveloperExceptionPage ở đây để exception được
-// chuyển sang trang lỗi thay vì làm request bị treo.
+// GlobalExceptionHandler:
+// - API trả JSON ProblemDetails.
+// - MVC chuyển sang trang lỗi.
 // =============================================================
 
-app.UseExceptionHandler(
-    "/Error/ServerError");
+app.UseExceptionHandler();
 
 app.UseStatusCodePagesWithReExecute(
     "/Error/StatusCode",
@@ -146,15 +271,20 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-// Session phải nằm trước khi controller chạy.
+// Session phải chạy trước controller.
 app.UseSession();
 
 app.UseAuthorization();
 
 // =============================================================
-// ROUTE
+// ROUTES
 // =============================================================
 
+// Attribute Routing:
+// POST /api/chat
+app.MapControllers();
+
+// Conventional MVC Routing.
 app.MapControllerRoute(
     name: "default",
     pattern:

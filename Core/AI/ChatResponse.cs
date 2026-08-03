@@ -1,12 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿namespace VDK_BookRental.Core.AI;
 
-namespace VDK_BookRental.Core.AI
+public sealed class ChatResponse
 {
-    public class ChatResponse : Controller
-    {
-        public IActionResult Index()
-        {
-            return View();
-        }
-    }
+    public string Reply { get; set; } = string.Empty;
+
+    public string Model { get; set; } = string.Empty;
+
+    public string RequestId { get; set; } = string.Empty;
+
+    public DateTime GeneratedAtUtc { get; set; }
 }
