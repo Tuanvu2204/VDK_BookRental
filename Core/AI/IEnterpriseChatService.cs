@@ -1,12 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿namespace VDK_BookRental.Core.AI;
 
-namespace VDK_BookRental.Core.AI
+public interface IEnterpriseChatService
 {
-    public class IEnterpriseChatService : Controller
-    {
-        public IActionResult Index()
-        {
-            return View();
-        }
-    }
+    Task<ChatResponse> AskAsync(
+        ChatRequest request,
+        string requestId,
+        CancellationToken cancellationToken);
 }
