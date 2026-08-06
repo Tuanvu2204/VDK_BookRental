@@ -1,106 +1,212 @@
-﻿<div id="vdkAiChat" class="ai-chat" aria-live="polite">
-    <button id="aiChatToggle"
-            class="ai-chat__toggle"
+﻿<section class="vdk-ai-widget"
+         aria-label="Trợ lý AI VDK Book Rental">
+
+    <!-- Nút mở ChatBox -->
+    <button id="aiChatOpen"
             type="button"
+            class="vdk-ai-launcher"
             aria-label="Mở trợ lý AI"
-            aria-expanded="false">
-        <span class="ai-chat__toggle-icon">✦</span>
-        <span class="ai-chat__toggle-text">Trợ lý AI</span>
+            aria-controls="aiChatPanel"
+            aria-expanded="true">
+
+        <span class="vdk-ai-launcher-icon">
+            <i class="bi bi-stars"></i>
+        </span>
+
+        <span class="vdk-ai-launcher-text">
+            Trợ lý AI
+        </span>
+
+        <span class="vdk-ai-launcher-pulse"></span>
     </button>
 
-    <section id="aiChatPanel"
-             class="ai-chat__panel"
-             aria-label="Trợ lý thuê sách"
-             hidden>
+    <!-- Cửa sổ ChatBox -->
+    <aside id="aiChatPanel"
+           class="vdk-ai-panel is-open"
+           aria-hidden="false">
 
-        <header class="ai-chat__header">
-            <div class="ai-chat__identity">
-                <div class="ai-chat__avatar">AI</div>
+        <!-- Header -->
+        <header class="vdk-ai-header">
 
-                <div>
-                    <h2>Trợ lý VDK</h2>
+            <div class="vdk-ai-header-profile">
 
-                    <p>
-                        <span class="ai-chat__online-dot"></span>
-                        Đang trực tuyến
-                    </p>
+                <div class="vdk-ai-robot-avatar">
+                    <span class="vdk-ai-robot-face">
+                        <i class="bi bi-robot"></i>
+                    </span>
+
+                    <span class="vdk-ai-avatar-status"></span>
                 </div>
+
+                <div class="vdk-ai-header-info">
+                    <h2 class="vdk-ai-title">
+                        Trợ lý VDK AI
+                    </h2>
+
+                    <div class="vdk-ai-online-status">
+                        <span class="vdk-ai-online-dot"></span>
+                        Đang trực tuyến
+                    </div>
+                </div>
+
             </div>
 
-            <div class="ai-chat__header-actions">
-                <button id="aiChatClear"
-                        class="ai-chat__icon-button"
+            <div class="vdk-ai-header-actions">
+
+                <button id="aiChatReset"
                         type="button"
-                        title="Xóa cuộc trò chuyện"
-                        aria-label="Xóa cuộc trò chuyện">
-                    ↻
+                        class="vdk-ai-header-button"
+                        title="Làm mới cuộc trò chuyện"
+                        aria-label="Làm mới cuộc trò chuyện">
+
+                    <i class="bi bi-arrow-clockwise"></i>
+                </button>
+
+                <button id="aiChatMinimize"
+                        type="button"
+                        class="vdk-ai-header-button"
+                        title="Thu nhỏ"
+                        aria-label="Thu nhỏ ChatBox">
+
+                    <i class="bi bi-dash-lg"></i>
                 </button>
 
                 <button id="aiChatClose"
-                        class="ai-chat__icon-button"
                         type="button"
+                        class="vdk-ai-header-button"
                         title="Đóng"
-                        aria-label="Đóng chatbot">
-                    ×
+                        aria-label="Đóng ChatBox">
+
+                    <i class="bi bi-x-lg"></i>
                 </button>
+
             </div>
+
         </header>
 
+        <!-- Nội dung trò chuyện -->
         <div id="aiChatMessages"
-             class="ai-chat__messages"
+             class="vdk-ai-messages"
              role="log"
-             aria-label="Nội dung trò chuyện">
+             aria-live="polite">
 
-            <div class="ai-chat__message ai-chat__message--assistant">
-                <div class="ai-chat__message-avatar">AI</div>
+            <!-- Tin nhắn chào mặc định -->
+            <div class="vdk-ai-message assistant"
+                 data-ai-static="true">
 
-                <div class="ai-chat__bubble">
-                    Xin chào! Mình là trợ lý của VDK Book Rental.
-                    Bạn có thể hỏi mình về sách, giá thuê hoặc cách thuê sách.
+                <div class="vdk-ai-message-avatar">
+                    <i class="bi bi-stars"></i>
                 </div>
+
+                <div class="vdk-ai-message-content">
+
+                    <div class="vdk-ai-message-bubble">
+                        <p>
+                            Xin chào! Mình là
+                            <strong>Trợ lý AI của VDK Book Rental</strong>
+                            👋
+                        </p>
+
+                        <p>
+                            Mình có thể giúp bạn tìm sách,
+                            kiểm tra giá thuê, số lượng còn lại
+                            và gợi ý sách phù hợp.
+                        </p>
+                    </div>
+
+                    <span class="vdk-ai-message-time">
+                        Vừa xong
+                    </span>
+
+                </div>
+
             </div>
+
         </div>
 
-        <div id="aiChatSuggestions" class="ai-chat__suggestions">
+        <!-- Câu hỏi gợi ý -->
+        <div class="vdk-ai-suggestions"
+             aria-label="Câu hỏi gợi ý">
+
             <button type="button"
-                    data-ai-suggestion="Hiện có những sách nào còn để thuê?">
-                Sách còn để thuê
+                    class="vdk-ai-suggestion"
+                    data-ai-prompt="Hiện có những sách nào còn để thuê?">
+
+                <i class="bi bi-bookshelf"></i>
+                Sách còn thuê
             </button>
 
             <button type="button"
-                    data-ai-suggestion="Hướng dẫn tôi cách thuê sách.">
-                Cách thuê sách
-            </button>
+                    class="vdk-ai-suggestion"
+                    data-ai-prompt="Hãy gợi ý cho tôi một vài cuốn sách hay.">
 
-            <button type="button"
-                    data-ai-suggestion="Gợi ý cho tôi một cuốn sách giáo dục.">
+                <i class="bi bi-stars"></i>
                 Gợi ý sách
             </button>
+
+            <button type="button"
+                    class="vdk-ai-suggestion"
+                    data-ai-prompt="Giá thuê của các sách hiện tại là bao nhiêu?">
+
+                <i class="bi bi-cash-coin"></i>
+                Giá thuê
+            </button>
+
+            <button type="button"
+                    class="vdk-ai-suggestion"
+                    data-ai-prompt="Hệ thống hiện có những thể loại sách nào?">
+
+                <i class="bi bi-folder2-open"></i>
+                Thể loại
+            </button>
+
         </div>
 
-        <form id="aiChatForm" class="ai-chat__form">
-            <label class="visually-hidden" for="aiChatInput">
-                Nhập nội dung cần hỏi
-            </label>
+        <!-- Form gửi tin nhắn -->
+        <form id="aiChatForm"
+              class="vdk-ai-form"
+              autocomplete="off">
 
-            <textarea id="aiChatInput"
-                      name="message"
-                      rows="1"
-                      maxlength="1000"
-                      placeholder="Nhập câu hỏi của bạn..."
-                      autocomplete="off"
-                      required></textarea>
+            <div class="vdk-ai-input-wrapper">
 
-            <button id="aiChatSend"
-                    class="ai-chat__send"
-                    type="submit"
-                    aria-label="Gửi tin nhắn">
-                ➤
-            </button>
+                <textarea id="aiChatInput"
+                          class="vdk-ai-input"
+                          rows="1"
+                          maxlength="1000"
+                          placeholder="Nhập tin nhắn của bạn..."
+                          aria-label="Nhập câu hỏi cho trợ lý AI"></textarea>
+
+                <div class="vdk-ai-input-actions">
+
+                    <span id="aiChatCharacterCount"
+                          class="vdk-ai-character-count">
+                        0/1000
+                    </span>
+
+                    <button id="aiChatSend"
+                            type="submit"
+                            class="vdk-ai-send-button"
+                            aria-label="Gửi tin nhắn">
+
+                        <i class="bi bi-send-fill"></i>
+                    </button>
+
+                </div>
+
+            </div>
+
         </form>
 
-        <footer class="ai-chat__footer">
-            Trợ lý AI có thể đưa ra thông tin chưa hoàn toàn chính xác.
+        <!-- Chú thích -->
+        <footer class="vdk-ai-footer">
+            <i class="bi bi-stars"></i>
+
+            <span>
+                Trợ lý AI có thể mắc sai sót.
+                Vui lòng kiểm tra thông tin trước khi thuê sách.
+            </span>
         </footer>
-    </section>
-</div>
+
+    </aside>
+
+</section>

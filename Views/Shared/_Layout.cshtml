@@ -1,4 +1,5 @@
 ﻿@using Microsoft.AspNetCore.Http
+@using System.Text.Json
 
 @{
     var currentController =
@@ -85,6 +86,79 @@
             ? "active"
             : string.Empty;
     }
+
+
+    var successMessage =
+        (TempData["SuccessMessage"] ??
+         TempData["Success"])?.ToString();
+
+    var errorMessage =
+        (TempData["ErrorMessage"] ??
+         TempData["Error"])?.ToString();
+
+    var warningMessage =
+        (TempData["WarningMessage"] ??
+         TempData["Warning"])?.ToString();
+
+    var infoMessage =
+        (TempData["InfoMessage"] ??
+         TempData["Info"])?.ToString();
+
+    var messageBoxNotifications =
+        new System.Collections.Generic.List<object>();
+
+    if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        messageBoxNotifications.Add(
+            new
+            {
+                icon = "error",
+                title = "Không thể thực hiện",
+                message = errorMessage
+            }
+        );
+    }
+
+    if (!string.IsNullOrWhiteSpace(warningMessage))
+    {
+        messageBoxNotifications.Add(
+            new
+            {
+                icon = "warning",
+                title = "Cần lưu ý",
+                message = warningMessage
+            }
+        );
+    }
+
+    if (!string.IsNullOrWhiteSpace(successMessage))
+    {
+        messageBoxNotifications.Add(
+            new
+            {
+                icon = "success",
+                title = "Thành công",
+                message = successMessage
+            }
+        );
+    }
+
+    if (!string.IsNullOrWhiteSpace(infoMessage))
+    {
+        messageBoxNotifications.Add(
+            new
+            {
+                icon = "info",
+                title = "Thông báo",
+                message = infoMessage
+            }
+        );
+    }
+
+    var messageBoxNotificationJson =
+        JsonSerializer.Serialize(
+            messageBoxNotifications
+        );
 }
 
 <!DOCTYPE html>
@@ -523,6 +597,186 @@
             }
         }
     </style>
+
+    <style id="vdk-messagebox-styles">
+        .swal2-container {
+            z-index: 20050 !important;
+            font-family:
+                Inter,
+                system-ui,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+        }
+
+        .vdk-swal-popup {
+            overflow: hidden !important;
+            padding: 30px 28px 26px !important;
+            border: 1px solid rgba(226, 232, 240, 0.95) !important;
+            border-radius: 26px !important;
+            background:
+                radial-gradient(
+                    circle at top right,
+                    rgba(99, 102, 241, 0.12),
+                    transparent 35%
+                ),
+                rgba(255, 255, 255, 0.99) !important;
+            box-shadow:
+                0 30px 90px rgba(15, 23, 42, 0.24),
+                0 8px 24px rgba(15, 23, 42, 0.08) !important;
+            backdrop-filter: blur(20px);
+        }
+
+        .vdk-swal-popup::before {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            content: "";
+            background:
+                linear-gradient(
+                    90deg,
+                    #2563eb,
+                    #7c3aed,
+                    #06b6d4
+                );
+        }
+
+        .vdk-swal-title {
+            margin-top: 4px !important;
+            color: #0f172a !important;
+            font-size: 1.45rem !important;
+            font-weight: 850 !important;
+            letter-spacing: -0.025em !important;
+        }
+
+        .vdk-swal-content {
+            margin-top: 8px !important;
+            color: #475569 !important;
+            font-size: 0.98rem !important;
+            line-height: 1.65 !important;
+        }
+
+        .vdk-swal-confirm,
+        .vdk-swal-cancel {
+            min-width: 118px;
+            min-height: 44px;
+            margin: 6px;
+            padding: 10px 20px;
+            border: 0;
+            border-radius: 13px;
+            font-size: 0.93rem;
+            font-weight: 750;
+            transition:
+                transform 0.18s ease,
+                box-shadow 0.18s ease,
+                opacity 0.18s ease;
+        }
+
+        .vdk-swal-confirm {
+            color: #ffffff;
+            background:
+                linear-gradient(
+                    135deg,
+                    #2563eb,
+                    #7c3aed
+                );
+            box-shadow:
+                0 10px 24px rgba(37, 99, 235, 0.25);
+        }
+
+        .vdk-swal-cancel {
+            border: 1px solid #dbe3ef;
+            color: #475569;
+            background: #f8fafc;
+        }
+
+        .vdk-swal-confirm:hover,
+        .vdk-swal-cancel:hover {
+            transform: translateY(-2px);
+        }
+
+        .vdk-swal-confirm:hover {
+            box-shadow:
+                0 14px 30px rgba(37, 99, 235, 0.34);
+        }
+
+        .vdk-swal-cancel:hover {
+            background: #eef2f7;
+        }
+
+        .vdk-swal-toast-popup {
+            width: min(400px, calc(100vw - 28px)) !important;
+            padding: 17px 18px !important;
+            border-radius: 18px !important;
+            display: grid !important;
+            grid-template-columns: auto 1fr !important;
+            align-items: center !important;
+            column-gap: 12px !important;
+        }
+
+        .vdk-swal-toast-popup::before {
+            height: 4px;
+        }
+
+        .vdk-swal-toast-popup .swal2-icon {
+            width: 38px !important;
+            height: 38px !important;
+            margin: 0 !important;
+            font-size: 0.7rem !important;
+        }
+
+        .vdk-swal-toast-popup .vdk-swal-title {
+            margin: 0 !important;
+            padding: 0 !important;
+            text-align: left !important;
+            font-size: 1rem !important;
+        }
+
+        .vdk-swal-toast-popup .vdk-swal-content {
+            grid-column: 2;
+            margin: 3px 0 0 !important;
+            padding: 0 !important;
+            text-align: left !important;
+            font-size: 0.86rem !important;
+            line-height: 1.45 !important;
+        }
+
+        .vdk-swal-progress {
+            height: 4px !important;
+            background:
+                linear-gradient(
+                    90deg,
+                    #2563eb,
+                    #7c3aed
+                ) !important;
+        }
+
+        @@media (max-width: 575.98px) {
+            .vdk-swal-popup {
+                width: calc(100vw - 24px) !important;
+                padding: 25px 19px 21px !important;
+                border-radius: 21px !important;
+            }
+
+            .vdk-swal-title {
+                font-size: 1.25rem !important;
+            }
+
+            .vdk-swal-confirm,
+            .vdk-swal-cancel {
+                width: 100%;
+                margin: 5px 0;
+            }
+
+            .vdk-swal-toast-popup {
+                width: calc(100vw - 20px) !important;
+            }
+        }
+    </style>
+
 </head>
 
 <body>
@@ -768,70 +1022,15 @@
         </nav>
     </header>
 
-    @if (TempData["SuccessMessage"] is not null ||
-         TempData["Success"] is not null)
+    @if (messageBoxNotifications.Count > 0)
     {
-        <div class="vdk-alert-container">
-            <div class="alert alert-success alert-dismissible fade show vdk-alert"
-                 role="alert">
-
-                <i class="bi bi-check-circle-fill me-2"></i>
-
-                @(TempData["SuccessMessage"] ??
-                  TempData["Success"])
-
-                <button type="button"
-                        class="btn-close"
-                        data-bs-dismiss="alert"
-                        aria-label="Đóng">
-                </button>
-            </div>
-        </div>
+        <script id="vdk-server-notifications"
+                type="application/json">
+            @Html.Raw(messageBoxNotificationJson)
+        </script>
     }
 
-    @if (TempData["ErrorMessage"] is not null ||
-         TempData["Error"] is not null)
-    {
-        <div class="vdk-alert-container">
-            <div class="alert alert-danger alert-dismissible fade show vdk-alert"
-                 role="alert">
-
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-
-                @(TempData["ErrorMessage"] ??
-                  TempData["Error"])
-
-                <button type="button"
-                        class="btn-close"
-                        data-bs-dismiss="alert"
-                        aria-label="Đóng">
-                </button>
-            </div>
-        </div>
-    }
-
-    @if (TempData["WarningMessage"] is not null ||
-         TempData["Warning"] is not null)
-    {
-        <div class="vdk-alert-container">
-            <div class="alert alert-warning alert-dismissible fade show vdk-alert"
-                 role="alert">
-
-                <i class="bi bi-exclamation-circle-fill me-2"></i>
-
-                @(TempData["WarningMessage"] ??
-                  TempData["Warning"])
-
-                <button type="button"
-                        class="btn-close"
-                        data-bs-dismiss="alert"
-                        aria-label="Đóng">
-                </button>
-            </div>
-        </div>
-    }
-
-    <main class="vdk-page-content">
+<main class="vdk-page-content">
         <div class="vdk-main-container">
             @RenderBody()
         </div>
@@ -951,33 +1150,390 @@
 
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <script src="~/js/site.js"
             asp-append-version="true"></script>
 
     <script src="~/js/ai-chat.js"
             asp-append-version="true"></script>
 
-    <script>
-        (() => {
-            const autoCloseAlerts =
-                document.querySelectorAll(
-                    ".vdk-alert.alert-success"
-                );
 
-            autoCloseAlerts.forEach(alertElement => {
-                window.setTimeout(() => {
-                    const alertInstance =
-                        bootstrap.Alert.getOrCreateInstance(
-                            alertElement
+    <script id="vdk-messagebox-script">
+        (() => {
+            "use strict";
+
+            const iconTitles = {
+                success: "Thành công",
+                error: "Không thể thực hiện",
+                warning: "Cần lưu ý",
+                info: "Thông báo",
+                question: "Xác nhận"
+            };
+
+            const allowedIcons = new Set([
+                "success",
+                "error",
+                "warning",
+                "info",
+                "question"
+            ]);
+
+            function normalizeIcon(icon) {
+                return allowedIcons.has(icon)
+                    ? icon
+                    : "info";
+            }
+
+            function normalizeText(value) {
+                if (value === null ||
+                    value === undefined) {
+                    return "";
+                }
+
+                return String(value).trim();
+            }
+
+            function hasSweetAlert() {
+                return typeof window.Swal === "function";
+            }
+
+            function customClass(isToast) {
+                return {
+                    popup: isToast
+                        ? "vdk-swal-popup vdk-swal-toast-popup"
+                        : "vdk-swal-popup",
+
+                    title: "vdk-swal-title",
+                    htmlContainer: "vdk-swal-content",
+                    confirmButton: "vdk-swal-confirm",
+                    cancelButton: "vdk-swal-cancel",
+                    timerProgressBar: "vdk-swal-progress"
+                };
+            }
+
+            async function show(options = {}) {
+                const icon =
+                    normalizeIcon(
+                        options.icon ?? "info"
+                    );
+
+                const title =
+                    normalizeText(options.title) ||
+                    iconTitles[icon];
+
+                const message =
+                    normalizeText(
+                        options.message ??
+                        options.text
+                    );
+
+                if (!message) {
+                    return {
+                        isConfirmed: false,
+                        isDismissed: true
+                    };
+                }
+
+                if (!hasSweetAlert()) {
+                    console.error(
+                        "SweetAlert2 chưa được tải."
+                    );
+
+                    return {
+                        isConfirmed: false,
+                        isDismissed: true
+                    };
+                }
+
+                const isToast =
+                    options.toast === true;
+
+                const swalOptions = {
+                    icon,
+                    title,
+                    text: message,
+
+                    toast: isToast,
+
+                    position: isToast
+                        ? "top-end"
+                        : "center",
+
+                    width: isToast
+                        ? undefined
+                        : 470,
+
+                    showConfirmButton:
+                        options.showConfirmButton ??
+                        !isToast,
+
+                    showCancelButton:
+                        !isToast &&
+                        options.showCancelButton === true,
+
+                    confirmButtonText:
+                        options.confirmButtonText ??
+                        "Đã hiểu",
+
+                    cancelButtonText:
+                        options.cancelButtonText ??
+                        "Đóng",
+
+                    buttonsStyling: false,
+
+                    timer:
+                        options.timer ??
+                        (isToast ? 4300 : undefined),
+
+                    timerProgressBar:
+                        options.timerProgressBar ??
+                        isToast,
+
+                    showCloseButton:
+                        options.showCloseButton ??
+                        !isToast,
+
+                    reverseButtons:
+                        !isToast,
+
+                    customClass:
+                        customClass(isToast),
+
+                    didOpen: popup => {
+                        if (!isToast) {
+                            return;
+                        }
+
+                        popup.addEventListener(
+                            "mouseenter",
+                            window.Swal.stopTimer
                         );
 
-                    alertInstance.close();
-                }, 4500);
+                        popup.addEventListener(
+                            "mouseleave",
+                            window.Swal.resumeTimer
+                        );
+                    }
+                };
+
+                /*
+                 * Các thiết lập này chỉ dùng cho hộp thoại
+                 * ở giữa màn hình, không truyền vào Toast.
+                 */
+                if (!isToast) {
+                    swalOptions.allowOutsideClick =
+                        options.allowOutsideClick ??
+                        false;
+
+                    swalOptions.allowEscapeKey =
+                        options.allowEscapeKey ??
+                        true;
+
+                    swalOptions.focusConfirm =
+                        true;
+                }
+
+                return await window.Swal.fire(
+                    swalOptions
+                );
+            }
+
+            async function success(
+                message,
+                title = "Thành công"
+            ) {
+                return await show({
+                    icon: "success",
+                    title,
+                    message,
+                    toast: true
+                });
+            }
+
+            async function error(
+                message,
+                title = "Không thể thực hiện"
+            ) {
+                return await show({
+                    icon: "error",
+                    title,
+                    message,
+                    toast: false
+                });
+            }
+
+            async function warning(
+                message,
+                title = "Cần lưu ý"
+            ) {
+                return await show({
+                    icon: "warning",
+                    title,
+                    message,
+                    toast: false
+                });
+            }
+
+            async function info(
+                message,
+                title = "Thông báo"
+            ) {
+                return await show({
+                    icon: "info",
+                    title,
+                    message,
+                    toast: true
+                });
+            }
+
+            async function confirmAction(
+                options = {}
+            ) {
+                const result =
+                    await show({
+                        icon:
+                            normalizeIcon(
+                                options.icon ??
+                                "question"
+                            ),
+
+                        title:
+                            normalizeText(
+                                options.title
+                            ) ||
+                            "Xác nhận thao tác",
+
+                        message:
+                            normalizeText(
+                                options.message ??
+                                options.text
+                            ),
+
+                        toast: false,
+                        showConfirmButton: true,
+                        showCancelButton: true,
+
+                        confirmButtonText:
+                            options.confirmButtonText ??
+                            "Xác nhận",
+
+                        cancelButtonText:
+                            options.cancelButtonText ??
+                            "Hủy",
+
+                        allowOutsideClick: false
+                    });
+
+                return result.isConfirmed === true;
+            }
+
+            window.VDKMessage = Object.freeze({
+                show,
+                success,
+                error,
+                warning,
+                info,
+                confirm: confirmAction
             });
+
+            /*
+             * Ghi đè alert mặc định để không còn
+             * hộp thoại "localhost says".
+             */
+            window.alert = message => {
+                void window.VDKMessage.info(
+                    normalizeText(message)
+                );
+            };
+
+            async function showServerNotifications() {
+                const payloadElement =
+                    document.getElementById(
+                        "vdk-server-notifications"
+                    );
+
+                if (!payloadElement) {
+                    return;
+                }
+
+                let notifications = [];
+
+                try {
+                    notifications =
+                        JSON.parse(
+                            payloadElement.textContent ||
+                            "[]"
+                        );
+                }
+                catch (parseError) {
+                    console.error(
+                        "Không đọc được dữ liệu MessageBox.",
+                        parseError
+                    );
+
+                    return;
+                }
+
+                if (!Array.isArray(notifications)) {
+                    return;
+                }
+
+                for (const notification of notifications) {
+                    const icon =
+                        normalizeIcon(
+                            notification?.icon
+                        );
+
+                    const message =
+                        normalizeText(
+                            notification?.message
+                        );
+
+                    if (!message) {
+                        continue;
+                    }
+
+                    await show({
+                        icon,
+
+                        title:
+                            normalizeText(
+                                notification?.title
+                            ) ||
+                            iconTitles[icon],
+
+                        message,
+
+                        toast:
+                            icon === "success" ||
+                            icon === "info"
+                    });
+                }
+            }
+
+            if (document.readyState === "loading") {
+                document.addEventListener(
+                    "DOMContentLoaded",
+                    () => {
+                        void showServerNotifications();
+                    },
+                    {
+                        once: true
+                    }
+                );
+            }
+            else {
+                void showServerNotifications();
+            }
+
+            console.info(
+                "VDK Modern MessageBox đã khởi tạo."
+            );
         })();
     </script>
 
-    @await RenderSectionAsync(
+@await RenderSectionAsync(
         "Scripts",
         required: false)
 </body>

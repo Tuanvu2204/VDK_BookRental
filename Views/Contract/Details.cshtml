@@ -1,0 +1,1409 @@
+﻿@model VDK_BookRental.ViewModels.RentalContractViewModel
+
+@{
+    ViewData["Title"] = "Hợp đồng thuê sách";
+
+    var rental = Model.Rental;
+
+    var customerName =
+        string.IsNullOrWhiteSpace(Model.CustomerName)
+            ? "........................................................"
+            : Model.CustomerName;
+
+    var customerPhone =
+        string.IsNullOrWhiteSpace(Model.CustomerPhone)
+            ? "........................................................"
+            : Model.CustomerPhone;
+
+    var customerEmail =
+        string.IsNullOrWhiteSpace(Model.CustomerEmail)
+            ? "........................................................"
+            : Model.CustomerEmail;
+
+    var customerAddress =
+        string.IsNullOrWhiteSpace(Model.CustomerAddress)
+            ? "........................................................"
+            : Model.CustomerAddress;
+
+    var paymentMethod =
+        string.IsNullOrWhiteSpace(Model.PaymentMethod)
+            ? "Chưa xác định"
+            : Model.PaymentMethod;
+
+    var contractCreatedAt =
+        Model.CreatedAt == default
+            ? DateTime.Now
+            : Model.CreatedAt;
+}
+
+<div class="contract-page-shell">
+
+    <div class="contract-toolbar no-print">
+
+        <a asp-controller="Rental"
+           asp-action="Current"
+           class="contract-toolbar-button contract-toolbar-back">
+
+            <i class="bi bi-arrow-left"></i>
+            Quay lại
+        </a>
+
+        <div class="contract-toolbar-actions">
+
+            <button type="button"
+                    class="contract-toolbar-button contract-toolbar-print"
+                    onclick="window.print();">
+
+                <i class="bi bi-printer-fill"></i>
+                In / Lưu PDF
+            </button>
+
+        </div>
+    </div>
+
+    <article class="rental-contract-document">
+
+        <div class="contract-security-strip">
+            <span>
+                <i class="bi bi-shield-check"></i>
+                HỢP ĐỒNG GIAO DỊCH ĐIỆN TỬ
+            </span>
+
+            <span>
+                Mã xác nhận:
+                <strong>@Model.ContractNumber</strong>
+            </span>
+        </div>
+
+        <header class="contract-header">
+
+            <section class="contract-company-block">
+
+                <div class="contract-company-logo">
+                    <span>VDK</span>
+                </div>
+
+                <div class="contract-company-name">
+                    <strong>CÔNG TY VDK</strong>
+                    <span>VDK BOOK RENTAL</span>
+                </div>
+
+            </section>
+
+            <section class="contract-national-block">
+
+                <strong>
+                    CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
+                </strong>
+
+                <span>
+                    Độc lập - Tự do - Hạnh phúc
+                </span>
+
+                <div class="contract-national-divider"></div>
+
+            </section>
+        </header>
+
+        <section class="contract-meta">
+
+            <div>
+                <span>Số hợp đồng:</span>
+                <strong>@Model.ContractNumber</strong>
+            </div>
+
+            <div>
+                <span>Đơn thuê:</span>
+                <strong>#@rental.Id</strong>
+            </div>
+
+        </section>
+
+        <p class="contract-location-date">
+
+            TP. Hồ Chí Minh,
+            ngày @contractCreatedAt.Day
+            tháng @contractCreatedAt.Month
+            năm @contractCreatedAt.Year
+
+        </p>
+
+        <section class="contract-title-section">
+
+            <p class="contract-title-label">
+                HỢP ĐỒNG GIAO DỊCH
+            </p>
+
+            <h1>HỢP ĐỒNG THUÊ SÁCH</h1>
+
+            <div class="contract-title-line"></div>
+
+            <p>
+                Về việc thuê sách giữa Công ty VDK và khách hàng
+            </p>
+
+        </section>
+
+        <section class="contract-legal-basis">
+
+            <p>
+                Căn cứ Bộ luật Dân sự và các quy định pháp luật hiện hành;
+            </p>
+
+            <p>
+                Căn cứ nhu cầu thuê sách và sự tự nguyện thỏa thuận
+                giữa các bên;
+            </p>
+
+            <p>
+                Hôm nay, các bên thống nhất ký kết hợp đồng với nội dung sau:
+            </p>
+
+        </section>
+
+        <section class="contract-party-card">
+
+            <div class="contract-party-title">
+
+                <span class="contract-party-badge">BÊN A</span>
+
+                <div>
+                    <h2>BÊN CHO THUÊ: CÔNG TY VDK</h2>
+                    <p>Đơn vị cung cấp dịch vụ thuê sách</p>
+                </div>
+
+            </div>
+
+            <div class="contract-information-grid">
+
+                <div class="contract-information-row">
+                    <span>Tên giao dịch</span>
+                    <strong>VDK Book Rental</strong>
+                </div>
+
+                <div class="contract-information-row">
+                    <span>Người đại diện</span>
+                    <strong>Nguyễn Huỳnh Tuấn Vũ</strong>
+                </div>
+
+                <div class="contract-information-row">
+                    <span>Chức vụ</span>
+                    <strong>Đại diện Công ty VDK</strong>
+                </div>
+
+                <div class="contract-information-row">
+                    <span>Phạm vi cung cấp</span>
+                    <strong>Dịch vụ cho thuê sách trực tuyến</strong>
+                </div>
+
+            </div>
+        </section>
+
+        <section class="contract-party-card">
+
+            <div class="contract-party-title">
+
+                <span class="contract-party-badge customer-badge">
+                    BÊN B
+                </span>
+
+                <div>
+                    <h2>BÊN THUÊ: KHÁCH HÀNG</h2>
+                    <p>Người đăng ký và sử dụng sách thuê</p>
+                </div>
+
+            </div>
+
+            <div class="contract-information-grid">
+
+                <div class="contract-information-row">
+                    <span>Tôi tên</span>
+                    <strong>@customerName</strong>
+                </div>
+
+                <div class="contract-information-row">
+                    <span>Số điện thoại</span>
+                    <strong>@customerPhone</strong>
+                </div>
+
+                <div class="contract-information-row">
+                    <span>Email</span>
+                    <strong>@customerEmail</strong>
+                </div>
+
+                <div class="contract-information-row">
+                    <span>Địa chỉ</span>
+                    <strong>@customerAddress</strong>
+                </div>
+
+            </div>
+        </section>
+
+        <section class="contract-article">
+
+            <h2>
+                <span>Điều 1</span>
+                Đối tượng hợp đồng
+            </h2>
+
+            <p>
+                Bên A đồng ý cho Bên B thuê các đầu sách được ghi nhận
+                trong đơn thuê số <strong>#@rental.Id</strong>.
+                Bên B đồng ý nhận và sử dụng sách theo đúng mục đích,
+                thời hạn và điều kiện được quy định tại hợp đồng này.
+            </p>
+
+        </section>
+
+        <section class="contract-article">
+
+            <h2>
+                <span>Điều 2</span>
+                Thời hạn thuê
+            </h2>
+
+            <div class="contract-highlight-grid">
+
+                <div class="contract-highlight-box">
+                    <small>Ngày giờ thuê</small>
+
+                    <strong>
+                        @rental.RentalDate.ToString("dd/MM/yyyy HH:mm")
+                    </strong>
+                </div>
+
+                <div class="contract-highlight-box">
+                    <small>Ngày giờ trả dự kiến</small>
+
+                    <strong>
+                        @rental.ReturnDate.ToString("dd/MM/yyyy HH:mm")
+                    </strong>
+                </div>
+
+            </div>
+
+        </section>
+
+        <section class="contract-article">
+
+            <h2>
+                <span>Điều 3</span>
+                Giá thuê và thanh toán
+            </h2>
+
+            <div class="contract-payment-summary">
+
+                <div>
+                    <span>Tổng tiền thuê</span>
+
+                    <strong>
+                        @rental.TotalAmount.ToString("N0") VNĐ
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Phương thức thanh toán</span>
+                    <strong>@paymentMethod</strong>
+                </div>
+
+                <div>
+                    <span>Trạng thái giao dịch</span>
+                    <strong>@(rental.Payment?.Status ?? "Pending")</strong>
+                </div>
+
+            </div>
+
+        </section>
+
+        <section class="contract-article">
+
+            <h2>
+                <span>Điều 4</span>
+                Quyền và nghĩa vụ của Bên B
+            </h2>
+
+            <ol>
+                <li>
+                    Bảo quản sách cẩn thận, không tẩy xóa, không làm rách,
+                    làm mất hoặc làm hư hỏng sách.
+                </li>
+
+                <li>
+                    Hoàn trả sách đúng thời gian được ghi nhận trong hợp đồng.
+                </li>
+
+                <li>
+                    Thanh toán đầy đủ tiền thuê và các khoản phát sinh
+                    theo quy định.
+                </li>
+
+                <li>
+                    Không tự ý chuyển giao sách cho người khác khi chưa
+                    có sự đồng ý của Bên A.
+                </li>
+            </ol>
+
+        </section>
+
+        <section class="contract-article contract-penalty-article">
+
+            <h2>
+                <span>Điều 5</span>
+                Phí trả muộn và bồi thường
+            </h2>
+
+            <div class="contract-penalty-grid">
+
+                <div class="contract-penalty-box">
+
+                    <i class="bi bi-clock-history"></i>
+
+                    <div>
+                        <strong>Phí trả muộn</strong>
+
+                        <p>
+                            Mỗi ngày trả muộn, Bên B phải thanh toán thêm
+                            <b>5.000 VNĐ</b>.
+                        </p>
+                    </div>
+
+                </div>
+
+                <div class="contract-penalty-box danger">
+
+                    <i class="bi bi-journal-x"></i>
+
+                    <div>
+                        <strong>Hư hỏng hoặc mất sách</strong>
+
+                        <p>
+                            Trường hợp sách bị rách, hư hỏng nghiêm trọng
+                            hoặc bị mất, Bên B có trách nhiệm bồi thường
+                            <b>100% giá trị sách</b>.
+                        </p>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <section class="contract-article">
+
+            <h2>
+                <span>Điều 6</span>
+                Hiệu lực hợp đồng
+            </h2>
+
+            <p>
+                Hợp đồng có hiệu lực kể từ thời điểm khách hàng xác nhận
+                giao dịch thanh toán và chấm dứt khi hai bên hoàn thành
+                đầy đủ các quyền, nghĩa vụ liên quan.
+            </p>
+
+            <p>
+                Hợp đồng được lập dưới hình thức điện tử, có nội dung
+                thống nhất và được lưu trữ trong hệ thống VDK Book Rental.
+            </p>
+
+        </section>
+
+        <section class="contract-book-section">
+
+            <div class="contract-section-heading">
+
+                <div>
+                    <span>DANH MỤC</span>
+                    <h2>THÔNG TIN SÁCH THUÊ</h2>
+                </div>
+
+                <div class="contract-book-count">
+                    @rental.RentalDetails.Sum(item => item.Quantity)
+                    quyển
+                </div>
+
+            </div>
+
+            <div class="contract-table-wrapper">
+
+                <table class="contract-book-table">
+
+                    <thead>
+                        <tr>
+                            <th>STT</th>
+                            <th>Tên sách</th>
+                            <th>SL</th>
+                            <th>Số ngày</th>
+                            <th>Đơn giá</th>
+                            <th>Thành tiền</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @{
+                            var index = 1;
+                        }
+
+                        @foreach (var detail in rental.RentalDetails)
+                        {
+                            <tr>
+                                <td>@index</td>
+
+                                <td class="book-name-cell">
+                                    @(detail.Book?.Title ?? "Không xác định")
+                                </td>
+
+                                <td>@detail.Quantity</td>
+
+                                <td>@detail.RentalDays ngày</td>
+
+                                <td>
+                                    @detail.Price.ToString("N0") VNĐ
+                                </td>
+
+                                <td>
+                                    <strong>
+                                        @detail.SubTotal.ToString("N0") VNĐ
+                                    </strong>
+                                </td>
+                            </tr>
+
+                            index++;
+                        }
+                    </tbody>
+
+                    <tfoot>
+                        <tr>
+                            <td colspan="5">
+                                Tổng giá trị hợp đồng
+                            </td>
+
+                            <td>
+                                @rental.TotalAmount.ToString("N0") VNĐ
+                            </td>
+                        </tr>
+                    </tfoot>
+
+                </table>
+
+            </div>
+        </section>
+
+        <section class="contract-confirmation-box">
+
+            <i class="bi bi-patch-check-fill"></i>
+
+            <p>
+                Hai bên xác nhận đã đọc, hiểu rõ toàn bộ nội dung hợp đồng,
+                tự nguyện đồng ý với các điều khoản và chịu trách nhiệm
+                thực hiện đúng các cam kết nêu trên.
+            </p>
+
+        </section>
+
+        <section class="contract-signatures">
+
+            <div class="contract-signature-box">
+
+                <h3>BÊN THUÊ (BÊN B)</h3>
+
+                <span>Khách hàng</span>
+
+                <small>(Ký và ghi rõ họ tên)</small>
+
+                <div class="contract-signature-space"></div>
+
+                <strong>Tên</strong>
+                <p>@customerName</p>
+
+            </div>
+
+            <div class="contract-signature-box">
+
+                <h3>ĐẠI DIỆN CÔNG TY VDK</h3>
+
+                <span>Bên cho thuê (Bên A)</span>
+
+                <small>(Ký và ghi rõ họ tên)</small>
+
+                <div class="contract-company-signature">
+                    Vu
+                </div>
+
+                <p class="contract-representative-name">
+                    Nguyễn Huỳnh Tuấn Vũ
+                </p>
+
+            </div>
+
+        </section>
+
+        <footer class="contract-footer">
+
+            <div>
+                <i class="bi bi-lock-fill"></i>
+                Hợp đồng được tạo tự động bởi VDK Book Rental
+            </div>
+
+            <div>
+                Trang 1/1
+            </div>
+
+        </footer>
+
+    </article>
+</div>
+
+<style>
+    .contract-page-shell {
+        min-height: 100vh;
+        padding: 32px 16px 70px;
+        background: radial-gradient( circle at top left, rgba(37, 99, 235, 0.10), transparent 30% ), radial-gradient( circle at bottom right, rgba(124, 58, 237, 0.08), transparent 32% ), #eef3f9;
+    }
+
+    .contract-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: min(210mm, calc(100% - 20px));
+        margin: 0 auto 18px;
+    }
+
+    .contract-toolbar-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .contract-toolbar-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 42px;
+        padding: 10px 16px;
+        border-radius: 12px;
+        font-size: 13px;
+        font-weight: 750;
+        text-decoration: none;
+        transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+        .contract-toolbar-button:hover {
+            transform: translateY(-2px);
+        }
+
+    .contract-toolbar-back {
+        border: 1px solid #cbd5e1;
+        color: #475569;
+        background: #ffffff;
+    }
+
+    .contract-toolbar-print {
+        border: 0;
+        color: #ffffff;
+        background: linear-gradient( 135deg, #2563eb, #7c3aed );
+        box-shadow: 0 10px 24px rgba(37, 99, 235, 0.25);
+        cursor: pointer;
+    }
+
+    .rental-contract-document {
+        position: relative;
+        width: min(210mm, calc(100% - 20px));
+        min-height: 297mm;
+        margin: 0 auto;
+        padding: 18mm 17mm 15mm;
+        overflow: hidden;
+        border: 1px solid #d8dee8;
+        border-radius: 4px;
+        color: #172033;
+        background: #ffffff;
+        box-shadow: 0 30px 80px rgba(15, 23, 42, 0.16);
+        font-family: "Times New Roman", Times, serif;
+        font-size: 15px;
+        line-height: 1.58;
+    }
+
+        .rental-contract-document::after {
+            position: absolute;
+            right: -100px;
+            bottom: 230px;
+            z-index: 0;
+            color: rgba(37, 99, 235, 0.026);
+            content: "VDK";
+            font-family: Arial, sans-serif;
+            font-size: 210px;
+            font-weight: 900;
+            transform: rotate(-28deg);
+            pointer-events: none;
+        }
+
+        .rental-contract-document > * {
+            position: relative;
+            z-index: 1;
+        }
+
+    .contract-security-strip {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        margin: -18mm -17mm 14mm;
+        padding: 8px 17mm;
+        color: #ffffff;
+        background: linear-gradient( 90deg, #0f2f63, #1d4ed8 );
+        font-family: Arial, sans-serif;
+        font-size: 10px;
+        letter-spacing: 0.03em;
+    }
+
+        .contract-security-strip span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+    .contract-header {
+        display: grid;
+        grid-template-columns: 0.95fr 1.7fr;
+        gap: 26px;
+        align-items: start;
+    }
+
+    .contract-company-block {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+    }
+
+    .contract-company-logo {
+        display: grid;
+        place-items: center;
+        width: 52px;
+        height: 52px;
+        flex: 0 0 52px;
+        border: 2px solid #1d4ed8;
+        border-radius: 11px;
+        color: #ffffff;
+        background: linear-gradient( 135deg, #2563eb, #7c3aed );
+        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.20);
+        font-family: Arial, sans-serif;
+        font-size: 18px;
+        font-weight: 900;
+    }
+
+    .contract-company-name {
+        display: flex;
+        flex-direction: column;
+    }
+
+        .contract-company-name strong {
+            color: #0f2f63;
+            font-family: Arial, sans-serif;
+            font-size: 15px;
+            font-weight: 900;
+        }
+
+        .contract-company-name span {
+            margin-top: 3px;
+            color: #64748b;
+            font-family: Arial, sans-serif;
+            font-size: 10px;
+            letter-spacing: 0.07em;
+        }
+
+    .contract-national-block {
+        text-align: center;
+    }
+
+        .contract-national-block strong {
+            display: block;
+            font-size: 16px;
+            font-weight: 800;
+            line-height: 1.4;
+        }
+
+        .contract-national-block span {
+            display: block;
+            margin-top: 4px;
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+    .contract-national-divider {
+        width: 180px;
+        margin: 7px auto 0;
+        border-top: 1.5px solid #111827;
+    }
+
+    .contract-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 25px;
+        margin-top: 19px;
+        padding: 9px 12px;
+        border: 1px solid #dbe3ef;
+        border-radius: 6px;
+        background: #f8fafc;
+        font-family: Arial, sans-serif;
+        font-size: 11px;
+    }
+
+        .contract-meta div {
+            display: flex;
+            gap: 7px;
+        }
+
+        .contract-meta span {
+            color: #64748b;
+        }
+
+        .contract-meta strong {
+            color: #0f2f63;
+        }
+
+    .contract-location-date {
+        margin: 14px 0 0;
+        text-align: right;
+        font-style: italic;
+    }
+
+    .contract-title-section {
+        margin: 28px 0 25px;
+        text-align: center;
+    }
+
+    .contract-title-label {
+        margin: 0 0 5px;
+        color: #2563eb;
+        font-family: Arial, sans-serif;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+    }
+
+    .contract-title-section h1 {
+        margin: 0;
+        color: #0f172a;
+        font-size: 29px;
+        font-weight: 900;
+        letter-spacing: 0.03em;
+    }
+
+    .contract-title-line {
+        width: 110px;
+        margin: 8px auto 7px;
+        border-top: 2px solid #1d4ed8;
+    }
+
+    .contract-title-section > p:last-child {
+        margin: 0;
+        color: #475569;
+        font-size: 14px;
+        font-style: italic;
+    }
+
+    .contract-legal-basis {
+        margin-bottom: 20px;
+        padding: 13px 15px;
+        border-left: 4px solid #2563eb;
+        background: #f8fafc;
+    }
+
+        .contract-legal-basis p {
+            margin: 4px 0;
+        }
+
+    .contract-party-card {
+        margin-top: 18px;
+        padding: 16px 18px;
+        border: 1px solid #dbe3ef;
+        border-radius: 10px;
+        background: #ffffff;
+        box-shadow: 0 7px 18px rgba(15, 23, 42, 0.045);
+    }
+
+    .contract-party-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding-bottom: 11px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .contract-party-badge {
+        display: grid;
+        place-items: center;
+        width: 48px;
+        height: 34px;
+        border-radius: 8px;
+        color: #ffffff;
+        background: #1d4ed8;
+        font-family: Arial, sans-serif;
+        font-size: 11px;
+        font-weight: 900;
+    }
+
+    .customer-badge {
+        background: #059669;
+    }
+
+    .contract-party-title h2 {
+        margin: 0;
+        color: #0f172a;
+        font-size: 16px;
+        font-weight: 850;
+    }
+
+    .contract-party-title p {
+        margin: 2px 0 0;
+        color: #64748b;
+        font-family: Arial, sans-serif;
+        font-size: 10px;
+    }
+
+    .contract-information-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0 24px;
+        margin-top: 10px;
+    }
+
+    .contract-information-row {
+        display: grid;
+        grid-template-columns: 125px 1fr;
+        gap: 10px;
+        padding: 7px 0;
+        border-bottom: 1px dashed #e2e8f0;
+    }
+
+        .contract-information-row span {
+            color: #64748b;
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+        }
+
+        .contract-information-row strong {
+            min-width: 0;
+            overflow-wrap: anywhere;
+            color: #111827;
+            font-size: 14px;
+        }
+
+    .contract-article {
+        margin-top: 21px;
+    }
+
+        .contract-article h2 {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            margin: 0 0 9px;
+            color: #0f172a;
+            font-size: 17px;
+            font-weight: 850;
+            text-transform: uppercase;
+        }
+
+            .contract-article h2 span {
+                display: inline-flex;
+                padding: 5px 8px;
+                border-radius: 6px;
+                color: #ffffff;
+                background: #1d4ed8;
+                font-family: Arial, sans-serif;
+                font-size: 9px;
+                letter-spacing: 0.05em;
+                white-space: nowrap;
+            }
+
+        .contract-article p {
+            margin: 7px 0;
+            text-align: justify;
+        }
+
+        .contract-article ol {
+            margin: 7px 0 0;
+            padding-left: 23px;
+        }
+
+        .contract-article li {
+            margin: 7px 0;
+            padding-left: 3px;
+            text-align: justify;
+        }
+
+    .contract-highlight-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 13px;
+    }
+
+    .contract-highlight-box {
+        padding: 13px 15px;
+        border: 1px solid #bfdbfe;
+        border-radius: 9px;
+        background: linear-gradient( 135deg, #eff6ff, #f8faff );
+    }
+
+        .contract-highlight-box small,
+        .contract-highlight-box strong {
+            display: block;
+        }
+
+        .contract-highlight-box small {
+            color: #64748b;
+            font-family: Arial, sans-serif;
+            font-size: 10px;
+        }
+
+        .contract-highlight-box strong {
+            margin-top: 4px;
+            color: #1d4ed8;
+            font-size: 15px;
+        }
+
+    .contract-payment-summary {
+        display: grid;
+        grid-template-columns: 1.1fr 1fr 1fr;
+        overflow: hidden;
+        border: 1px solid #dbe3ef;
+        border-radius: 9px;
+    }
+
+        .contract-payment-summary > div {
+            padding: 12px 14px;
+            border-right: 1px solid #e2e8f0;
+        }
+
+            .contract-payment-summary > div:last-child {
+                border-right: 0;
+            }
+
+        .contract-payment-summary span,
+        .contract-payment-summary strong {
+            display: block;
+        }
+
+        .contract-payment-summary span {
+            color: #64748b;
+            font-family: Arial, sans-serif;
+            font-size: 10px;
+        }
+
+        .contract-payment-summary strong {
+            margin-top: 4px;
+            color: #0f172a;
+            font-size: 14px;
+        }
+
+        .contract-payment-summary > div:first-child strong {
+            color: #dc2626;
+            font-size: 17px;
+        }
+
+    .contract-penalty-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .contract-penalty-box {
+        display: flex;
+        align-items: flex-start;
+        gap: 11px;
+        padding: 13px;
+        border: 1px solid #fde68a;
+        border-radius: 9px;
+        background: #fffbeb;
+    }
+
+        .contract-penalty-box > i {
+            margin-top: 2px;
+            color: #d97706;
+            font-size: 20px;
+        }
+
+        .contract-penalty-box strong {
+            color: #92400e;
+        }
+
+        .contract-penalty-box p {
+            margin: 3px 0 0;
+            color: #78350f;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .contract-penalty-box.danger {
+            border-color: #fecaca;
+            background: #fff1f2;
+        }
+
+            .contract-penalty-box.danger > i,
+            .contract-penalty-box.danger strong {
+                color: #dc2626;
+            }
+
+            .contract-penalty-box.danger p {
+                color: #991b1b;
+            }
+
+    .contract-book-section {
+        margin-top: 26px;
+        page-break-inside: avoid;
+    }
+
+    .contract-section-heading {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 10px;
+    }
+
+        .contract-section-heading span {
+            color: #2563eb;
+            font-family: Arial, sans-serif;
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: 0.16em;
+        }
+
+        .contract-section-heading h2 {
+            margin: 3px 0 0;
+            color: #0f172a;
+            font-size: 18px;
+        }
+
+    .contract-book-count {
+        padding: 6px 10px;
+        border-radius: 999px;
+        color: #1d4ed8;
+        background: #dbeafe;
+        font-family: Arial, sans-serif;
+        font-size: 10px;
+        font-weight: 800;
+    }
+
+    .contract-table-wrapper {
+        overflow: hidden;
+        border: 1px solid #334155;
+        border-radius: 7px;
+    }
+
+    .contract-book-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: Arial, sans-serif;
+        font-size: 10px;
+    }
+
+        .contract-book-table th {
+            padding: 9px 8px;
+            color: #ffffff;
+            background: #173c73;
+            font-size: 9px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .contract-book-table td {
+            padding: 9px 8px;
+            border-top: 1px solid #cbd5e1;
+            border-right: 1px solid #e2e8f0;
+            text-align: center;
+        }
+
+            .contract-book-table td:last-child {
+                border-right: 0;
+            }
+
+        .contract-book-table tbody tr:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        .contract-book-table .book-name-cell {
+            color: #0f172a;
+            font-weight: 750;
+            text-align: left;
+        }
+
+        .contract-book-table tfoot td {
+            color: #ffffff;
+            background: #0f2f63;
+            font-weight: 850;
+        }
+
+            .contract-book-table tfoot td:first-child {
+                text-align: right;
+            }
+
+    .contract-confirmation-box {
+        display: flex;
+        align-items: flex-start;
+        gap: 11px;
+        margin-top: 24px;
+        padding: 14px 16px;
+        border: 1px solid #bbf7d0;
+        border-radius: 9px;
+        background: #f0fdf4;
+        page-break-inside: avoid;
+    }
+
+        .contract-confirmation-box i {
+            margin-top: 2px;
+            color: #16a34a;
+            font-size: 20px;
+        }
+
+        .contract-confirmation-box p {
+            margin: 0;
+            color: #166534;
+            text-align: justify;
+        }
+
+    .contract-signatures {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 80px;
+        margin-top: 34px;
+        text-align: center;
+        page-break-inside: avoid;
+    }
+
+    .contract-signature-box {
+        min-height: 190px;
+    }
+
+        .contract-signature-box h3 {
+            margin: 0;
+            color: #0f172a;
+            font-size: 15px;
+            font-weight: 900;
+        }
+
+        .contract-signature-box > span {
+            display: block;
+            margin-top: 3px;
+            font-size: 13px;
+        }
+
+        .contract-signature-box small {
+            display: block;
+            margin-top: 4px;
+            color: #64748b;
+            font-style: italic;
+        }
+
+    .contract-signature-space {
+        height: 85px;
+    }
+
+    .contract-signature-box > strong {
+        display: block;
+        color: #334155;
+    }
+
+    .contract-signature-box > p {
+        margin: 4px 0 0;
+        font-weight: 750;
+    }
+
+    .contract-company-signature {
+        height: 85px;
+        padding-top: 17px;
+        color: #1d4ed8;
+        font-family: "Segoe Script", "Brush Script MT", cursive;
+        font-size: 46px;
+        font-style: italic;
+        line-height: 1;
+        transform: rotate(-7deg);
+    }
+
+    .contract-representative-name {
+        color: #0f172a;
+        font-weight: 850 !important;
+    }
+
+    .contract-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        margin-top: 34px;
+        padding-top: 10px;
+        border-top: 1px solid #cbd5e1;
+        color: #64748b;
+        font-family: Arial, sans-serif;
+        font-size: 8px;
+    }
+
+        .contract-footer div {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+    @@media (max-width: 900px) {
+        .rental-contract-document {
+            width: 100%;
+            min-height: auto;
+            padding: 30px 24px;
+        }
+
+        .contract-security-strip {
+            margin: -30px -24px 30px;
+            padding: 8px 24px;
+        }
+    }
+
+    @@media (max-width: 700px) {
+        .contract-page-shell {
+            padding: 18px 8px 45px;
+        }
+
+        .contract-toolbar {
+            width: 100%;
+        }
+
+        .rental-contract-document {
+            padding: 24px 17px;
+        }
+
+        .contract-security-strip {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 3px;
+            margin: -24px -17px 24px;
+            padding: 9px 17px;
+        }
+
+        .contract-header {
+            grid-template-columns: 1fr;
+        }
+
+        .contract-national-block {
+            margin-top: 10px;
+        }
+
+        .contract-information-grid,
+        .contract-highlight-grid,
+        .contract-payment-summary,
+        .contract-penalty-grid,
+        .contract-signatures {
+            grid-template-columns: 1fr;
+        }
+
+            .contract-payment-summary > div {
+                border-right: 0;
+                border-bottom: 1px solid #e2e8f0;
+            }
+
+                .contract-payment-summary > div:last-child {
+                    border-bottom: 0;
+                }
+
+        .contract-information-row {
+            grid-template-columns: 110px 1fr;
+        }
+
+        .contract-table-wrapper {
+            overflow-x: auto;
+        }
+
+        .contract-book-table {
+            min-width: 650px;
+        }
+
+        .contract-signatures {
+            gap: 35px;
+        }
+    }
+
+    @@media print {
+        html,
+        body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+        }
+
+        header,
+        footer:not(.contract-footer),
+        .vdk-header,
+        .vdk-footer,
+        .ai-chat-widget,
+        .ai-chat-toggle,
+        .no-print,
+        .swal2-container {
+            display: none !important;
+        }
+
+        main,
+        .container,
+        .container-fluid {
+            width: 100% !important;
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        .contract-page-shell {
+            min-height: auto;
+            padding: 0;
+            background: #ffffff;
+        }
+
+        .rental-contract-document {
+            width: 100%;
+            min-height: auto;
+            margin: 0;
+            padding: 9mm 10mm;
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+            font-size: 12px;
+        }
+
+            .rental-contract-document::after {
+                display: none;
+            }
+
+        .contract-security-strip {
+            margin: -9mm -10mm 7mm;
+            padding: 5px 10mm;
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+        }
+
+        .contract-party-card,
+        .contract-highlight-box,
+        .contract-payment-summary,
+        .contract-penalty-box,
+        .contract-confirmation-box,
+        .contract-book-table th,
+        .contract-book-table tfoot td,
+        .contract-company-logo,
+        .contract-party-badge {
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+        }
+
+        .contract-party-card,
+        .contract-article,
+        .contract-book-section,
+        .contract-confirmation-box,
+        .contract-signatures {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        @@page {
+            size: A4;
+            margin: 9mm;
+        }
+    }
+</style>

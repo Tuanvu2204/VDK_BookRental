@@ -1,0 +1,80 @@
+﻿@using System.Text.Json
+
+@{
+    var notifications = new List<object>();
+
+    var successMessage =
+        (TempData["SuccessMessage"] ??
+         TempData["Success"])?.ToString();
+
+    var errorMessage =
+        (TempData["ErrorMessage"] ??
+         TempData["Error"])?.ToString();
+
+    var warningMessage =
+        (TempData["WarningMessage"] ??
+         TempData["Warning"])?.ToString();
+
+    var infoMessage =
+        (TempData["InfoMessage"] ??
+         TempData["Info"])?.ToString();
+
+    if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        notifications.Add(
+            new
+            {
+                icon = "error",
+                title = "Không thể thực hiện",
+                message = errorMessage
+            }
+        );
+    }
+
+    if (!string.IsNullOrWhiteSpace(warningMessage))
+    {
+        notifications.Add(
+            new
+            {
+                icon = "warning",
+                title = "Cần lưu ý",
+                message = warningMessage
+            }
+        );
+    }
+
+    if (!string.IsNullOrWhiteSpace(successMessage))
+    {
+        notifications.Add(
+            new
+            {
+                icon = "success",
+                title = "Thành công",
+                message = successMessage
+            }
+        );
+    }
+
+    if (!string.IsNullOrWhiteSpace(infoMessage))
+    {
+        notifications.Add(
+            new
+            {
+                icon = "info",
+                title = "Thông báo",
+                message = infoMessage
+            }
+        );
+    }
+
+    var notificationJson =
+        JsonSerializer.Serialize(notifications);
+}
+
+@if (notifications.Count > 0)
+{
+    <script id="vdk-server-notifications"
+            type="application/json">
+        @Html.Raw(notificationJson)
+    </script>
+}

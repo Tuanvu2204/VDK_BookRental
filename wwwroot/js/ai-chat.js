@@ -1,407 +1,275 @@
 ﻿(() => {
     "use strict";
 
-    /*
-     * VDK Book Rental - AI Chat
-     *
-     * Chức năng:
-     * - Gọi POST /api/chat.
-     * - Tự hủy khi phản hồi quá lâu.
-     * - Không cho gửi nhiều yêu cầu cùng lúc.
-     * - Luôn xóa dấu ba chấm khi thành công hoặc thất bại.
-     * - Giới hạn lịch sử để phản hồi nhanh hơn.
-     * - Hiển thị lỗi rõ ràng thay vì quay vô hạn.
-     */
-
     const API_URL = "/api/chat";
 
-    // Frontend chờ tối đa 30 giây.
     const REQUEST_TIMEOUT_MS = 30000;
-
-    // Chỉ gửi 6 tin nhắn gần nhất lên backend.
     const MAX_HISTORY_MESSAGES = 6;
-
-    // Giới hạn độ dài câu hỏi.
     const MAX_MESSAGE_LENGTH = 1000;
 
-    let chatHistory = [];
-    let activeController = null;
-    let isRequestRunning = false;
+    const panel =
+        document.getElementById("aiChatPanel");
 
-    let typingElement = null;
-    let slowMessageTimer = null;
-    let verySlowMessageTimer = null;
+    const openButton =
+        document.getElementById("aiChatOpen");
 
-    /**
-     * Tìm phần tử đầu tiên khớp một trong các selector.
-     */
-    function findElement(
-        selectors,
-        parent = document
-    ) {
-        for (const selector of selectors) {
-            const element =
-                parent.querySelector(selector);
+    const closeButton =
+        document.getElementById("aiChatClose");
 
-            if (element) {
-                return element;
-            }
-        }
+    const minimizeButton =
+        document.getElementById("aiChatMinimize");
 
-        return null;
-    }
+    const resetButton =
+        document.getElementById("aiChatReset");
 
-    /*
-     * Hỗ trợ nhiều tên id/class để không phụ thuộc
-     * hoàn toàn vào một phiên bản giao diện.
-     */
+    const messagesContainer =
+        document.getElementById("aiChatMessages");
 
-    const chatPanel = findElement([
-        "#aiChatPanel",
-        "#chatPanel",
-        "#vdkAiChatPanel",
-        ".ai-chat-panel",
-        ".ai-chat-window",
-        ".ai-chat-box",
-        ".vdk-ai-chat-panel",
-        "[data-ai-chat-panel]"
-    ]);
+    const form =
+        document.getElementById("aiChatForm");
 
-    const messagesContainer = findElement([
-        "#aiChatMessages",
-        "#chatMessages",
-        "#vdkAiChatMessages",
-        ".ai-chat-messages",
-        ".chat-messages",
-        ".ai-chat-body",
-        ".vdk-ai-chat-messages",
-        "[data-ai-chat-messages]"
-    ]);
-
-    const messageInput = findElement([
-        "#aiChatInput",
-        "#chatInput",
-        "#messageInput",
-        "#vdkAiChatInput",
-        ".ai-chat-input",
-        ".chat-input",
-        ".vdk-ai-chat-input",
-        "textarea[placeholder*='Nhập câu hỏi']",
-        "input[placeholder*='Nhập câu hỏi']",
-        "[data-ai-chat-input]"
-    ]);
-
-    const chatForm =
-        messageInput?.closest("form") ??
-        findElement([
-            "#aiChatForm",
-            "#chatForm",
-            "#vdkAiChatForm",
-            ".ai-chat-form",
-            ".vdk-ai-chat-form",
-            "[data-ai-chat-form]"
-        ]);
+    const input =
+        document.getElementById("aiChatInput");
 
     const sendButton =
-        chatForm
-            ? findElement(
-                [
-                    "#aiChatSend",
-                    "#chatSend",
-                    "#sendButton",
-                    "#sendChatButton",
-                    ".ai-chat-send",
-                    ".chat-send-button",
-                    ".vdk-ai-chat-send",
-                    "button[type='submit']",
-                    "[data-ai-chat-send]"
-                ],
-                chatForm
-            )
-            : findElement([
-                "#aiChatSend",
-                "#chatSend",
-                "#sendButton",
-                "#sendChatButton",
-                ".ai-chat-send",
-                ".chat-send-button",
-                ".vdk-ai-chat-send",
-                "[data-ai-chat-send]"
-            ]);
+        document.getElementById("aiChatSend");
 
-    const openButton = findElement([
-        "#aiChatOpen",
-        "#aiChatToggle",
-        "#chatToggle",
-        "#vdkAiChatOpen",
-        ".ai-chat-open",
-        ".ai-chat-toggle",
-        ".ai-chat-launcher",
-        ".ai-chat-fab",
-        ".vdk-ai-chat-open",
-        "[data-ai-chat-open]"
-    ]);
+    const characterCount =
+        document.getElementById(
+            "aiChatCharacterCount"
+        );
 
-    const closeButton = findElement([
-        "#aiChatClose",
-        "#chatClose",
-        "#vdkAiChatClose",
-        ".ai-chat-close",
-        ".vdk-ai-chat-close",
-        "[data-ai-chat-close]"
-    ]);
+    const suggestionButtons =
+        document.querySelectorAll(
+            "[data-ai-prompt]"
+        );
 
-    const minimizeButton = findElement([
-        "#aiChatMinimize",
-        "#chatMinimize",
-        "#vdkAiChatMinimize",
-        ".ai-chat-minimize",
-        ".vdk-ai-chat-minimize",
-        "[data-ai-chat-minimize]"
-    ]);
+    if (!panel ||
+        !messagesContainer ||
+        !form ||
+        !input ||
+        !sendButton) {
 
-    const resetButton = findElement([
-        "#aiChatReset",
-        "#chatReset",
-        "#vdkAiChatReset",
-        ".ai-chat-reset",
-        ".vdk-ai-chat-reset",
-        "[data-ai-chat-reset]"
-    ]);
-
-    /*
-     * Không tiếp tục nếu không tìm thấy
-     * những thành phần quan trọng.
-     */
-    if (!messagesContainer || !messageInput) {
         console.warn(
-            "VDK AI Chat: Không tìm thấy vùng tin nhắn hoặc ô nhập."
+            "VDK AI Chat: Thiếu thành phần giao diện."
         );
 
         return;
     }
 
-    /**
-     * Mã hóa HTML để tránh chèn mã độc.
-     */
+    let history = [];
+    let activeController = null;
+    let isSending = false;
+    let typingElement = null;
+    let lastQuestion = "";
+
+    function openChat() {
+        panel.hidden = false;
+
+        requestAnimationFrame(() => {
+            panel.classList.add(
+                "is-open"
+            );
+        });
+
+        panel.setAttribute(
+            "aria-hidden",
+            "false"
+        );
+
+        openButton?.setAttribute(
+            "aria-expanded",
+            "true"
+        );
+
+        setTimeout(() => {
+            input.focus();
+            scrollToBottom();
+        }, 100);
+    }
+
+    function closeChat() {
+        panel.classList.remove(
+            "is-open",
+            "open",
+            "show",
+            "active"
+        );
+
+        panel.setAttribute(
+            "aria-hidden",
+            "true"
+        );
+
+        openButton?.setAttribute(
+            "aria-expanded",
+            "false"
+        );
+
+        setTimeout(() => {
+            if (!panel.classList.contains(
+                "is-open"
+            )) {
+                panel.hidden = true;
+            }
+        }, 230);
+    }
+
     function escapeHtml(value) {
-        const temporaryElement =
+        const element =
             document.createElement("div");
 
-        temporaryElement.textContent =
+        element.textContent =
             value ?? "";
 
-        return temporaryElement.innerHTML;
+        return element.innerHTML;
     }
 
-    /**
-     * Hiển thị một số Markdown cơ bản.
-     */
-    function formatMessageContent(value) {
-        let safeValue =
+    function formatContent(value) {
+        let content =
             escapeHtml(value ?? "");
 
-        // **chữ đậm**
-        safeValue =
-            safeValue.replace(
-                /\*\*(.+?)\*\*/g,
-                "<strong>$1</strong>"
-            );
+        content = content.replace(
+            /\*\*(.+?)\*\*/g,
+            "<strong>$1</strong>"
+        );
 
-        // `code`
-        safeValue =
-            safeValue.replace(
-                /`([^`]+)`/g,
-                "<code>$1</code>"
-            );
+        content = content.replace(
+            /`([^`]+)`/g,
+            "<code>$1</code>"
+        );
 
-        // Xuống dòng.
-        safeValue =
-            safeValue.replace(
-                /\r?\n/g,
-                "<br>"
-            );
+        content = content.replace(
+            /\r?\n/g,
+            "<br>"
+        );
 
-        return safeValue;
+        return content;
     }
 
-    /**
-     * Cuộn xuống tin nhắn mới nhất.
-     */
+    function getCurrentTime() {
+        return new Intl.DateTimeFormat(
+            "vi-VN",
+            {
+                hour: "2-digit",
+                minute: "2-digit"
+            }
+        ).format(new Date());
+    }
+
     function scrollToBottom() {
-        window.requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
             messagesContainer.scrollTop =
                 messagesContainer.scrollHeight;
         });
     }
 
-    /**
-     * Tạo một tin nhắn.
-     */
-    function createMessageElement(
+    function createMessage(
         role,
         content,
-        options = {}
+        isError = false
     ) {
-        const {
-            isError = false,
-            generated = true
-        } = options;
-
-        const messageRow =
+        const row =
             document.createElement("div");
 
-        const isUser =
-            role === "user";
+        row.className =
+            `vdk-ai-message ${role}`;
 
-        messageRow.className = [
-            "ai-chat-message",
-            "ai-message",
-            "vdk-ai-message",
-            isUser
-                ? "ai-chat-message-user"
-                : "ai-chat-message-assistant",
-            isUser
-                ? "user"
-                : "assistant",
-            isUser
-                ? "user-message"
-                : "bot-message",
-            isError
-                ? "ai-chat-message-error"
-                : ""
-        ]
-            .filter(Boolean)
-            .join(" ");
+        row.dataset.aiGenerated =
+            "true";
 
-        messageRow.dataset.role =
-            role;
-
-        if (generated) {
-            messageRow.dataset.aiGenerated =
-                "true";
+        if (isError) {
+            row.classList.add(
+                "vdk-ai-message-error"
+            );
         }
 
-        const avatar =
+        const contentWrapper =
             document.createElement("div");
 
-        avatar.className = [
-            "ai-chat-avatar",
-            "ai-message-avatar",
-            "vdk-ai-message-avatar"
-        ].join(" ");
-
-        avatar.textContent =
-            isUser
-                ? "Bạn"
-                : "AI";
+        contentWrapper.className =
+            "vdk-ai-message-content";
 
         const bubble =
             document.createElement("div");
 
-        bubble.className = [
-            "ai-chat-bubble",
-            "ai-message-bubble",
-            "vdk-ai-message-bubble"
-        ].join(" ");
+        bubble.className =
+            "vdk-ai-message-bubble";
 
         bubble.innerHTML =
-            formatMessageContent(content);
+            formatContent(content);
 
-        if (isUser) {
-            messageRow.appendChild(bubble);
-        }
-        else {
-            messageRow.appendChild(avatar);
-            messageRow.appendChild(bubble);
-        }
+        const time =
+            document.createElement("span");
 
-        return messageRow;
-    }
+        time.className =
+            "vdk-ai-message-time";
 
-    /**
-     * Thêm tin nhắn người dùng.
-     */
-    function addUserMessage(content) {
-        const element =
-            createMessageElement(
-                "user",
-                content
+        time.textContent =
+            getCurrentTime();
+
+        contentWrapper.appendChild(
+            bubble
+        );
+
+        contentWrapper.appendChild(
+            time
+        );
+
+        if (role === "assistant") {
+            const avatar =
+                document.createElement("div");
+
+            avatar.className =
+                "vdk-ai-message-avatar";
+
+            avatar.innerHTML =
+                '<i class="bi bi-stars"></i>';
+
+            row.appendChild(
+                avatar
             );
+        }
+
+        row.appendChild(
+            contentWrapper
+        );
 
         messagesContainer.appendChild(
-            element
+            row
         );
 
         scrollToBottom();
 
-        return element;
+        return row;
     }
 
-    /**
-     * Thêm tin nhắn AI.
-     */
+    function addUserMessage(content) {
+        return createMessage(
+            "user",
+            content
+        );
+    }
+
     function addAssistantMessage(
         content,
         isError = false
     ) {
-        const element =
-            createMessageElement(
-                "assistant",
-                content,
-                {
-                    isError
-                }
-            );
-
-        messagesContainer.appendChild(
-            element
+        return createMessage(
+            "assistant",
+            content,
+            isError
         );
-
-        scrollToBottom();
-
-        return element;
     }
 
-    /**
-     * Xóa các timer thông báo chậm.
-     */
-    function clearTypingTimers() {
-        if (slowMessageTimer) {
-            window.clearTimeout(
-                slowMessageTimer
-            );
-
-            slowMessageTimer = null;
-        }
-
-        if (verySlowMessageTimer) {
-            window.clearTimeout(
-                verySlowMessageTimer
-            );
-
-            verySlowMessageTimer = null;
-        }
-    }
-
-    /**
-     * Hiện dấu ba chấm đang trả lời.
-     */
-    function showTypingIndicator() {
-        removeTypingIndicator();
+    function showTyping() {
+        removeTyping();
 
         const row =
             document.createElement("div");
 
-        row.className = [
-            "ai-chat-message",
-            "ai-message",
-            "vdk-ai-message",
-            "ai-chat-message-assistant",
-            "assistant",
-            "bot-message",
-            "ai-chat-typing"
-        ].join(" ");
+        row.className =
+            "vdk-ai-message assistant";
 
         row.dataset.aiTyping =
             "true";
@@ -409,108 +277,61 @@
         const avatar =
             document.createElement("div");
 
-        avatar.className = [
-            "ai-chat-avatar",
-            "ai-message-avatar",
-            "vdk-ai-message-avatar"
-        ].join(" ");
+        avatar.className =
+            "vdk-ai-message-avatar";
 
-        avatar.textContent =
-            "AI";
+        avatar.innerHTML =
+            '<i class="bi bi-stars"></i>';
+
+        const contentWrapper =
+            document.createElement("div");
+
+        contentWrapper.className =
+            "vdk-ai-message-content";
 
         const bubble =
             document.createElement("div");
 
-        bubble.className = [
-            "ai-chat-bubble",
-            "ai-message-bubble",
-            "vdk-ai-message-bubble",
-            "ai-chat-typing-bubble"
-        ].join(" ");
+        bubble.className =
+            "vdk-ai-message-bubble vdk-ai-typing-bubble";
 
-        const dots =
-            document.createElement("span");
+        bubble.innerHTML = `
+            <span class="vdk-ai-typing-dots">
+                <span class="vdk-ai-typing-dot"></span>
+                <span class="vdk-ai-typing-dot"></span>
+                <span class="vdk-ai-typing-dot"></span>
+            </span>
 
-        dots.className =
-            "ai-chat-typing-dots";
-
-        dots.innerHTML = `
-            <span class="ai-chat-typing-dot"></span>
-            <span class="ai-chat-typing-dot"></span>
-            <span class="ai-chat-typing-dot"></span>
+            <span class="vdk-ai-typing-status">
+                Đang suy nghĩ...
+            </span>
         `;
 
-        const status =
-            document.createElement("span");
+        contentWrapper.appendChild(
+            bubble
+        );
 
-        status.className =
-            "ai-chat-typing-status";
+        row.appendChild(
+            avatar
+        );
 
-        status.textContent =
-            "";
-
-        status.style.fontSize =
-            "11px";
-
-        status.style.opacity =
-            "0.7";
-
-        status.style.marginLeft =
-            "7px";
-
-        bubble.appendChild(dots);
-        bubble.appendChild(status);
-
-        row.appendChild(avatar);
-        row.appendChild(bubble);
+        row.appendChild(
+            contentWrapper
+        );
 
         messagesContainer.appendChild(
             row
         );
 
-        typingElement =
-            row;
-
-        /*
-         * Cho người dùng biết ứng dụng vẫn đang xử lý,
-         * thay vì chỉ quay ba chấm không rõ lý do.
-         */
-        slowMessageTimer =
-            window.setTimeout(() => {
-                if (typingElement) {
-                    status.textContent =
-                        "Đang kiểm tra dữ liệu sách...";
-                }
-            }, 7000);
-
-        verySlowMessageTimer =
-            window.setTimeout(() => {
-                if (typingElement) {
-                    status.textContent =
-                        "Gemini đang phản hồi chậm...";
-                }
-            }, 17000);
+        typingElement = row;
 
         scrollToBottom();
-
-        return row;
     }
 
-    /**
-     * Xóa dấu ba chấm.
-     */
-    function removeTypingIndicator() {
-        clearTypingTimers();
+    function removeTyping() {
+        typingElement?.remove();
+        typingElement = null;
 
-        if (typingElement) {
-            typingElement.remove();
-            typingElement = null;
-        }
-
-        /*
-         * Dọn thêm các indicator cũ trong trường hợp
-         * yêu cầu trước bị lỗi bất thường.
-         */
         messagesContainer
             .querySelectorAll(
                 "[data-ai-typing='true']"
@@ -520,94 +341,87 @@
             });
     }
 
-    /**
-     * Bật hoặc tắt trạng thái đang gửi.
-     */
-    function setBusyState(isBusy) {
-        isRequestRunning =
-            isBusy;
+    function setBusy(isBusy) {
+        isSending = isBusy;
 
-        messageInput.disabled =
-            isBusy;
+        input.disabled = isBusy;
+        sendButton.disabled = isBusy;
 
-        messageInput.setAttribute(
-            "aria-busy",
+        sendButton.classList.toggle(
+            "is-loading",
             isBusy
-                ? "true"
-                : "false"
         );
 
-        if (sendButton) {
-            sendButton.disabled =
-                isBusy;
-
-            sendButton.setAttribute(
-                "aria-busy",
-                isBusy
-                    ? "true"
-                    : "false"
-            );
-
-            sendButton.classList.toggle(
-                "is-loading",
-                isBusy
-            );
-        }
+        sendButton.innerHTML =
+            isBusy
+                ? '<i class="bi bi-arrow-repeat"></i>'
+                : '<i class="bi bi-send-fill"></i>';
     }
 
-    /**
-     * Đọc JSON hoặc nội dung lỗi từ server.
-     */
-    async function readResponsePayload(
-        response
-    ) {
-        const responseText =
+    function resizeInput() {
+        input.style.height =
+            "auto";
+
+        input.style.height =
+            `${Math.min(
+                input.scrollHeight,
+                110
+            )}px`;
+    }
+
+    function updateCharacterCount() {
+        const length =
+            input.value.length;
+
+        if (characterCount) {
+            characterCount.textContent =
+                `${length}/${MAX_MESSAGE_LENGTH}`;
+        }
+
+        resizeInput();
+    }
+
+    function getRecentHistory() {
+        return history.slice(
+            -MAX_HISTORY_MESSAGES
+        );
+    }
+
+    async function readResponse(response) {
+        const text =
             await response.text();
 
-        if (!responseText) {
+        if (!text) {
             return {};
         }
 
         try {
-            return JSON.parse(
-                responseText
-            );
+            return JSON.parse(text);
         }
         catch {
             return {
-                detail: responseText
+                detail: text
             };
         }
     }
 
-    /**
-     * Lấy thông báo lỗi phù hợp.
-     */
-    function getErrorMessage(
+    function getServerError(
         payload,
-        statusCode
+        status
     ) {
-        if (statusCode === 429) {
+        if (status === 429) {
             return (
-                "Trợ lý AI đang nhận quá nhiều yêu cầu. " +
+                "Trợ lý đang nhận quá nhiều yêu cầu. " +
                 "Bạn vui lòng chờ một lát rồi thử lại."
             );
         }
 
-        if (statusCode === 401 ||
-            statusCode === 403) {
-            return (
-                "Yêu cầu đến Gemini chưa được xác thực. " +
-                "Vui lòng kiểm tra cấu hình API key."
-            );
-        }
+        if (status === 401 ||
+            status === 403) {
 
-        if (statusCode >= 500) {
             return (
-                payload?.detail ||
-                payload?.title ||
-                payload?.message ||
-                "Máy chủ AI đang gặp sự cố. Vui lòng thử lại."
+                "Gemini API chưa được xác thực. " +
+                "Vui lòng kiểm tra API key."
             );
         }
 
@@ -615,23 +429,15 @@
             payload?.detail ||
             payload?.title ||
             payload?.message ||
-            `Không thể gửi câu hỏi. Mã lỗi: ${statusCode}.`
+            "Trợ lý AI đang gặp sự cố."
         );
     }
 
-    /**
-     * Gọi backend AI.
-     */
     async function callChatApi(
         message,
-        history
+        recentHistory
     ) {
-        /*
-         * Hủy request cũ nếu vẫn còn tồn tại.
-         */
-        if (activeController) {
-            activeController.abort();
-        }
+        activeController?.abort();
 
         const controller =
             new AbortController();
@@ -639,12 +445,12 @@
         activeController =
             controller;
 
-        let requestTimedOut =
+        let timedOut =
             false;
 
         const timeoutId =
             window.setTimeout(() => {
-                requestTimedOut = true;
+                timedOut = true;
                 controller.abort();
             }, REQUEST_TIMEOUT_MS);
 
@@ -664,8 +470,11 @@
                         },
 
                         body: JSON.stringify({
-                            message,
-                            history
+                            message:
+                                message,
+
+                            history:
+                                recentHistory
                         }),
 
                         signal:
@@ -680,13 +489,13 @@
                 );
 
             const payload =
-                await readResponsePayload(
+                await readResponse(
                     response
                 );
 
             if (!response.ok) {
                 throw new Error(
-                    getErrorMessage(
+                    getServerError(
                         payload,
                         response.status
                     )
@@ -699,114 +508,81 @@
 
             if (!reply ||
                 typeof reply !== "string") {
+
                 throw new Error(
-                    "Máy chủ AI không trả về nội dung hợp lệ."
+                    "Máy chủ không trả về câu trả lời hợp lệ."
                 );
             }
 
-            return {
-                ...payload,
-                reply
-            };
+            return reply;
         }
         catch (error) {
             if (error?.name === "AbortError") {
-                if (requestTimedOut) {
+                if (timedOut) {
                     throw new Error(
                         "Trợ lý phản hồi quá lâu. " +
-                        "Bạn hãy gửi lại câu hỏi ngắn hơn."
+                        "Bạn hãy thử lại với câu hỏi ngắn hơn."
                     );
                 }
 
                 throw new Error(
-                    "Yêu cầu AI đã được hủy."
+                    "Yêu cầu đã được hủy."
                 );
             }
 
             if (error instanceof TypeError) {
                 throw new Error(
-                    "Không thể kết nối tới máy chủ AI. " +
-                    "Hãy kiểm tra website còn đang chạy."
+                    "Không thể kết nối tới máy chủ AI."
                 );
             }
 
             throw error;
         }
         finally {
-            window.clearTimeout(
+            clearTimeout(
                 timeoutId
             );
 
-            if (activeController === controller) {
+            if (activeController ===
+                controller) {
+
                 activeController = null;
             }
         }
     }
 
-    /**
-     * Giới hạn lịch sử gửi đến server.
-     */
-    function getRecentHistory() {
-        return chatHistory
-            .slice(
-                -MAX_HISTORY_MESSAGES
-            )
-            .map(item => ({
-                role:
-                    item.role,
-
-                content:
-                    item.content
-            }));
-    }
-
-    /**
-     * Giới hạn lịch sử lưu trong trình duyệt.
-     */
-    function trimLocalHistory() {
-        const localHistoryLimit =
-            MAX_HISTORY_MESSAGES * 2;
-
-        if (chatHistory.length >
-            localHistoryLimit) {
-            chatHistory =
-                chatHistory.slice(
-                    -localHistoryLimit
-                );
-        }
-    }
-
-    /**
-     * Gửi một câu hỏi.
-     */
-    async function sendMessage() {
-        if (isRequestRunning) {
+    async function sendMessage(
+        customMessage = null
+    ) {
+        if (isSending) {
             return;
         }
 
         const message =
-            messageInput.value.trim();
+            (
+                customMessage ??
+                input.value
+            ).trim();
 
         if (!message) {
-            messageInput.focus();
+            input.focus();
             return;
         }
 
         if (message.length >
             MAX_MESSAGE_LENGTH) {
+
             addAssistantMessage(
-                `Câu hỏi tối đa ${MAX_MESSAGE_LENGTH} ký tự.`,
+                `Câu hỏi không được vượt quá ${MAX_MESSAGE_LENGTH} ký tự.`,
                 true
             );
 
-            messageInput.focus();
             return;
         }
 
-        /*
-         * Lịch sử phải là các tin nhắn trước câu hỏi hiện tại.
-         * Không đưa câu hiện tại vào cả message và history.
-         */
+        lastQuestion =
+            message;
+
         const previousHistory =
             getRecentHistory();
 
@@ -814,7 +590,7 @@
             message
         );
 
-        chatHistory.push({
+        history.push({
             role:
                 "user",
 
@@ -822,57 +598,48 @@
                 message
         });
 
-        trimLocalHistory();
-
-        messageInput.value =
+        input.value =
             "";
 
-        /*
-         * Báo cho giao diện biết nội dung input đã đổi.
-         */
-        messageInput.dispatchEvent(
-            new Event(
-                "input",
-                {
-                    bubbles: true
-                }
-            )
-        );
+        updateCharacterCount();
 
-        setBusyState(
+        setBusy(
             true
         );
 
-        showTypingIndicator();
+        showTyping();
 
         try {
-            const result =
+            const reply =
                 await callChatApi(
                     message,
                     previousHistory
                 );
 
-            removeTypingIndicator();
+            removeTyping();
 
             addAssistantMessage(
-                result.reply
+                reply
             );
 
-            chatHistory.push({
+            history.push({
                 role:
                     "assistant",
 
                 content:
-                    result.reply
+                    reply
             });
 
-            trimLocalHistory();
+            if (history.length > 12) {
+                history =
+                    history.slice(-12);
+            }
         }
         catch (error) {
-            removeTypingIndicator();
+            removeTyping();
 
             console.error(
-                "VDK AI Chat Error:",
+                "VDK AI Error:",
                 error
             );
 
@@ -883,119 +650,26 @@
             );
         }
         finally {
-            /*
-             * Dù thành công hay lỗi đều phải:
-             * - Xóa dấu ba chấm.
-             * - Mở lại nút gửi.
-             * - Mở lại ô nhập.
-             */
-            removeTypingIndicator();
+            removeTyping();
 
-            setBusyState(
+            setBusy(
                 false
             );
 
-            messageInput.focus();
+            input.focus();
         }
     }
 
-    /**
-     * Mở cửa sổ chat.
-     */
-    function openChatPanel() {
-        if (!chatPanel) {
-            return;
-        }
+    function resetChat() {
+        activeController?.abort();
+        activeController = null;
 
-        chatPanel.hidden =
-            false;
+        history = [];
+        lastQuestion = "";
 
-        chatPanel.classList.add(
-            "show",
-            "open",
-            "active",
-            "is-open"
-        );
+        removeTyping();
+        setBusy(false);
 
-        chatPanel.setAttribute(
-            "aria-hidden",
-            "false"
-        );
-
-        window.setTimeout(() => {
-            messageInput.focus();
-            scrollToBottom();
-        }, 50);
-    }
-
-    /**
-     * Đóng hoặc thu nhỏ cửa sổ chat.
-     */
-    function closeChatPanel() {
-        if (!chatPanel) {
-            return;
-        }
-
-        chatPanel.classList.remove(
-            "show",
-            "open",
-            "active",
-            "is-open"
-        );
-
-        chatPanel.setAttribute(
-            "aria-hidden",
-            "true"
-        );
-
-        /*
-         * Không dùng display:none trực tiếp để CSS
-         * hiện tại vẫn có thể chạy animation.
-         */
-        window.setTimeout(() => {
-            const isStillClosed =
-                !chatPanel.classList.contains(
-                    "is-open"
-                ) &&
-                !chatPanel.classList.contains(
-                    "open"
-                ) &&
-                !chatPanel.classList.contains(
-                    "show"
-                ) &&
-                !chatPanel.classList.contains(
-                    "active"
-                );
-
-            if (isStillClosed) {
-                chatPanel.hidden =
-                    true;
-            }
-        }, 200);
-    }
-
-    /**
-     * Làm mới cuộc trò chuyện.
-     */
-    function resetConversation() {
-        if (activeController) {
-            activeController.abort();
-            activeController = null;
-        }
-
-        setBusyState(
-            false
-        );
-
-        removeTypingIndicator();
-
-        chatHistory =
-            [];
-
-        /*
-         * Chỉ xóa các tin nhắn được JavaScript thêm.
-         * Tin chào mặc định trong Razor vẫn được giữ lại.
-         */
         messagesContainer
             .querySelectorAll(
                 "[data-ai-generated='true']"
@@ -1004,47 +678,33 @@
                 element.remove();
             });
 
-        messageInput.value =
+        input.value =
             "";
 
-        messageInput.focus();
+        updateCharacterCount();
 
-        scrollToBottom();
-    }
-
-    /**
-     * Gửi qua form.
-     */
-    if (chatForm) {
-        chatForm.addEventListener(
-            "submit",
-            event => {
-                event.preventDefault();
-                void sendMessage();
-            }
+        addAssistantMessage(
+            "Cuộc trò chuyện đã được làm mới. Bạn cần mình hỗ trợ tìm sách gì?"
         );
+
+        input.focus();
     }
 
-    /**
-     * Trường hợp nút gửi không phải submit.
-     */
-    if (sendButton &&
-        (!chatForm ||
-            sendButton.type !== "submit")) {
-        sendButton.addEventListener(
-            "click",
-            event => {
-                event.preventDefault();
-                void sendMessage();
-            }
-        );
-    }
+    form.addEventListener(
+        "submit",
+        event => {
+            event.preventDefault();
 
-    /**
-     * Enter để gửi.
-     * Shift + Enter để xuống dòng nếu là textarea.
-     */
-    messageInput.addEventListener(
+            void sendMessage();
+        }
+    );
+
+    input.addEventListener(
+        "input",
+        updateCharacterCount
+    );
+
+    input.addEventListener(
         "keydown",
         event => {
             if (event.key !== "Enter") {
@@ -1061,41 +721,49 @@
         }
     );
 
+    suggestionButtons.forEach(
+        button => {
+            button.addEventListener(
+                "click",
+                () => {
+                    const prompt =
+                        button.dataset.aiPrompt;
+
+                    if (!prompt ||
+                        isSending) {
+                        return;
+                    }
+
+                    openChat();
+
+                    void sendMessage(
+                        prompt
+                    );
+                }
+            );
+        }
+    );
+
     openButton?.addEventListener(
         "click",
-        event => {
-            event.preventDefault();
-            openChatPanel();
-        }
+        openChat
     );
 
     closeButton?.addEventListener(
         "click",
-        event => {
-            event.preventDefault();
-            closeChatPanel();
-        }
+        closeChat
     );
 
     minimizeButton?.addEventListener(
         "click",
-        event => {
-            event.preventDefault();
-            closeChatPanel();
-        }
+        closeChat
     );
 
     resetButton?.addEventListener(
         "click",
-        event => {
-            event.preventDefault();
-            resetConversation();
-        }
+        resetChat
     );
 
-    /*
-     * Hủy request khi đóng hoặc tải lại trang.
-     */
     window.addEventListener(
         "beforeunload",
         () => {
@@ -1103,14 +771,9 @@
         }
     );
 
-    messageInput.maxLength =
-        MAX_MESSAGE_LENGTH;
-
-    setBusyState(
-        false
-    );
+    updateCharacterCount();
 
     console.info(
-        "VDK AI Chat đã khởi tạo thành công."
+        "VDK Premium AI ChatBox đã khởi tạo."
     );
 })();

@@ -1,169 +1,1669 @@
 ﻿@model VDK_BookRental.Models.Book
+@using System.Globalization
 
 @{
     ViewData["Title"] = "Chi tiết sách";
+
+    var categoryName = Model.Category?.Name ?? "Chưa phân loại";
+    var isAvailable = Model.IsAvailable;
+    var isLowStock = Model.IsLowStock;
+
+    var availabilityText = Model.Quantity <= 0
+        ? "Hết sách"
+        : isAvailable
+            ? "Có thể thuê"
+            : "Tạm ngưng cho thuê";
+
+    var availabilityClass = Model.Quantity <= 0
+        ? "status-out"
+        : isAvailable
+            ? "status-available"
+            : "status-unavailable";
+
+    var stockText = Model.Quantity <= 0
+        ? "Đã hết"
+        : isLowStock
+            ? $"Chỉ còn {Model.Quantity} quyển"
+            : $"Còn {Model.Quantity} quyển";
+
+    const int defaultRentalDays = 1;
+
+    var defaultTotal = Model.RentalPrice * defaultRentalDays;
+    var defaultReturnDate = DateTime.Today.AddDays(defaultRentalDays);
+
+    var dailyPriceForJavaScript =
+        Model.RentalPrice.ToString(
+            "0.##",
+            CultureInfo.InvariantCulture
+        );
 }
 
-<div class="container mt-5 mb-5">
+<div class="book-detail-page">
+    <div class="book-detail-container">
 
-    <div class="row">
+        <nav class="book-detail-breadcrumb"
+             aria-label="Điều hướng">
 
-        <div class="col-lg-4">
+            <a asp-controller="Books"
+               asp-action="Index">
+                <i class="bi bi-house-door"></i>
+                Kho sách
+            </a>
 
-            <div class="card shadow border-0 rounded-4">
+            <i class="bi bi-chevron-right breadcrumb-divider"></i>
 
-                <img src="@(string.IsNullOrEmpty(Model.ImageUrl) ? "/images/books/default-book.jpg" : Model.ImageUrl)"
-                     class="card-img-top p-3"
-                     style="height:500px;object-fit:contain;"
-                     onerror="this.src='/images/books/default-book.jpg'" />
+            <span title="@Model.Title">
+                @Model.Title
+            </span>
+        </nav>
 
+        <section class="book-detail-hero">
+
+            <div class="book-detail-cover-column">
+                <div class="book-detail-cover-card">
+
+                    <div class="book-detail-cover-glow"></div>
+
+                    <div class="book-detail-category-badge">
+                        <i class="bi bi-bookmark-fill"></i>
+                        @categoryName
+                    </div>
+
+                    <img src="@Model.DisplayImageUrl"
+                         alt="Bìa sách @Model.Title"
+                         class="book-detail-cover"
+                         loading="eager"
+                         onerror="this.onerror=null;this.src='/images/books/default-book.jpg';" />
+
+                    <div class="book-detail-cover-footer">
+
+                        <span class="book-code">
+                            <i class="bi bi-upc-scan"></i>
+                            BOOK-@Model.Id.ToString("D3")
+                        </span>
+
+                        <span class="book-detail-stock @(isLowStock ? "is-low" : "")">
+                            <i class="bi @(Model.Quantity > 0 ? "bi-box-seam" : "bi-box-seam-fill")"></i>
+                            @stockText
+                        </span>
+
+                    </div>
+                </div>
             </div>
 
-        </div>
+            <div class="book-detail-information">
 
-        <div class="col-lg-8">
+                <div class="book-detail-heading">
 
-            <h1 class="fw-bold mb-3">
-                @Model.Title
-            </h1>
+                    <div class="book-detail-heading-top">
 
-            <span class="badge bg-primary fs-6 mb-3">
-                @Model.Category?.Name
-            </span>
+                        <span class="book-detail-category-small">
+                            @categoryName
+                        </span>
 
-            <hr />
+                        <span class="book-detail-status @availabilityClass">
+                            <span class="book-detail-status-dot"></span>
+                            @availabilityText
+                        </span>
 
-            <p>
-                <strong>Tác giả:</strong>
-                @Model.Author
-            </p>
+                    </div>
 
-            <p>
-                <strong>Giá thuê:</strong>
+                    <h1>@Model.Title</h1>
 
-                <span class="text-success fw-bold fs-5">
-                    @Model.RentalPrice.ToString("N0") VNĐ / ngày
-                </span>
-            </p>
-
-            <p>
-                <strong>Số lượng còn:</strong>
-
-                @if (Model.Quantity > 0)
-                {
-                    <span class="badge bg-success">
-                        @Model.Quantity quyển
-                    </span>
-                }
-                else
-                {
-                    <span class="badge bg-danger">
-                        Hết sách
-                    </span>
-                }
-            </p>
-
-            <p>
-                <strong>Trạng thái:</strong>
-
-                @if (Model.Quantity > 0)
-                {
-                    <span class="badge bg-success">
-                        @Model.Status
-                    </span>
-                }
-                else
-                {
-                    <span class="badge bg-danger">
-                        Hết hàng
-                    </span>
-                }
-            </p>
-
-            <hr />
-
-            <h4>Mô tả sách</h4>
-
-            <p class="text-muted">
-                @(string.IsNullOrWhiteSpace(Model.Description)
-                    ? "Hiện chưa có mô tả cho quyển sách này."
-                    : Model.Description)
-            </p>
-
-            @if (TempData["ErrorMessage"] != null)
-            {
-                <div class="alert alert-danger">
-                    @TempData["ErrorMessage"]
+                    <p class="book-detail-author">
+                        <i class="bi bi-person"></i>
+                        Tác giả:
+                        <strong>@Model.Author</strong>
+                    </p>
                 </div>
-            }
 
-            <hr />
+                <div class="book-detail-stat-grid">
 
-            <form asp-controller="Books"
-                  asp-action="Rent"
-                  method="post">
+                    <div class="book-detail-stat-card">
+                        <div class="book-detail-stat-icon price-icon">
+                            <i class="bi bi-cash-coin"></i>
+                        </div>
 
-                @Html.AntiForgeryToken()
+                        <div>
+                            <span class="book-detail-stat-label">Giá thuê</span>
 
-                <input type="hidden"
-                       name="bookId"
-                       value="@Model.Id" />
+                            <strong class="book-detail-stat-value price-value">
+                                @Model.RentalPrice.ToString("N0") VNĐ
+                            </strong>
 
-                <div class="row">
+                            <small>Mỗi ngày</small>
+                        </div>
+                    </div>
 
-                    <div class="col-md-6">
+                    <div class="book-detail-stat-card">
+                        <div class="book-detail-stat-icon stock-icon">
+                            <i class="bi bi-boxes"></i>
+                        </div>
 
-                        <label class="form-label fw-bold">
-                            Số ngày thuê
-                        </label>
+                        <div>
+                            <span class="book-detail-stat-label">Số lượng</span>
 
-                        <input type="number"
-                               class="form-control"
-                               name="rentalDays"
-                               value="1"
-                               min="1"
-                               max="30"
-                               required />
+                            <strong class="book-detail-stat-value">
+                                @Model.Quantity
+                            </strong>
 
+                            <small>Quyển trong kho</small>
+                        </div>
+                    </div>
+
+                    <div class="book-detail-stat-card">
+                        <div class="book-detail-stat-icon status-icon">
+                            <i class="bi bi-shield-check"></i>
+                        </div>
+
+                        <div>
+                            <span class="book-detail-stat-label">Trạng thái</span>
+
+                            <strong class="book-detail-stat-value">
+                                @availabilityText
+                            </strong>
+
+                            <small>Cập nhật hiện tại</small>
+                        </div>
                     </div>
 
                 </div>
 
-                <div class="mt-4 d-flex gap-3 flex-wrap">
+                <div class="book-detail-description-card">
 
-                    @if (Model.Quantity > 0)
-                    {
-                        <button type="submit"
-                                class="btn btn-success btn-lg">
+                    <div class="book-detail-section-heading">
+                        <div class="book-detail-section-icon">
+                            <i class="bi bi-card-text"></i>
+                        </div>
 
-                            📖 Thuê sách ngay
+                        <div>
+                            <h2>Mô tả sách</h2>
+                            <p>Thông tin giới thiệu về nội dung sách</p>
+                        </div>
+                    </div>
 
-                        </button>
-                    }
-                    else
-                    {
-                        <button class="btn btn-danger btn-lg"
-                                disabled>
+                    <div class="book-detail-description">
+                        @if (string.IsNullOrWhiteSpace(Model.Description))
+                        {
+                            <div class="book-detail-empty-description">
+                                <i class="bi bi-info-circle"></i>
 
-                            Hết sách
+                                <span>
+                                    Hiện chưa có mô tả cho quyển sách này.
+                                </span>
+                            </div>
+                        }
+                        else
+                        {
+                            <p>@Model.Description</p>
+                        }
+                    </div>
 
-                        </button>
-                    }
+                </div>
+            </div>
+        </section>
+
+        <section class="book-rental-section">
+
+            <div class="book-rental-heading">
+                <div>
+                    <span class="book-rental-eyebrow">
+                        <i class="bi bi-lightning-charge-fill"></i>
+                        Đăng ký nhanh
+                    </span>
+
+                    <h2>Thuê quyển sách này</h2>
+
+                    <p>
+                        Chọn số ngày thuê để hệ thống tự động tính tổng tiền
+                        và ngày trả dự kiến.
+                    </p>
+                </div>
+
+                <div class="book-rental-security">
+                    <i class="bi bi-shield-lock-fill"></i>
+
+                    <div>
+                        <strong>Giao dịch an toàn</strong>
+                        <span>Xác nhận trước khi thanh toán</span>
+                    </div>
+                </div>
+            </div>
+
+            @if (isAvailable)
+            {
+                <form id="bookRentalForm"
+                      asp-controller="Books"
+                      asp-action="Rent"
+                      method="post"
+                      class="book-rental-form"
+                      data-daily-price="@dailyPriceForJavaScript">
+
+                    @Html.AntiForgeryToken()
+
+                    <input type="hidden"
+                           name="bookId"
+                           value="@Model.Id" />
+
+                    <div class="book-rental-grid">
+
+                        <div class="book-rental-option-card">
+
+                            <div class="rental-option-heading">
+                                <span class="rental-option-number">1</span>
+
+                                <div>
+                                    <h3>Chọn thời gian thuê</h3>
+                                    <p>Tối thiểu 1 ngày, tối đa 30 ngày</p>
+                                </div>
+                            </div>
+
+                            <label for="rentalDays"
+                                   class="book-rental-label">
+                                Số ngày thuê
+                                <span>Bắt buộc</span>
+                            </label>
+
+                            <div class="rental-day-input-wrapper">
+
+                                <button id="decreaseRentalDays"
+                                        type="button"
+                                        class="rental-day-control"
+                                        aria-label="Giảm số ngày thuê">
+                                    <i class="bi bi-dash-lg"></i>
+                                </button>
+
+                                <input id="rentalDays"
+                                       name="rentalDays"
+                                       type="number"
+                                       class="rental-day-input"
+                                       value="@defaultRentalDays"
+                                       min="1"
+                                       max="30"
+                                       step="1"
+                                       inputmode="numeric"
+                                       autocomplete="off"
+                                       aria-describedby="rentalDaysHelp"
+                                       required />
+
+                                <button id="increaseRentalDays"
+                                        type="button"
+                                        class="rental-day-control"
+                                        aria-label="Tăng số ngày thuê">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+
+                            </div>
+
+                            <div id="rentalDaysHelp"
+                                 class="rental-days-help">
+                                <i class="bi bi-info-circle"></i>
+
+                                <span id="rentalDaysMessage">
+                                    Bạn đang chọn thuê trong
+                                    @defaultRentalDays ngày.
+                                </span>
+                            </div>
+
+                            <div class="rental-day-suggestions">
+
+                                <button type="button"
+                                        class="rental-day-chip active"
+                                        data-rental-days="1">
+                                    1 ngày
+                                </button>
+
+                                <button type="button"
+                                        class="rental-day-chip"
+                                        data-rental-days="3">
+                                    3 ngày
+                                </button>
+
+                                <button type="button"
+                                        class="rental-day-chip"
+                                        data-rental-days="7">
+                                    7 ngày
+                                </button>
+
+                                <button type="button"
+                                        class="rental-day-chip"
+                                        data-rental-days="14">
+                                    14 ngày
+                                </button>
+
+                                <button type="button"
+                                        class="rental-day-chip"
+                                        data-rental-days="30">
+                                    30 ngày
+                                </button>
+
+                            </div>
+                        </div>
+
+                        <div class="book-rental-summary-card">
+
+                            <div class="rental-option-heading">
+                                <span class="rental-option-number">2</span>
+
+                                <div>
+                                    <h3>Tóm tắt đơn thuê</h3>
+                                    <p>Kiểm tra thông tin trước khi tiếp tục</p>
+                                </div>
+                            </div>
+
+                            <div class="rental-summary-list">
+
+                                <div class="rental-summary-row">
+                                    <span>Giá thuê mỗi ngày</span>
+
+                                    <strong>
+                                        @Model.RentalPrice.ToString("N0") VNĐ
+                                    </strong>
+                                </div>
+
+                                <div class="rental-summary-row">
+                                    <span>Thời gian thuê</span>
+
+                                    <strong id="summaryRentalDays">
+                                        @defaultRentalDays ngày
+                                    </strong>
+                                </div>
+
+                                <div class="rental-summary-row">
+                                    <span>Ngày tạo đơn</span>
+
+                                    <strong>
+                                        @DateTime.Today.ToString("dd/MM/yyyy")
+                                    </strong>
+                                </div>
+
+                                <div class="rental-summary-row">
+                                    <span>Ngày trả dự kiến</span>
+
+                                    <strong id="summaryReturnDate">
+                                        @defaultReturnDate.ToString("dd/MM/yyyy")
+                                    </strong>
+                                </div>
+
+                            </div>
+
+                            <div class="rental-total-box">
+                                <div>
+                                    <span>Tổng tiền dự kiến</span>
+
+                                    <small>
+                                        Chưa bao gồm phí phát sinh nếu trả muộn
+                                    </small>
+                                </div>
+
+                                <strong id="summaryTotalAmount">
+                                    @defaultTotal.ToString("N0") VNĐ
+                                </strong>
+                            </div>
+
+                            <div class="rental-policy-note">
+                                <i class="bi bi-exclamation-circle-fill"></i>
+
+                                <div>
+                                    <strong>Chính sách lưu ý</strong>
+
+                                    <p>
+                                        Trả muộn tính thêm 5.000 VNĐ mỗi ngày.
+                                        Sách bị rách hoặc hư hỏng nghiêm trọng
+                                        có thể phải đền 100% giá trị sách.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <button id="rentBookButton"
+                                    type="submit"
+                                    class="rent-book-submit-button">
+
+                                <span class="rent-button-icon">
+                                    <i class="bi bi-bag-check-fill"></i>
+                                </span>
+
+                                <span class="rent-button-text">
+                                    <strong>Thuê sách ngay</strong>
+                                    <small>Tiếp tục đến bước thanh toán</small>
+                                </span>
+
+                                <i class="bi bi-arrow-right rent-button-arrow"></i>
+                            </button>
+
+                        </div>
+                    </div>
+                </form>
+            }
+            else
+            {
+                <div class="book-rental-unavailable">
+
+                    <div class="book-rental-unavailable-icon">
+                        <i class="bi bi-journal-x"></i>
+                    </div>
+
+                    <div>
+                        <h3>Sách hiện chưa thể thuê</h3>
+
+                        <p>
+                            Quyển sách này đang hết hàng hoặc đã tạm ngưng
+                            cho thuê. Vui lòng chọn một quyển sách khác.
+                        </p>
+                    </div>
 
                     <a asp-controller="Books"
                        asp-action="Index"
-                       class="btn btn-outline-secondary btn-lg">
-
-                        ← Quay lại
-
+                       class="book-rental-back-button">
+                        <i class="bi bi-arrow-left"></i>
+                        Xem sách khác
                     </a>
 
                 </div>
+            }
+        </section>
 
-            </form>
+        <div class="book-detail-bottom-actions">
+
+            <a asp-controller="Books"
+               asp-action="Index"
+               class="book-detail-back-link">
+                <i class="bi bi-arrow-left"></i>
+                Quay lại kho sách
+            </a>
+
+            <a href="#"
+               class="book-detail-top-link"
+               onclick="window.scrollTo({ top: 0, behavior: 'smooth' }); return false;">
+                <i class="bi bi-arrow-up"></i>
+                Lên đầu trang
+            </a>
 
         </div>
-
     </div>
-
 </div>
+
+<style>
+    .book-detail-page {
+        min-height: 75vh;
+        padding: 30px 0 60px;
+        color: #0f172a;
+        background: radial-gradient(circle at top left, rgba(37, 99, 235, 0.08), transparent 32%), radial-gradient(circle at bottom right, rgba(124, 58, 237, 0.07), transparent 30%), #f6f8fc;
+    }
+
+    .book-detail-container {
+        width: min(1220px, calc(100% - 32px));
+        margin: 0 auto;
+    }
+
+    .book-detail-breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin-bottom: 22px;
+        color: #64748b;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+        .book-detail-breadcrumb a {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #2563eb;
+            text-decoration: none;
+        }
+
+    .breadcrumb-divider {
+        color: #cbd5e1;
+        font-size: 10px;
+    }
+
+    .book-detail-breadcrumb span {
+        max-width: 360px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .book-detail-hero {
+        display: grid;
+        grid-template-columns: minmax(310px, 390px) minmax(0, 1fr);
+        gap: 34px;
+        align-items: start;
+    }
+
+    .book-detail-cover-card {
+        position: sticky;
+        top: 96px;
+        padding: 22px;
+        overflow: hidden;
+        border: 1px solid rgba(226, 232, 240, 0.95);
+        border-radius: 26px;
+        background: #ffffff;
+        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+    }
+
+    .book-detail-cover-glow {
+        position: absolute;
+        top: -90px;
+        right: -90px;
+        width: 220px;
+        height: 220px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(99, 102, 241, 0.22), transparent 68%);
+        pointer-events: none;
+    }
+
+    .book-detail-category-badge {
+        position: absolute;
+        z-index: 2;
+        top: 17px;
+        left: 17px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        max-width: calc(100% - 34px);
+        padding: 8px 11px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.65);
+        border-radius: 999px;
+        color: #4338ca;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+        font-size: 11px;
+        font-weight: 800;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .book-detail-cover {
+        display: block;
+        width: 100%;
+        height: 470px;
+        padding: 25px 12px 16px;
+        border-radius: 19px;
+        object-fit: contain;
+        background: linear-gradient(145deg, #f8fafc, #eef2ff);
+    }
+
+    .book-detail-cover-footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 16px;
+    }
+
+    .book-code,
+    .book-detail-stock {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 10px;
+        border-radius: 11px;
+        font-size: 11px;
+        font-weight: 750;
+    }
+
+    .book-code {
+        color: #475569;
+        background: #f1f5f9;
+    }
+
+    .book-detail-stock {
+        color: #15803d;
+        background: #dcfce7;
+    }
+
+        .book-detail-stock.is-low {
+            color: #b45309;
+            background: #fef3c7;
+        }
+
+    .book-detail-information {
+        min-width: 0;
+    }
+
+    .book-detail-heading {
+        padding: 5px 3px 22px;
+    }
+
+    .book-detail-heading-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+
+    .book-detail-category-small {
+        display: inline-flex;
+        padding: 7px 11px;
+        border: 1px solid #c7d2fe;
+        border-radius: 999px;
+        color: #4338ca;
+        background: #eef2ff;
+        font-size: 11px;
+        font-weight: 800;
+    }
+
+    .book-detail-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 7px 11px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 800;
+    }
+
+    .book-detail-status-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+    }
+
+    .status-available {
+        color: #15803d;
+        background: #dcfce7;
+    }
+
+        .status-available .book-detail-status-dot {
+            background: #22c55e;
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.14);
+        }
+
+    .status-out {
+        color: #b91c1c;
+        background: #fee2e2;
+    }
+
+        .status-out .book-detail-status-dot {
+            background: #ef4444;
+        }
+
+    .status-unavailable {
+        color: #b45309;
+        background: #fef3c7;
+    }
+
+        .status-unavailable .book-detail-status-dot {
+            background: #f59e0b;
+        }
+
+    .book-detail-heading h1 {
+        margin: 0;
+        color: #0f172a;
+        font-size: clamp(28px, 4vw, 45px);
+        font-weight: 850;
+        line-height: 1.14;
+        letter-spacing: -0.035em;
+        overflow-wrap: anywhere;
+    }
+
+    .book-detail-author {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin: 15px 0 0;
+        color: #64748b;
+        font-size: 14px;
+    }
+
+        .book-detail-author i {
+            color: #6366f1;
+        }
+
+        .book-detail-author strong {
+            color: #334155;
+        }
+
+    .book-detail-stat-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 13px;
+        margin-bottom: 20px;
+    }
+
+    .book-detail-stat-card {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+        padding: 16px;
+        border: 1px solid #e2e8f0;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+    }
+
+    .book-detail-stat-icon {
+        display: grid;
+        place-items: center;
+        width: 43px;
+        height: 43px;
+        flex: 0 0 43px;
+        border-radius: 14px;
+        font-size: 18px;
+    }
+
+    .price-icon {
+        color: #dc2626;
+        background: #fee2e2;
+    }
+
+    .stock-icon {
+        color: #2563eb;
+        background: #dbeafe;
+    }
+
+    .status-icon {
+        color: #059669;
+        background: #d1fae5;
+    }
+
+    .book-detail-stat-card > div:last-child {
+        min-width: 0;
+    }
+
+    .book-detail-stat-label,
+    .book-detail-stat-card small {
+        display: block;
+        color: #94a3b8;
+        font-size: 10px;
+        font-weight: 650;
+    }
+
+    .book-detail-stat-value {
+        display: block;
+        margin: 3px 0;
+        overflow: hidden;
+        color: #0f172a;
+        font-size: 15px;
+        font-weight: 850;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .price-value {
+        color: #dc2626;
+    }
+
+    .book-detail-description-card {
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+        border-radius: 22px;
+        background: #ffffff;
+        box-shadow: 0 14px 34px rgba(15, 23, 42, 0.07);
+    }
+
+    .book-detail-section-heading {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 17px 19px;
+        border-bottom: 1px solid #edf2f7;
+        background: linear-gradient(135deg, #ffffff, #f8faff);
+    }
+
+    .book-detail-section-icon {
+        display: grid;
+        place-items: center;
+        width: 41px;
+        height: 41px;
+        border-radius: 13px;
+        color: #4f46e5;
+        background: #eef2ff;
+        font-size: 17px;
+    }
+
+    .book-detail-section-heading h2 {
+        margin: 0 0 2px;
+        color: #0f172a;
+        font-size: 16px;
+        font-weight: 850;
+    }
+
+    .book-detail-section-heading p {
+        margin: 0;
+        color: #94a3b8;
+        font-size: 11px;
+    }
+
+    .book-detail-description {
+        padding: 20px;
+        color: #475569;
+        font-size: 14px;
+        line-height: 1.8;
+    }
+
+        .book-detail-description p {
+            margin: 0;
+            white-space: pre-line;
+        }
+
+    .book-detail-empty-description {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 13px;
+        border: 1px dashed #cbd5e1;
+        border-radius: 13px;
+        color: #64748b;
+        background: #f8fafc;
+    }
+
+    .book-rental-section {
+        margin-top: 36px;
+        padding: 27px;
+        border: 1px solid rgba(199, 210, 254, 0.9);
+        border-radius: 27px;
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(245, 247, 255, 0.98));
+        box-shadow: 0 25px 65px rgba(37, 99, 235, 0.1);
+    }
+
+    .book-rental-heading {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 24px;
+    }
+
+    .book-rental-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 8px;
+        color: #4f46e5;
+        font-size: 11px;
+        font-weight: 850;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+
+        .book-rental-eyebrow i {
+            color: #f59e0b;
+        }
+
+    .book-rental-heading h2 {
+        margin: 0;
+        color: #0f172a;
+        font-size: 25px;
+        font-weight: 850;
+        letter-spacing: -0.025em;
+    }
+
+    .book-rental-heading p {
+        margin: 7px 0 0;
+        color: #64748b;
+        font-size: 13px;
+    }
+
+    .book-rental-security {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 13px;
+        border: 1px solid #bbf7d0;
+        border-radius: 15px;
+        color: #15803d;
+        background: #f0fdf4;
+    }
+
+        .book-rental-security > i {
+            font-size: 20px;
+        }
+
+        .book-rental-security strong,
+        .book-rental-security span {
+            display: block;
+        }
+
+        .book-rental-security strong {
+            font-size: 11px;
+        }
+
+        .book-rental-security span {
+            margin-top: 2px;
+            color: #4ade80;
+            font-size: 9px;
+        }
+
+    .book-rental-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+        gap: 19px;
+    }
+
+    .book-rental-option-card,
+    .book-rental-summary-card {
+        padding: 21px;
+        border: 1px solid #e2e8f0;
+        border-radius: 21px;
+        background: #ffffff;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+    }
+
+    .rental-option-heading {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        margin-bottom: 20px;
+    }
+
+    .rental-option-number {
+        display: grid;
+        place-items: center;
+        width: 35px;
+        height: 35px;
+        flex: 0 0 35px;
+        border-radius: 12px;
+        color: #ffffff;
+        background: linear-gradient(135deg, #2563eb, #7c3aed);
+        font-size: 13px;
+        font-weight: 850;
+        box-shadow: 0 8px 18px rgba(79, 70, 229, 0.25);
+    }
+
+    .rental-option-heading h3 {
+        margin: 0 0 2px;
+        color: #0f172a;
+        font-size: 15px;
+        font-weight: 850;
+    }
+
+    .rental-option-heading p {
+        margin: 0;
+        color: #94a3b8;
+        font-size: 10px;
+    }
+
+    .book-rental-label {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 9px;
+        color: #334155;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+        .book-rental-label span {
+            color: #dc2626;
+            font-size: 9px;
+        }
+
+    .rental-day-input-wrapper {
+        display: grid;
+        grid-template-columns: 47px minmax(0, 1fr) 47px;
+        gap: 8px;
+    }
+
+    .rental-day-control {
+        display: grid;
+        place-items: center;
+        min-height: 50px;
+        border: 1px solid #dbe3ef;
+        border-radius: 14px;
+        color: #4f46e5;
+        background: #f8faff;
+        font-size: 17px;
+        cursor: pointer;
+    }
+
+        .rental-day-control:hover {
+            color: #ffffff;
+            border-color: #4f46e5;
+            background: #4f46e5;
+        }
+
+    .rental-day-input {
+        width: 100%;
+        min-height: 50px;
+        padding: 8px 14px;
+        border: 1px solid #cbd5e1;
+        border-radius: 14px;
+        outline: none;
+        color: #0f172a;
+        background: #ffffff;
+        font-size: 17px;
+        font-weight: 850;
+        text-align: center;
+    }
+
+        .rental-day-input:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.11);
+        }
+
+        .rental-day-input.is-invalid {
+            border-color: #ef4444;
+            box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+        }
+
+    .rental-days-help {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 32px;
+        margin-top: 7px;
+        color: #64748b;
+        font-size: 10px;
+    }
+
+        .rental-days-help.is-error {
+            color: #dc2626;
+        }
+
+    .rental-day-suggestions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        margin-top: 13px;
+    }
+
+    .rental-day-chip {
+        padding: 7px 10px;
+        border: 1px solid #dbe3ef;
+        border-radius: 999px;
+        color: #475569;
+        background: #ffffff;
+        font-size: 10px;
+        font-weight: 750;
+        cursor: pointer;
+    }
+
+        .rental-day-chip:hover,
+        .rental-day-chip.active {
+            color: #ffffff;
+            border-color: #4f46e5;
+            background: linear-gradient(135deg, #2563eb, #7c3aed);
+        }
+
+    .rental-summary-list {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        border: 1px solid #edf2f7;
+        border-radius: 15px;
+    }
+
+    .rental-summary-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        min-height: 45px;
+        padding: 10px 13px;
+        border-bottom: 1px solid #edf2f7;
+        font-size: 11px;
+    }
+
+        .rental-summary-row:last-child {
+            border-bottom: 0;
+        }
+
+        .rental-summary-row span {
+            color: #64748b;
+        }
+
+        .rental-summary-row strong {
+            color: #0f172a;
+            text-align: right;
+        }
+
+    .rental-total-box {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        margin-top: 13px;
+        padding: 15px;
+        border: 1px solid #bfdbfe;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #eff6ff, #eef2ff);
+    }
+
+        .rental-total-box span,
+        .rental-total-box small {
+            display: block;
+        }
+
+        .rental-total-box span {
+            color: #334155;
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .rental-total-box small {
+            margin-top: 3px;
+            color: #94a3b8;
+            font-size: 8px;
+        }
+
+        .rental-total-box > strong {
+            color: #dc2626;
+            font-size: 19px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+    .rental-policy-note {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        margin-top: 13px;
+        padding: 12px;
+        border: 1px solid #fde68a;
+        border-radius: 14px;
+        color: #92400e;
+        background: #fffbeb;
+    }
+
+        .rental-policy-note > i {
+            margin-top: 1px;
+            color: #f59e0b;
+        }
+
+        .rental-policy-note strong {
+            display: block;
+            margin-bottom: 3px;
+            font-size: 10px;
+        }
+
+        .rental-policy-note p {
+            margin: 0;
+            color: #a16207;
+            font-size: 9px;
+            line-height: 1.55;
+        }
+
+    .rent-book-submit-button {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        min-height: 62px;
+        margin-top: 15px;
+        padding: 9px 13px;
+        border: 0;
+        border-radius: 17px;
+        color: #ffffff;
+        background: linear-gradient(135deg, #16a34a, #059669);
+        cursor: pointer;
+        box-shadow: 0 13px 28px rgba(5, 150, 105, 0.25);
+    }
+
+        .rent-book-submit-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 17px 34px rgba(5, 150, 105, 0.34);
+        }
+
+        .rent-book-submit-button:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
+    .rent-button-icon {
+        display: grid;
+        place-items: center;
+        width: 40px;
+        height: 40px;
+        flex: 0 0 40px;
+        border-radius: 13px;
+        color: #059669;
+        background: #ffffff;
+        font-size: 16px;
+    }
+
+    .rent-button-text {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        align-items: flex-start;
+        min-width: 0;
+        margin-left: 11px;
+    }
+
+        .rent-button-text strong {
+            font-size: 13px;
+            font-weight: 850;
+        }
+
+        .rent-button-text small {
+            margin-top: 2px;
+            color: rgba(255, 255, 255, 0.75);
+            font-size: 9px;
+        }
+
+    .rent-button-arrow {
+        margin-left: 10px;
+        font-size: 17px;
+    }
+
+    .book-rental-unavailable {
+        display: flex;
+        align-items: center;
+        gap: 17px;
+        padding: 22px;
+        border: 1px solid #fecaca;
+        border-radius: 19px;
+        background: #fff1f2;
+    }
+
+    .book-rental-unavailable-icon {
+        display: grid;
+        place-items: center;
+        width: 52px;
+        height: 52px;
+        flex: 0 0 52px;
+        border-radius: 17px;
+        color: #dc2626;
+        background: #ffffff;
+        font-size: 23px;
+    }
+
+    .book-rental-unavailable h3 {
+        margin: 0 0 5px;
+        color: #991b1b;
+        font-size: 15px;
+        font-weight: 850;
+    }
+
+    .book-rental-unavailable p {
+        margin: 0;
+        color: #b91c1c;
+        font-size: 11px;
+        line-height: 1.6;
+    }
+
+    .book-rental-back-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        flex-shrink: 0;
+        margin-left: auto;
+        padding: 10px 13px;
+        border: 1px solid #fecaca;
+        border-radius: 12px;
+        color: #b91c1c;
+        background: #ffffff;
+        font-size: 11px;
+        font-weight: 800;
+        text-decoration: none;
+    }
+
+    .book-detail-bottom-actions {
+        display: flex;
+        justify-content: space-between;
+        gap: 13px;
+        margin-top: 22px;
+    }
+
+    .book-detail-back-link,
+    .book-detail-top-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 10px 13px;
+        border: 1px solid #dbe3ef;
+        border-radius: 12px;
+        color: #475569;
+        background: #ffffff;
+        font-size: 11px;
+        font-weight: 750;
+        text-decoration: none;
+    }
+
+        .book-detail-back-link:hover,
+        .book-detail-top-link:hover {
+            color: #2563eb;
+            border-color: #93c5fd;
+        }
+
+    @@media (max-width: 991.98px) {
+        .book-detail-hero {
+            grid-template-columns: 1fr;
+        }
+
+        .book-detail-cover-card {
+            position: relative;
+            top: auto;
+            max-width: 520px;
+            margin: 0 auto;
+        }
+
+        .book-rental-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+        .book-detail-page {
+            padding-top: 18px;
+        }
+
+        .book-detail-container {
+            width: min(100% - 20px, 1220px);
+        }
+
+        .book-detail-cover {
+            height: 400px;
+        }
+
+        .book-detail-heading-top,
+        .book-rental-heading {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .book-detail-stat-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .book-rental-security {
+            width: 100%;
+        }
+
+        .book-rental-section {
+            padding: 18px;
+        }
+
+        .book-rental-unavailable {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .book-rental-back-button {
+            margin-left: 0;
+        }
+    }
+
+    @@media (max-width: 479.98px) {
+        .book-detail-cover-card {
+            padding: 14px;
+            border-radius: 20px;
+        }
+
+        .book-detail-cover {
+            height: 340px;
+        }
+
+        .book-detail-cover-footer {
+            flex-direction: column;
+        }
+
+        .book-detail-heading h1 {
+            font-size: 28px;
+        }
+
+        .book-rental-option-card,
+        .book-rental-summary-card {
+            padding: 15px;
+        }
+
+        .rental-total-box {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .book-detail-bottom-actions {
+            flex-direction: column;
+        }
+
+        .book-detail-back-link,
+        .book-detail-top-link {
+            justify-content: center;
+        }
+    }
+</style>
+
+@section Scripts {
+    <script>
+        (() => {
+            "use strict";
+
+            const form = document.getElementById("bookRentalForm");
+
+            if (!form) {
+                return;
+            }
+
+            const rentalDaysInput =
+                document.getElementById("rentalDays");
+
+            const decreaseButton =
+                document.getElementById("decreaseRentalDays");
+
+            const increaseButton =
+                document.getElementById("increaseRentalDays");
+
+            const submitButton =
+                document.getElementById("rentBookButton");
+
+            const daysMessage =
+                document.getElementById("rentalDaysMessage");
+
+            const daysHelp =
+                document.getElementById("rentalDaysHelp");
+
+            const summaryDays =
+                document.getElementById("summaryRentalDays");
+
+            const summaryReturnDate =
+                document.getElementById("summaryReturnDate");
+
+            const summaryTotal =
+                document.getElementById("summaryTotalAmount");
+
+            const dayChips =
+                document.querySelectorAll("[data-rental-days]");
+
+            const dailyPrice =
+                Number.parseFloat(form.dataset.dailyPrice ?? "0");
+
+            let isSubmitting = false;
+
+            function formatMoney(value) {
+                return new Intl.NumberFormat("vi-VN").format(value) + " VNĐ";
+            }
+
+            function formatDate(value) {
+                return new Intl.DateTimeFormat(
+                    "vi-VN",
+                    {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric"
+                    }
+                ).format(value);
+            }
+
+            function getRentalDays() {
+                return Number.parseInt(rentalDaysInput.value, 10);
+            }
+
+            function isValidRentalDays(days) {
+                return Number.isInteger(days) &&
+                    days >= 1 &&
+                    days <= 30;
+            }
+
+            function updateActiveChip(days) {
+                dayChips.forEach(chip => {
+                    const chipDays =
+                        Number.parseInt(chip.dataset.rentalDays ?? "0", 10);
+
+                    chip.classList.toggle(
+                        "active",
+                        chipDays === days
+                    );
+                });
+            }
+
+            function updateRentalSummary() {
+                const days = getRentalDays();
+                const valid = isValidRentalDays(days);
+
+                rentalDaysInput.classList.toggle(
+                    "is-invalid",
+                    !valid
+                );
+
+                daysHelp?.classList.toggle(
+                    "is-error",
+                    !valid
+                );
+
+                submitButton.disabled =
+                    !valid || isSubmitting;
+
+                if (!valid) {
+                    daysMessage.textContent =
+                        "Số ngày thuê phải từ 1 đến 30.";
+
+                    summaryDays.textContent =
+                        "Không hợp lệ";
+
+                    summaryReturnDate.textContent =
+                        "--/--/----";
+
+                    summaryTotal.textContent =
+                        "0 VNĐ";
+
+                    updateActiveChip(-1);
+
+                    return;
+                }
+
+                daysMessage.textContent =
+                    `Bạn đang chọn thuê trong ${days} ngày.`;
+
+                summaryDays.textContent =
+                    `${days} ngày`;
+
+                const returnDate = new Date();
+
+                returnDate.setDate(
+                    returnDate.getDate() + days
+                );
+
+                summaryReturnDate.textContent =
+                    formatDate(returnDate);
+
+                summaryTotal.textContent =
+                    formatMoney(dailyPrice * days);
+
+                updateActiveChip(days);
+            }
+
+            function setRentalDays(days) {
+                const safeDays =
+                    Math.min(30, Math.max(1, days));
+
+                rentalDaysInput.value =
+                    safeDays.toString();
+
+                updateRentalSummary();
+            }
+
+            decreaseButton?.addEventListener(
+                "click",
+                () => {
+                    const days = getRentalDays();
+
+                    setRentalDays(
+                        isValidRentalDays(days)
+                            ? days - 1
+                            : 1
+                    );
+                }
+            );
+
+            increaseButton?.addEventListener(
+                "click",
+                () => {
+                    const days = getRentalDays();
+
+                    setRentalDays(
+                        isValidRentalDays(days)
+                            ? days + 1
+                            : 1
+                    );
+                }
+            );
+
+            rentalDaysInput.addEventListener(
+                "input",
+                updateRentalSummary
+            );
+
+            rentalDaysInput.addEventListener(
+                "blur",
+                () => {
+                    const days = getRentalDays();
+
+                    if (!isValidRentalDays(days)) {
+                        setRentalDays(1);
+                    }
+                }
+            );
+
+            dayChips.forEach(chip => {
+                chip.addEventListener(
+                    "click",
+                    () => {
+                        const days =
+                            Number.parseInt(
+                                chip.dataset.rentalDays ?? "1",
+                                10
+                            );
+
+                        setRentalDays(days);
+                    }
+                );
+            });
+
+            form.addEventListener(
+                "submit",
+                event => {
+                    const days = getRentalDays();
+
+                    if (!isValidRentalDays(days)) {
+                        event.preventDefault();
+
+                        updateRentalSummary();
+                        rentalDaysInput.focus();
+
+                        return;
+                    }
+
+                    if (isSubmitting) {
+                        event.preventDefault();
+                        return;
+                    }
+
+                    isSubmitting = true;
+                    submitButton.disabled = true;
+
+                    submitButton.innerHTML = `
+                        <span class="rent-button-icon">
+                            <i class="bi bi-arrow-repeat"></i>
+                        </span>
+
+                        <span class="rent-button-text">
+                            <strong>Đang tạo đơn thuê...</strong>
+                            <small>Vui lòng không đóng trình duyệt</small>
+                        </span>
+
+                        <span class="spinner-border spinner-border-sm ms-auto"
+                              aria-hidden="true">
+                        </span>
+                    `;
+                }
+            );
+
+            updateRentalSummary();
+        })();
+    </script>
+}
