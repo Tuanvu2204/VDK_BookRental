@@ -1,23 +1,22 @@
 ﻿@using Microsoft.AspNetCore.Http
-@using System
 
 @{
     var currentController =
-        ViewContext.RouteData.Values["controller"]?.ToString()
-        ?? string.Empty;
+        ViewContext.RouteData.Values["controller"]?
+            .ToString() ?? string.Empty;
 
     var currentAction =
-        ViewContext.RouteData.Values["action"]?.ToString()
-        ?? string.Empty;
+        ViewContext.RouteData.Values["action"]?
+            .ToString() ?? string.Empty;
 
     var userId =
         Context.Session.GetString("UserId");
 
-    var fullName =
-        Context.Session.GetString("FullName");
-
     var userName =
         Context.Session.GetString("UserName");
+
+    var fullName =
+        Context.Session.GetString("FullName");
 
     var userRole =
         Context.Session.GetString("UserRole");
@@ -27,6 +26,13 @@
 
     var isLoggedIn =
         !string.IsNullOrWhiteSpace(userId);
+
+    var displayName =
+        !string.IsNullOrWhiteSpace(fullName)
+            ? fullName
+            : !string.IsNullOrWhiteSpace(userName)
+                ? userName
+                : "Người dùng";
 
     var isAdmin =
         string.Equals(
@@ -40,50 +46,27 @@
             "Staff",
             StringComparison.OrdinalIgnoreCase);
 
-    var isCustomer =
-        string.Equals(
-            userRole,
-            "Customer",
-            StringComparison.OrdinalIgnoreCase);
+    var initials = "U";
 
-    var displayName =
-        !string.IsNullOrWhiteSpace(fullName)
-            ? fullName.Trim()
-            : !string.IsNullOrWhiteSpace(userName)
-                ? userName.Trim()
-                : "Người dùng";
+    if (!string.IsNullOrWhiteSpace(displayName))
+    {
+        var nameParts =
+            displayName.Split(
+                ' ',
+                StringSplitOptions.RemoveEmptyEntries);
 
-    var roleName =
-        isAdmin
-            ? "Quản trị viên"
-            : isStaff
-                ? "Nhân viên"
-                : "Khách hàng";
+        initials =
+            string.Concat(
+                nameParts
+                    .Take(2)
+                    .Select(
+                        part =>
+                            char.ToUpperInvariant(part[0])));
+    }
 
-    var roleClass =
-        isAdmin
-            ? "layout-role-admin"
-            : isStaff
-                ? "layout-role-staff"
-                : "layout-role-customer";
-
-    var profileText =
-        isCustomer
-            ? "Hồ sơ khách hàng"
-            : "Hồ sơ cá nhân";
-
-    var firstLetter =
-        !string.IsNullOrWhiteSpace(displayName)
-            ? displayName.Substring(0, 1).ToUpperInvariant()
-            : "U";
-
-    var bodyClass =
-        ViewData["BodyClass"]?.ToString()
-        ?? string.Empty;
-
-    string ActiveMenu(
+    string ActiveClass(
         string controller,
-        string action = "")
+        string? action = null)
     {
         var controllerMatched =
             string.Equals(
@@ -91,44 +74,33 @@
                 controller,
                 StringComparison.OrdinalIgnoreCase);
 
-        if (!controllerMatched)
-        {
-            return string.Empty;
-        }
+        var actionMatched =
+            string.IsNullOrWhiteSpace(action) ||
+            string.Equals(
+                currentAction,
+                action,
+                StringComparison.OrdinalIgnoreCase);
 
-        if (string.IsNullOrWhiteSpace(action))
-        {
-            return "active";
-        }
-
-        return string.Equals(
-            currentAction,
-            action,
-            StringComparison.OrdinalIgnoreCase)
-                ? "active"
-                : string.Empty;
+        return controllerMatched && actionMatched
+            ? "active"
+            : string.Empty;
     }
 }
 
 <!DOCTYPE html>
 
 <html lang="vi">
-
 <head>
-
     <meta charset="utf-8" />
 
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0" />
 
     <meta name="description"
-          content="VDK Book Rental - Hệ thống quản lý và cho thuê sách trực tuyến." />
-
-    <meta name="theme-color"
-          content="#2563eb" />
+          content="VDK Book Rental - Hệ thống thuê sách trực tuyến" />
 
     <title>
-        @(ViewData["Title"] ?? "Trang chủ") - VDK Book Rental
+        @ViewData["Title"] - VDK Book Rental
     </title>
 
     <link rel="icon"
@@ -146,728 +118,867 @@
           asp-append-version="true" />
 
     <link rel="stylesheet"
-          href="~/css/vdk-layout.css"
-          asp-append-version="true" />
-
-    <link rel="stylesheet"
-          href="~/css/book-loading.css"
-          asp-append-version="true" />
-
-    <link rel="stylesheet"
           href="~/VDK_BookRental.styles.css"
+          asp-append-version="true" />
+
+    <link rel="stylesheet"
+          href="~/css/ai-chat.css"
           asp-append-version="true" />
 
     @await RenderSectionAsync(
         "Styles",
         required: false)
 
+    <style>
+        :root {
+            --vdk-primary: #2563eb;
+            --vdk-primary-dark: #1d4ed8;
+            --vdk-secondary: #7c3aed;
+            --vdk-text: #0f172a;
+            --vdk-muted: #64748b;
+            --vdk-border: #e2e8f0;
+            --vdk-background: #f4f7fb;
+            --vdk-card: #ffffff;
+            --vdk-footer: #0f1f3d;
+        }
+
+        html {
+            position: relative;
+            min-height: 100%;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            background: var(--vdk-background);
+            color: var(--vdk-text);
+            font-family:
+                Inter,
+                system-ui,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+            display: flex;
+            flex-direction: column;
+        }
+
+        a {
+            text-decoration: none;
+        }
+
+        .vdk-navbar {
+            position: sticky;
+            top: 0;
+            z-index: 1030;
+            min-height: 72px;
+            background: rgba(255, 255, 255, 0.96);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+            box-shadow: 0 5px 22px rgba(15, 23, 42, 0.05);
+            backdrop-filter: blur(14px);
+        }
+
+        .vdk-navbar .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--vdk-text);
+            font-size: 17px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        .vdk-logo {
+            width: 39px;
+            height: 39px;
+            border-radius: 13px;
+            background:
+                linear-gradient(
+                    135deg,
+                    var(--vdk-primary),
+                    var(--vdk-secondary)
+                );
+            color: #ffffff;
+            display: grid;
+            place-items: center;
+            box-shadow: 0 8px 22px rgba(37, 99, 235, 0.25);
+        }
+
+        .vdk-logo i {
+            font-size: 19px;
+        }
+
+        .vdk-brand-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.1;
+        }
+
+        .vdk-brand-text small {
+            margin-top: 4px;
+            color: var(--vdk-muted);
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0;
+        }
+
+        .vdk-navbar .nav-link {
+            position: relative;
+            margin: 0 3px;
+            padding: 10px 12px !important;
+            border-radius: 10px;
+            color: #475569;
+            font-size: 14px;
+            font-weight: 650;
+            transition:
+                background 0.2s ease,
+                color 0.2s ease,
+                transform 0.2s ease;
+        }
+
+        .vdk-navbar .nav-link:hover {
+            background: #eff6ff;
+            color: var(--vdk-primary);
+            transform: translateY(-1px);
+        }
+
+        .vdk-navbar .nav-link.active {
+            background: #eaf2ff;
+            color: var(--vdk-primary);
+        }
+
+        .vdk-navbar .nav-link i {
+            margin-right: 5px;
+        }
+
+        .vdk-user-dropdown {
+            padding: 6px 8px !important;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
+
+        .vdk-user-avatar {
+            width: 36px;
+            height: 36px;
+            flex: 0 0 36px;
+            overflow: hidden;
+            border-radius: 12px;
+            background:
+                linear-gradient(
+                    135deg,
+                    var(--vdk-primary),
+                    var(--vdk-secondary)
+                );
+            color: #ffffff;
+            display: grid;
+            place-items: center;
+            font-size: 12px;
+            font-weight: 800;
+            box-shadow: 0 5px 15px rgba(37, 99, 235, 0.2);
+        }
+
+        .vdk-user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .vdk-user-info {
+            max-width: 145px;
+            display: flex;
+            flex-direction: column;
+            line-height: 1.15;
+        }
+
+        .vdk-user-info strong {
+            overflow: hidden;
+            color: #1e293b;
+            font-size: 13px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .vdk-user-info small {
+            margin-top: 3px;
+            color: var(--vdk-muted);
+            font-size: 10px;
+        }
+
+        .vdk-dropdown-menu {
+            min-width: 230px;
+            margin-top: 10px !important;
+            padding: 8px;
+            border: 1px solid var(--vdk-border);
+            border-radius: 16px;
+            box-shadow: 0 18px 48px rgba(15, 23, 42, 0.14);
+        }
+
+        .vdk-dropdown-menu .dropdown-item {
+            padding: 10px 12px;
+            border-radius: 10px;
+            color: #334155;
+            font-size: 14px;
+            font-weight: 550;
+        }
+
+        .vdk-dropdown-menu .dropdown-item:hover {
+            background: #eff6ff;
+            color: var(--vdk-primary);
+        }
+
+        .vdk-dropdown-menu .dropdown-item i {
+            width: 20px;
+            margin-right: 6px;
+        }
+
+        .vdk-auth-button {
+            min-height: 40px;
+            padding: 9px 15px;
+            border-radius: 11px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .vdk-login-button {
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            color: #334155;
+        }
+
+        .vdk-login-button:hover {
+            border-color: #93c5fd;
+            background: #eff6ff;
+            color: var(--vdk-primary);
+        }
+
+        .vdk-register-button {
+            border: 1px solid transparent;
+            background:
+                linear-gradient(
+                    135deg,
+                    var(--vdk-primary),
+                    var(--vdk-secondary)
+                );
+            color: #ffffff;
+            box-shadow: 0 7px 18px rgba(37, 99, 235, 0.2);
+        }
+
+        .vdk-register-button:hover {
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+
+        .vdk-page-content {
+            width: 100%;
+            flex: 1;
+        }
+
+        .vdk-main-container {
+            width: 100%;
+            max-width: 1320px;
+            min-height: 65vh;
+            margin: 0 auto;
+            padding: 28px 18px 45px;
+        }
+
+        .vdk-alert-container {
+            width: 100%;
+            max-width: 1320px;
+            margin: 0 auto;
+            padding: 18px 18px 0;
+        }
+
+        .vdk-alert {
+            margin: 0;
+            padding: 13px 16px;
+            border: 0;
+            border-radius: 14px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+        }
+
+        .vdk-footer {
+            margin-top: auto;
+            padding: 42px 0 18px;
+            background:
+                radial-gradient(
+                    circle at top left,
+                    rgba(37, 99, 235, 0.25),
+                    transparent 34%
+                ),
+                var(--vdk-footer);
+            color: #cbd5e1;
+        }
+
+        .vdk-footer-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: 800;
+        }
+
+        .vdk-footer-description {
+            max-width: 410px;
+            margin-top: 13px;
+            color: #94a3b8;
+            font-size: 13px;
+            line-height: 1.75;
+        }
+
+        .vdk-footer-title {
+            margin-bottom: 14px;
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 750;
+        }
+
+        .vdk-footer-link {
+            margin-bottom: 9px;
+            color: #94a3b8;
+            display: block;
+            font-size: 13px;
+            transition: color 0.2s ease;
+        }
+
+        .vdk-footer-link:hover {
+            color: #ffffff;
+        }
+
+        .vdk-footer-contact {
+            margin-bottom: 10px;
+            color: #94a3b8;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .vdk-footer-contact i {
+            margin-top: 2px;
+            color: #60a5fa;
+        }
+
+        .vdk-footer-bottom {
+            margin-top: 32px;
+            padding-top: 17px;
+            border-top: 1px solid rgba(148, 163, 184, 0.16);
+            color: #64748b;
+            text-align: center;
+            font-size: 11px;
+        }
+
+        @@media (max-width: 991.98px) {
+            .vdk-navbar {
+                position: relative;
+            }
+
+            .vdk-navbar .navbar-collapse {
+                margin-top: 13px;
+                padding: 12px;
+                border: 1px solid var(--vdk-border);
+                border-radius: 15px;
+                background: #ffffff;
+                box-shadow: 0 15px 35px rgba(15, 23, 42, 0.08);
+            }
+
+            .vdk-navbar .nav-link {
+                margin: 2px 0;
+            }
+
+            .vdk-user-info {
+                max-width: none;
+            }
+
+            .vdk-auth-actions {
+                margin-top: 10px;
+                display: grid !important;
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @@media (max-width: 575.98px) {
+            .vdk-main-container {
+                padding-right: 12px;
+                padding-left: 12px;
+            }
+
+            .vdk-alert-container {
+                padding-right: 12px;
+                padding-left: 12px;
+            }
+
+            .vdk-brand-text small {
+                display: none;
+            }
+
+            .vdk-footer {
+                padding-top: 32px;
+            }
+        }
+    </style>
 </head>
 
-<body class="@bodyClass">
-
-    <a class="layout-skip-link"
-       href="#mainContent">
-
-        Chuyển đến nội dung chính
-
-    </a>
-
-    <div id="pageProgress"
-         class="layout-page-progress">
-    </div>
-
-    <!-- =====================================================
-         HEADER
-    ====================================================== -->
-
-    <header class="layout-header">
-
-        <nav id="mainNavbar"
-             class="navbar navbar-expand-lg layout-navbar">
-
-            <div class="container">
-
-                <a class="navbar-brand layout-brand"
+<body>
+    <header>
+        <nav class="navbar navbar-expand-lg vdk-navbar">
+            <div class="container-fluid px-3 px-lg-4">
+                <a class="navbar-brand"
                    asp-controller="Books"
                    asp-action="Index">
 
-                    <span class="layout-brand-icon">
+                    <span class="vdk-logo">
                         <i class="bi bi-book-half"></i>
                     </span>
 
-                    <span class="layout-brand-text">
-
+                    <span class="vdk-brand-text">
                         VDK Book Rental
 
                         <small>
-                            Hệ thống thuê sách
+                            Hệ thống cho thuê sách
                         </small>
-
                     </span>
-
                 </a>
 
-                <button class="navbar-toggler layout-navbar-toggler"
+                <button class="navbar-toggler"
                         type="button"
                         data-bs-toggle="collapse"
-                        data-bs-target="#mainNavbarContent"
-                        aria-controls="mainNavbarContent"
+                        data-bs-target="#vdkMainNavbar"
+                        aria-controls="vdkMainNavbar"
                         aria-expanded="false"
-                        aria-label="Mở hoặc đóng menu">
+                        aria-label="Mở menu">
 
-                    <span class="navbar-toggler-icon">
-                    </span>
-
+                    <span class="navbar-toggler-icon"></span>
                 </button>
 
-                <div id="mainNavbarContent"
-                     class="collapse navbar-collapse">
+                <div class="collapse navbar-collapse"
+                     id="vdkMainNavbar">
 
-                    <ul class="navbar-nav layout-main-menu ms-lg-4 me-auto mb-2 mb-lg-0">
-
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-4">
                         <li class="nav-item">
-
-                            <a id="homeNavLink"
-                               class="nav-link @ActiveMenu("Books", "Index")"
+                            <a class="nav-link @ActiveClass("Books", "Index")"
                                asp-controller="Books"
                                asp-action="Index">
 
                                 <i class="bi bi-house-door"></i>
                                 Trang chủ
-
                             </a>
-
                         </li>
 
                         <li class="nav-item">
-
-                            <a id="rentalGuideNavLink"
-                               class="nav-link"
+                            <a class="nav-link @ActiveClass("Books")"
                                asp-controller="Books"
-                               asp-action="Index"
-                               asp-fragment="rentalGuide">
+                               asp-action="Index">
 
-                                <i class="bi bi-signpost-split"></i>
-                                Cách thuê
-
+                                <i class="bi bi-book"></i>
+                                Kho sách
                             </a>
-
-                        </li>
-
-                        <li class="nav-item">
-
-                            <a class="nav-link @ActiveMenu("Books", "Featured")"
-                               asp-controller="Books"
-                               asp-action="Featured">
-
-                                <i class="bi bi-fire"></i>
-                                Sách nổi bật
-
-                            </a>
-
                         </li>
 
                         @if (isLoggedIn)
                         {
                             <li class="nav-item">
-
-                                <a class="nav-link @ActiveMenu("Rental", "Current")"
+                                <a class="nav-link @ActiveClass("Rental", "Current")"
                                    asp-controller="Rental"
                                    asp-action="Current">
 
-                                    <i class="bi bi-book-half"></i>
-                                    Đang thuê
-
+                                    <i class="bi bi-bag-check"></i>
+                                    Sách đang thuê
                                 </a>
-
                             </li>
 
                             <li class="nav-item">
-
-                                <a class="nav-link @ActiveMenu("Rental", "History")"
+                                <a class="nav-link @ActiveClass("Rental", "History")"
                                    asp-controller="Rental"
                                    asp-action="History">
 
                                     <i class="bi bi-clock-history"></i>
-                                    Lịch sử
-
+                                    Lịch sử thuê
                                 </a>
-
                             </li>
                         }
-
-                        <li class="nav-item">
-
-                            <a class="nav-link"
-                               href="#footerContact">
-
-                                <i class="bi bi-telephone"></i>
-                                Liên hệ
-
-                            </a>
-
-                        </li>
 
                         @if (isAdmin)
                         {
-                            <li class="nav-item dropdown">
+                            <li class="nav-item">
+                                <a class="nav-link @ActiveClass("Admin")"
+                                   asp-controller="Admin"
+                                   asp-action="Index">
 
-                                <a class="nav-link dropdown-toggle layout-admin-link @ActiveMenu("Admin")"
-                                   href="#"
-                                   role="button"
-                                   data-bs-toggle="dropdown"
-                                   aria-expanded="false">
-
-                                    <i class="bi bi-shield-lock"></i>
+                                    <i class="bi bi-speedometer2"></i>
                                     Quản trị
-
                                 </a>
-
-                                <ul class="dropdown-menu layout-dropdown">
-
-                                    <li>
-
-                                        <a class="dropdown-item"
-                                           asp-controller="Admin"
-                                           asp-action="Index">
-
-                                            <i class="bi bi-speedometer2"></i>
-                                            Dashboard quản trị
-
-                                        </a>
-
-                                    </li>
-
-                                    <li>
-
-                                        <a class="dropdown-item"
-                                           asp-controller="Admin"
-                                           asp-action="Books">
-
-                                            <i class="bi bi-book"></i>
-                                            Quản lý sách
-
-                                        </a>
-
-                                    </li>
-
-                                    <li>
-
-                                        <a class="dropdown-item"
-                                           asp-controller="Admin"
-                                           asp-action="Users">
-
-                                            <i class="bi bi-people"></i>
-                                            Quản lý người dùng
-
-                                        </a>
-
-                                    </li>
-
-                                </ul>
-
                             </li>
                         }
-
-                        @if (isStaff)
+                        else if (isStaff)
                         {
                             <li class="nav-item">
-
-                                <a class="nav-link layout-staff-link @ActiveMenu("Staff")"
+                                <a class="nav-link @ActiveClass("Staff")"
                                    asp-controller="Staff"
                                    asp-action="Index">
 
                                     <i class="bi bi-person-workspace"></i>
                                     Nhân viên
-
                                 </a>
-
                             </li>
                         }
-
                     </ul>
 
-                    <!-- TÀI KHOẢN -->
-                    <div class="layout-account-area">
+                    @if (isLoggedIn)
+                    {
+                        <div class="dropdown">
+                            <button class="btn nav-link dropdown-toggle vdk-user-dropdown"
+                                    type="button"
+                                    data-bs-toggle="dropdown"
+                                    aria-expanded="false">
 
-                        @if (isLoggedIn)
-                        {
-                            <div class="dropdown">
-
-                                <button class="layout-user-button dropdown-toggle"
-                                        type="button"
-                                        data-bs-toggle="dropdown"
-                                        aria-expanded="false">
-
-                                    <span class="layout-user-avatar">
-
-                                        @if (!string.IsNullOrWhiteSpace(avatarUrl))
-                                        {
-                                            <img src="@avatarUrl"
-                                                 alt="Ảnh đại diện của @displayName"
-                                                 class="layout-avatar-image"
-                                                 onerror="this.classList.add('d-none');this.nextElementSibling.classList.remove('d-none');" />
-
-                                            <span class="layout-avatar-fallback d-none">
-                                                @firstLetter
-                                            </span>
-                                        }
-                                        else
-                                        {
-                                            <span class="layout-avatar-fallback">
-                                                @firstLetter
-                                            </span>
-                                        }
-
-                                    </span>
-
-                                    <span class="layout-user-info">
-
-                                        <span class="layout-user-name">
-                                            @displayName
-                                        </span>
-
-                                        <span class="layout-user-role">
-                                            @roleName
-                                        </span>
-
-                                    </span>
-
-                                </button>
-
-                                <ul class="dropdown-menu dropdown-menu-end layout-dropdown layout-account-dropdown">
-
-                                    <li class="layout-account-header">
-
-                                        <div class="layout-account-name">
-                                            @displayName
-                                        </div>
-
-                                        <div class="layout-account-username">
-                                            @("@" + (userName ?? "Chưa cập nhật"))
-                                        </div>
-
-                                        <span class="layout-role-badge @roleClass">
-
-                                            <i class="bi bi-shield-check"></i>
-                                            @roleName
-
-                                        </span>
-
-                                    </li>
-
-                                    <li>
-                                        <hr class="dropdown-divider" />
-                                    </li>
-
-                                    <li>
-
-                                        <a class="dropdown-item @ActiveMenu("Profile", "Index")"
-                                           asp-controller="Profile"
-                                           asp-action="Index">
-
-                                            <i class="bi bi-person-circle"></i>
-                                            @profileText
-
-                                        </a>
-
-                                    </li>
-
-                                    @if (isAdmin)
+                                <span class="vdk-user-avatar">
+                                    @if (!string.IsNullOrWhiteSpace(avatarUrl))
                                     {
-                                        <li>
-
-                                            <a class="dropdown-item"
-                                               asp-controller="Admin"
-                                               asp-action="Index">
-
-                                                <i class="bi bi-speedometer2"></i>
-                                                Trang quản trị
-
-                                            </a>
-
-                                        </li>
-
-                                        <li>
-
-                                            <a class="dropdown-item"
-                                               asp-controller="Admin"
-                                               asp-action="Books">
-
-                                                <i class="bi bi-book"></i>
-                                                Quản lý sách
-
-                                            </a>
-
-                                        </li>
-
-                                        <li>
-
-                                            <a class="dropdown-item"
-                                               asp-controller="Admin"
-                                               asp-action="Users">
-
-                                                <i class="bi bi-people"></i>
-                                                Quản lý người dùng
-
-                                            </a>
-
-                                        </li>
+                                        <img src="@Url.Content(avatarUrl)"
+                                             alt="Ảnh đại diện"
+                                             onerror="this.style.display='none';" />
                                     }
-
-                                    @if (isStaff)
+                                    else
                                     {
-                                        <li>
-
-                                            <a class="dropdown-item"
-                                               asp-controller="Staff"
-                                               asp-action="Index">
-
-                                                <i class="bi bi-person-workspace"></i>
-                                                Trang nhân viên
-
-                                            </a>
-
-                                        </li>
+                                        @initials
                                     }
-
-                                    <li>
-                                        <hr class="dropdown-divider" />
-                                    </li>
-
-                                    <li>
-
-                                        <a class="dropdown-item"
-                                           asp-controller="Rental"
-                                           asp-action="Current">
-
-                                            <i class="bi bi-book-half"></i>
-                                            Sách đang thuê
-
-                                        </a>
-
-                                    </li>
-
-                                    <li>
-
-                                        <a class="dropdown-item"
-                                           asp-controller="Rental"
-                                           asp-action="History">
-
-                                            <i class="bi bi-clock-history"></i>
-                                            Lịch sử thuê
-
-                                        </a>
-
-                                    </li>
-
-                                    <li>
-                                        <hr class="dropdown-divider" />
-                                    </li>
-
-                                    <li>
-
-                                        <a class="dropdown-item text-danger"
-                                           asp-controller="Account"
-                                           asp-action="Logout">
-
-                                            <i class="bi bi-box-arrow-right"></i>
-                                            Đăng xuất
-
-                                        </a>
-
-                                    </li>
-
-                                </ul>
-
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="layout-auth-actions">
-
-                                <a class="layout-login-link"
-                                   asp-controller="Account"
-                                   asp-action="Login">
-
-                                    <i class="bi bi-box-arrow-in-right"></i>
-                                    Đăng nhập
-
-                                </a>
-
-                                <a class="layout-register-button"
-                                   asp-controller="Account"
-                                   asp-action="Register">
-
-                                    <i class="bi bi-person-plus"></i>
-                                    Tạo tài khoản
-
-                                </a>
-
-                            </div>
-                        }
-
-                    </div>
-
-                </div>
-
-            </div>
-
-        </nav>
-
-    </header>
-
-    <!-- =====================================================
-         MAIN
-    ====================================================== -->
-
-    <main id="mainContent"
-          role="main"
-          class="layout-main-content">
-
-        @RenderBody()
-
-    </main>
-
-    <!-- =====================================================
-         FOOTER
-    ====================================================== -->
-
-    <footer id="footerContact"
-            class="layout-footer">
-
-        <div class="layout-footer-top">
-
-            <div class="container">
-
-                <div class="row gy-4">
-
-                    <div class="col-lg-5 col-md-6">
-
-                        <div class="layout-footer-brand">
-
-                            <span class="layout-brand-icon">
-                                <i class="bi bi-book-half"></i>
-                            </span>
-
-                            VDK Book Rental
-
-                        </div>
-
-                        <p class="layout-footer-description">
-
-                            Hệ thống quản lý và cho thuê sách trực tuyến,
-                            giúp tìm kiếm, đăng ký thuê, thanh toán và
-                            theo dõi đơn thuê nhanh chóng, thuận tiện.
-
-                        </p>
-
-                    </div>
-
-                    <div class="col-lg-3 col-md-6">
-
-                        <h5 class="layout-footer-title">
-                            Liên kết nhanh
-                        </h5>
-
-                        <ul class="layout-footer-links">
-
-                            <li>
-
-                                <a asp-controller="Books"
-                                   asp-action="Index">
-
-                                    <i class="bi bi-bookshelf"></i>
-                                    Kho sách
-
-                                </a>
-
-                            </li>
-
-                            <li>
-
-                                <a asp-controller="Books"
-                                   asp-action="Index"
-                                   asp-fragment="rentalGuide">
-
-                                    <i class="bi bi-signpost-split"></i>
-                                    Cách thuê sách
-
-                                </a>
-
-                            </li>
-
-                            <li>
-
-                                <a asp-controller="Books"
-                                   asp-action="Featured">
-
-                                    <i class="bi bi-fire"></i>
-                                    Sách nổi bật
-
-                                </a>
-
-                            </li>
-
-                            @if (isLoggedIn)
-                            {
+                                </span>
+
+                                <span class="vdk-user-info">
+                                    <strong>@displayName</strong>
+
+                                    <small>
+                                        @(string.IsNullOrWhiteSpace(userRole)
+                                            ? "Khách hàng"
+                                            : userRole)
+                                    </small>
+                                </span>
+                            </button>
+
+                            <ul class="dropdown-menu dropdown-menu-end vdk-dropdown-menu">
                                 <li>
-
-                                    <a asp-controller="Profile"
+                                    <a class="dropdown-item"
+                                       asp-controller="Profile"
                                        asp-action="Index">
 
                                         <i class="bi bi-person-circle"></i>
-                                        @profileText
-
+                                        Hồ sơ cá nhân
                                     </a>
-
                                 </li>
-                            }
 
-                        </ul>
+                                <li>
+                                    <a class="dropdown-item"
+                                       asp-controller="Rental"
+                                       asp-action="Current">
 
+                                        <i class="bi bi-bag-check"></i>
+                                        Đơn thuê hiện tại
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <a class="dropdown-item"
+                                       asp-controller="Rental"
+                                       asp-action="History">
+
+                                        <i class="bi bi-clock-history"></i>
+                                        Lịch sử thuê sách
+                                    </a>
+                                </li>
+
+                                @if (isAdmin)
+                                {
+                                    <li>
+                                        <hr class="dropdown-divider" />
+                                    </li>
+
+                                    <li>
+                                        <a class="dropdown-item"
+                                           asp-controller="Admin"
+                                           asp-action="Index">
+
+                                            <i class="bi bi-shield-lock"></i>
+                                            Trang quản trị
+                                        </a>
+                                    </li>
+                                }
+
+                                @if (isStaff)
+                                {
+                                    <li>
+                                        <hr class="dropdown-divider" />
+                                    </li>
+
+                                    <li>
+                                        <a class="dropdown-item"
+                                           asp-controller="Staff"
+                                           asp-action="Index">
+
+                                            <i class="bi bi-person-workspace"></i>
+                                            Trang nhân viên
+                                        </a>
+                                    </li>
+                                }
+
+                                <li>
+                                    <hr class="dropdown-divider" />
+                                </li>
+
+                                <li>
+                                    <a class="dropdown-item text-danger"
+                                       asp-controller="Account"
+                                       asp-action="Logout">
+
+                                        <i class="bi bi-box-arrow-right"></i>
+                                        Đăng xuất
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="d-flex gap-2 vdk-auth-actions">
+                            <a class="vdk-auth-button vdk-login-button"
+                               asp-controller="Account"
+                               asp-action="Login">
+
+                                <i class="bi bi-box-arrow-in-right"></i>
+                                Đăng nhập
+                            </a>
+
+                            <a class="vdk-auth-button vdk-register-button"
+                               asp-controller="Account"
+                               asp-action="Register">
+
+                                <i class="bi bi-person-plus"></i>
+                                Đăng ký
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    @if (TempData["SuccessMessage"] is not null ||
+         TempData["Success"] is not null)
+    {
+        <div class="vdk-alert-container">
+            <div class="alert alert-success alert-dismissible fade show vdk-alert"
+                 role="alert">
+
+                <i class="bi bi-check-circle-fill me-2"></i>
+
+                @(TempData["SuccessMessage"] ??
+                  TempData["Success"])
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Đóng">
+                </button>
+            </div>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] is not null ||
+         TempData["Error"] is not null)
+    {
+        <div class="vdk-alert-container">
+            <div class="alert alert-danger alert-dismissible fade show vdk-alert"
+                 role="alert">
+
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+
+                @(TempData["ErrorMessage"] ??
+                  TempData["Error"])
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Đóng">
+                </button>
+            </div>
+        </div>
+    }
+
+    @if (TempData["WarningMessage"] is not null ||
+         TempData["Warning"] is not null)
+    {
+        <div class="vdk-alert-container">
+            <div class="alert alert-warning alert-dismissible fade show vdk-alert"
+                 role="alert">
+
+                <i class="bi bi-exclamation-circle-fill me-2"></i>
+
+                @(TempData["WarningMessage"] ??
+                  TempData["Warning"])
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Đóng">
+                </button>
+            </div>
+        </div>
+    }
+
+    <main class="vdk-page-content">
+        <div class="vdk-main-container">
+            @RenderBody()
+        </div>
+    </main>
+
+    <footer class="vdk-footer">
+        <div class="container-fluid px-4 px-lg-5">
+            <div class="row g-4">
+                <div class="col-lg-5">
+                    <div class="vdk-footer-brand">
+                        <span class="vdk-logo">
+                            <i class="bi bi-book-half"></i>
+                        </span>
+
+                        VDK Book Rental
                     </div>
 
-                    <div class="col-lg-4 col-md-12">
-
-                        <h5 class="layout-footer-title">
-                            Thông tin liên hệ
-                        </h5>
-
-                        <div class="layout-contact-item">
-
-                            <span class="layout-contact-icon">
-                                <i class="bi bi-envelope-fill"></i>
-                            </span>
-
-                            <div>
-
-                                <span class="layout-contact-label">
-                                    Email hỗ trợ
-                                </span>
-
-                                <a href="mailto:nguyenhuynhtuanvu2309@gmail.com">
-                                    nguyenhuynhtuanvu2309@gmail.com
-                                </a>
-
-                            </div>
-
-                        </div>
-
-                        <div class="layout-contact-item">
-
-                            <span class="layout-contact-icon">
-                                <i class="bi bi-telephone-fill"></i>
-                            </span>
-
-                            <div>
-
-                                <span class="layout-contact-label">
-                                    Điện thoại
-                                </span>
-
-                                <a href="tel:0817857316">
-                                    0817 857 316
-                                </a>
-
-                            </div>
-
-                        </div>
-
-                        <div class="layout-contact-item">
-
-                            <span class="layout-contact-icon">
-                                <i class="bi bi-geo-alt-fill"></i>
-                            </span>
-
-                            <div>
-
-                                <span class="layout-contact-label">
-                                    Địa chỉ
-                                </span>
-
-                                <span>
-                                    Thành phố Hồ Chí Minh, Việt Nam
-                                </span>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
+                    <p class="vdk-footer-description">
+                        Hệ thống quản lý và cho thuê sách trực tuyến,
+                        giúp người dùng dễ dàng tìm kiếm, lựa chọn và
+                        theo dõi quá trình thuê sách.
+                    </p>
                 </div>
 
-            </div>
+                <div class="col-6 col-lg-3">
+                    <h2 class="vdk-footer-title">
+                        Liên kết nhanh
+                    </h2>
 
-        </div>
+                    <a class="vdk-footer-link"
+                       asp-controller="Books"
+                       asp-action="Index">
+                        Kho sách
+                    </a>
 
-        <div class="layout-footer-bottom">
+                    @if (isLoggedIn)
+                    {
+                        <a class="vdk-footer-link"
+                           asp-controller="Rental"
+                           asp-action="Current">
+                            Sách đang thuê
+                        </a>
 
-            <div class="container">
+                        <a class="vdk-footer-link"
+                           asp-controller="Rental"
+                           asp-action="History">
+                            Lịch sử thuê
+                        </a>
 
-                <div class="row align-items-center">
+                        <a class="vdk-footer-link"
+                           asp-controller="Profile"
+                           asp-action="Index">
+                            Hồ sơ cá nhân
+                        </a>
+                    }
+                    else
+                    {
+                        <a class="vdk-footer-link"
+                           asp-controller="Account"
+                           asp-action="Login">
+                            Đăng nhập
+                        </a>
 
-                    <div class="col-md-6">
-
-                        <p>
-                            © @DateTime.Now.Year
-                            <strong>VDK Book Rental</strong>.
-                            All rights reserved.
-                        </p>
-
-                    </div>
-
-                    <div class="col-md-6 text-md-end">
-
-                        <p>
-                            Phát triển bởi
-                            <strong>Nhóm VDK</strong>
-                        </p>
-
-                    </div>
-
+                        <a class="vdk-footer-link"
+                           asp-controller="Account"
+                           asp-action="Register">
+                            Đăng ký
+                        </a>
+                    }
                 </div>
 
+                <div class="col-6 col-lg-4">
+                    <h2 class="vdk-footer-title">
+                        Thông tin liên hệ
+                    </h2>
+
+                    <div class="vdk-footer-contact">
+                        <i class="bi bi-envelope"></i>
+
+                        <span>
+                            nguyenhuynhtuanvu2309@gmail.com
+                        </span>
+                    </div>
+
+                    <div class="vdk-footer-contact">
+                        <i class="bi bi-telephone"></i>
+
+                        <span>
+                            Hỗ trợ thuê và trả sách
+                        </span>
+                    </div>
+
+                    <div class="vdk-footer-contact">
+                        <i class="bi bi-geo-alt"></i>
+
+                        <span>
+                            Thành phố Hồ Chí Minh, Việt Nam
+                        </span>
+                    </div>
+                </div>
             </div>
 
+            <div class="vdk-footer-bottom">
+                © @DateTime.Now.Year VDK Book Rental.
+                Tất cả quyền được bảo lưu.
+            </div>
         </div>
-
     </footer>
 
-    <button id="scrollTopButton"
-            class="layout-scroll-top"
-            type="button"
-            aria-label="Cuộn lên đầu trang">
+    @*
+        Chatbot AI dùng API POST /api/chat.
+        File Views/Shared/_AIChatBox.cshtml phải tồn tại.
+    *@
+    <partial name="_AIChatBox" />
 
-        <i class="bi bi-arrow-up"></i>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
 
-    </button>
-
-    <partial name="_BookLoading" />
-
-    <script src="~/lib/jquery/dist/jquery.min.js">
-    </script>
-
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js">
-    </script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 
     <script src="~/js/site.js"
-            asp-append-version="true">
-    </script>
+            asp-append-version="true"></script>
 
-    <script src="~/js/book-loading.js"
-            asp-append-version="true">
-    </script>
+    <script src="~/js/ai-chat.js"
+            asp-append-version="true"></script>
 
-    <script src="~/js/vdk-layout.js"
-            asp-append-version="true">
+    <script>
+        (() => {
+            const autoCloseAlerts =
+                document.querySelectorAll(
+                    ".vdk-alert.alert-success"
+                );
+
+            autoCloseAlerts.forEach(alertElement => {
+                window.setTimeout(() => {
+                    const alertInstance =
+                        bootstrap.Alert.getOrCreateInstance(
+                            alertElement
+                        );
+
+                    alertInstance.close();
+                }, 4500);
+            });
+        })();
     </script>
 
     @await RenderSectionAsync(
         "Scripts",
         required: false)
-
 </body>
-
 </html>
