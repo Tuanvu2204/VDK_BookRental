@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VDK_BookRental.Data;
@@ -9,45 +8,49 @@ namespace VDK_BookRental.Controllers
 {
     public class ProfileController : Controller
     {
-        private readonly AppDbContext _context;
-
-        private readonly IWebHostEnvironment _environment;
-
-        // Ảnh sau khi nén không được vượt quá 5 MB.
-        private const long MaximumAvatarFileSize =
+        private const long MaxAvatarSize =
             5L * 1024 * 1024;
 
-        // Cho phép request tối đa 10 MB để hỗ trợ fallback
-        // trong trường hợp JavaScript không hoạt động.
-        private const long MaximumRequestSize =
-            10L * 1024 * 1024;
+        private static readonly HashSet<string>
+            AllowedAvatarExtensions =
+                new(
+                    StringComparer.OrdinalIgnoreCase)
+                {
+                    ".jpg",
+                    ".jpeg",
+                    ".png",
+                    ".webp"
+                };
+
+        private readonly AppDbContext _context;
+        private readonly ILogger<ProfileController> _logger;
 
         public ProfileController(
             AppDbContext context,
-            IWebHostEnvironment environment)
+            ILogger<ProfileController> logger)
         {
             _context = context;
-            _environment = environment;
+            _logger = logger;
         }
 
-        // =====================================================
-        // TRANG HỒ SƠ
-        // =====================================================
-
+        // =========================================================
+        // HỒ SƠ CÁ NHÂN
+        // GET: /Profile
+        // =========================================================
         [HttpGet]
         public async Task<IActionResult> Index()
         {
-            var userId =
-                GetCurrentUserId();
+            var userId = GetCurrentUserId();
 
             if (userId == null)
             {
                 TempData["ErrorMessage"] =
-                    "Vui lòng đăng nhập để xem hồ sơ.";
+                    "Vui lòng đăng nhập để xem hồ sơ cá nhân.";
 
                 return RedirectToAction(
                     "Login",
-                    "Account");
+                    "Account"
+                );
             }
 
             var user = await _context.Users
@@ -64,104 +67,106 @@ namespace VDK_BookRental.Controllers
 
                 return RedirectToAction(
                     "Login",
-                    "Account");
+                    "Account"
+                );
             }
+
+            // Đồng bộ lại avatar vào Session mỗi lần mở Profile.
+            RefreshAvatarSession(user.Id);
 
             var rentals = await _context.Rentals
                 .AsNoTracking()
                 .Where(rental =>
                     rental.UserId == userId.Value)
-                .Include(rental =>
-                    rental.Payment)
+                .Include(rental => rental.Payment)
                 .ToListAsync();
 
-            var model =
-                new ProfilePageViewModel
-                {
-                    UserId =
-                        user.Id,
+            var model = new ProfilePageViewModel
+            {
+                UserId = user.Id,
 
-                    UserName =
-                        user.UserName,
+                UserName =
+                    user.UserName ??
+                    string.Empty,
 
-                    FullName =
-                        user.FullName,
+                FullName =
+                    user.FullName ??
+                    string.Empty,
 
-                    Email =
-                        user.Email,
+                Email =
+                    user.Email ??
+                    string.Empty,
 
-                    Phone =
-                        user.Phone ??
-                        string.Empty,
+                Phone =
+                    user.Phone ??
+                    string.Empty,
 
-                    Role =
-                        user.Role,
+                Role =
+                    user.Role ??
+                    string.Empty,
 
-                    IsLocked =
-                        user.IsLocked,
+                IsLocked =
+                    user.IsLocked,
 
-                    AvatarUrl =
-                        user.AvatarUrl ??
-                        string.Empty,
+                TotalRentals =
+                    rentals.Count,
 
-                    Address =
-                        user.Address ??
-                        string.Empty,
+                BorrowingRentals =
+                    rentals.Count(rental =>
+                        string.Equals(
+                            rental.Status,
+                            "Borrowing",
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                    ),
 
-                    DateOfBirth =
-                        user.DateOfBirth,
+                ReturnedRentals =
+                    rentals.Count(rental =>
+                        string.Equals(
+                            rental.Status,
+                            "Returned",
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                    ),
 
-                    Gender =
-                        user.Gender ??
-                        string.Empty,
-
-                    TotalRentals =
-                        rentals.Count,
-
-                    PendingRentals =
-                        rentals.Count(rental =>
-                            rental.Status == "Pending" ||
-                            rental.Status == "Approved"),
-
-                    BorrowingRentals =
-                        rentals.Count(rental =>
-                            rental.Status == "Borrowing"),
-
-                    ReturnedRentals =
-                        rentals.Count(rental =>
-                            rental.Status == "Returned"),
-
-                    TotalSpent =
-                        rentals
-                            .Where(rental =>
-                                rental.Payment != null &&
-                                (
-                                    rental.Payment.Status ==
-                                    "Paid"
-                                    ||
-                                    rental.Payment.Status ==
-                                    "Completed"
-                                ))
-                            .Sum(rental =>
-                                rental.TotalAmount)
-                };
+                TotalSpent =
+                    rentals
+                        .Where(rental =>
+                            rental.Payment != null &&
+                            (
+                                string.Equals(
+                                    rental.Payment.Status,
+                                    "Paid",
+                                    StringComparison.OrdinalIgnoreCase
+                                )
+                                ||
+                                string.Equals(
+                                    rental.Payment.Status,
+                                    "Completed",
+                                    StringComparison.OrdinalIgnoreCase
+                                )
+                            )
+                        )
+                        .Sum(rental =>
+                            rental.TotalAmount)
+            };
 
             return View(
                 "~/Views/Profile/Index.cshtml",
-                model);
+                model
+            );
         }
 
-        // =====================================================
-        // CẬP NHẬT THÔNG TIN
-        // =====================================================
-
+        // =========================================================
+        // CẬP NHẬT THÔNG TIN CÁ NHÂN
+        // POST: /Profile/Update
+        // =========================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Update(
             UpdateProfileViewModel model)
         {
-            var userId =
-                GetCurrentUserId();
+            var userId = GetCurrentUserId();
 
             if (userId == null)
             {
@@ -170,26 +175,20 @@ namespace VDK_BookRental.Controllers
 
                 return RedirectToAction(
                     "Login",
-                    "Account");
-            }
-
-            if (model.DateOfBirth.HasValue &&
-                model.DateOfBirth.Value.Date >
-                DateTime.Today)
-            {
-                ModelState.AddModelError(
-                    nameof(model.DateOfBirth),
-                    "Ngày sinh không được lớn hơn ngày hiện tại.");
+                    "Account"
+                );
             }
 
             if (!ModelState.IsValid)
             {
                 TempData["ErrorMessage"] =
                     GetFirstModelError(
-                        "Thông tin cập nhật không hợp lệ.");
+                        "Thông tin cập nhật không hợp lệ."
+                    );
 
                 return RedirectToAction(
-                    nameof(Index));
+                    nameof(Index)
+                );
             }
 
             var user = await _context.Users
@@ -205,29 +204,27 @@ namespace VDK_BookRental.Controllers
 
                 return RedirectToAction(
                     "Login",
-                    "Account");
+                    "Account"
+                );
             }
 
             var normalizedEmail =
-                model.Email
-                    .Trim()
-                    .ToLowerInvariant();
+                model.Email.Trim();
 
-            var emailExists =
+            var duplicatedEmail =
                 await _context.Users
-                    .AsNoTracking()
                     .AnyAsync(item =>
                         item.Id != user.Id &&
-                        item.Email.ToLower() ==
-                        normalizedEmail);
+                        item.Email == normalizedEmail);
 
-            if (emailExists)
+            if (duplicatedEmail)
             {
                 TempData["ErrorMessage"] =
-                    "Email này đã được tài khoản khác sử dụng.";
+                    "Email này đã được sử dụng bởi tài khoản khác.";
 
                 return RedirectToAction(
-                    nameof(Index));
+                    nameof(Index)
+                );
             }
 
             user.FullName =
@@ -237,187 +234,60 @@ namespace VDK_BookRental.Controllers
                 normalizedEmail;
 
             user.Phone =
-                string.IsNullOrWhiteSpace(
-                    model.Phone)
-                    ? null
+                string.IsNullOrWhiteSpace(model.Phone)
+                    ? string.Empty
                     : model.Phone.Trim();
-
-            if (string.Equals(
-                    user.Role,
-                    "Customer",
-                    StringComparison.OrdinalIgnoreCase))
-            {
-                user.Address =
-                    string.IsNullOrWhiteSpace(
-                        model.Address)
-                        ? null
-                        : model.Address.Trim();
-
-                user.DateOfBirth =
-                    model.DateOfBirth?.Date;
-
-                user.Gender =
-                    NormalizeGender(
-                        model.Gender);
-            }
 
             await _context.SaveChangesAsync();
 
             HttpContext.Session.SetString(
                 "FullName",
-                user.FullName);
+                user.FullName
+            );
 
             TempData["SuccessMessage"] =
-                "Cập nhật hồ sơ thành công.";
+                "Cập nhật hồ sơ cá nhân thành công.";
 
             return RedirectToAction(
-                nameof(Index));
+                nameof(Index)
+            );
         }
 
-        // =====================================================
-        // UPLOAD ẢNH ĐẠI DIỆN
-        // =====================================================
+        // =========================================================
+        // NẾU TRUY CẬP TRỰC TIẾP URL UPLOAD BẰNG GET
+        // -> đưa về trang Profile thay vì để người dùng mắc ở URL POST.
+        // GET: /Profile/UploadAvatar
+        // =========================================================
+        [HttpGet]
+        public IActionResult UploadAvatar()
+        {
+            return RedirectToAction(
+                nameof(Index)
+            );
+        }
 
+        // =========================================================
+        // UPLOAD ẢNH ĐẠI DIỆN
+        //
+        // Ảnh KHÔNG lưu trong thư mục source/wwwroot.
+        // Lưu ở:
+        // %LOCALAPPDATA%\VDK_BookRental\avatars
+        //
+        // Cách này tránh việc Visual Studio/Hot Reload theo dõi
+        // file mới trong project rồi làm gián đoạn web khi upload.
+        //
+        // POST: /Profile/UploadAvatar
+        // =========================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequestSizeLimit(MaximumRequestSize)]
+        [RequestSizeLimit(6L * 1024 * 1024)]
         [RequestFormLimits(
             MultipartBodyLengthLimit =
-                MaximumRequestSize)]
+                6L * 1024 * 1024)]
         public async Task<IActionResult> UploadAvatar(
-            UploadAvatarViewModel model)
+            IFormFile? avatarFile)
         {
-            var userId =
-                GetCurrentUserId();
-
-            if (userId == null)
-            {
-                return CreateUploadResponse(
-                    false,
-                    "Phiên đăng nhập đã hết hạn.",
-                    statusCode: StatusCodes.Status401Unauthorized);
-            }
-
-            ModelState.Clear();
-
-            var validation =
-                await ValidateAvatarAsync(
-                    model.AvatarFile);
-
-            if (!validation.IsValid)
-            {
-                return CreateUploadResponse(
-                    false,
-                    validation.Message);
-            }
-
-            var user = await _context.Users
-                .FirstOrDefaultAsync(item =>
-                    item.Id == userId.Value);
-
-            if (user == null)
-            {
-                HttpContext.Session.Clear();
-
-                return CreateUploadResponse(
-                    false,
-                    "Không tìm thấy tài khoản.",
-                    statusCode: StatusCodes.Status404NotFound);
-            }
-
-            var oldAvatarUrl =
-                user.AvatarUrl;
-
-            string? newAvatarUrl = null;
-
-            try
-            {
-                newAvatarUrl =
-                    await SaveAvatarSafelyAsync(
-                        user.Id,
-                        model.AvatarFile!,
-                        validation.Extension!);
-
-                user.AvatarUrl =
-                    newAvatarUrl;
-
-                await _context.SaveChangesAsync();
-
-                // Chỉ xóa ảnh cũ sau khi DB lưu thành công.
-                DeleteAvatarFile(
-                    oldAvatarUrl);
-
-                HttpContext.Session.SetString(
-                    "AvatarUrl",
-                    newAvatarUrl);
-
-                return CreateUploadResponse(
-                    true,
-                    "Cập nhật ảnh đại diện thành công.",
-                    newAvatarUrl);
-            }
-            catch (DbUpdateException exception)
-            {
-                DeleteAvatarFile(
-                    newAvatarUrl);
-
-                Console.Error.WriteLine(
-                    $"Lỗi database khi lưu avatar: {exception}");
-
-                return CreateUploadResponse(
-                    false,
-                    "Database không thể lưu ảnh đại diện. " +
-                    "Vui lòng thử lại.");
-            }
-            catch (UnauthorizedAccessException exception)
-            {
-                DeleteAvatarFile(
-                    newAvatarUrl);
-
-                Console.Error.WriteLine(
-                    $"Không có quyền ghi avatar: {exception}");
-
-                return CreateUploadResponse(
-                    false,
-                    "Ứng dụng không có quyền ghi vào thư mục ảnh.");
-            }
-            catch (IOException exception)
-            {
-                DeleteAvatarFile(
-                    newAvatarUrl);
-
-                Console.Error.WriteLine(
-                    $"Lỗi tệp avatar: {exception}");
-
-                return CreateUploadResponse(
-                    false,
-                    "Không thể lưu tệp ảnh. " +
-                    "Tệp có thể đang bị khóa hoặc thư mục không khả dụng.");
-            }
-            catch (Exception exception)
-            {
-                DeleteAvatarFile(
-                    newAvatarUrl);
-
-                Console.Error.WriteLine(
-                    $"Lỗi không xác định khi upload avatar: {exception}");
-
-                return CreateUploadResponse(
-                    false,
-                    "Đã xảy ra lỗi khi cập nhật ảnh đại diện.");
-            }
-        }
-
-        // =====================================================
-        // XÓA ẢNH ĐẠI DIỆN
-        // =====================================================
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> RemoveAvatar()
-        {
-            var userId =
-                GetCurrentUserId();
+            var userId = GetCurrentUserId();
 
             if (userId == null)
             {
@@ -426,66 +296,242 @@ namespace VDK_BookRental.Controllers
 
                 return RedirectToAction(
                     "Login",
-                    "Account");
+                    "Account"
+                );
             }
 
-            var user = await _context.Users
-                .FirstOrDefaultAsync(item =>
-                    item.Id == userId.Value);
-
-            if (user == null)
+            if (avatarFile == null ||
+                avatarFile.Length <= 0)
             {
-                HttpContext.Session.Clear();
+                TempData["ErrorMessage"] =
+                    "Vui lòng chọn ảnh đại diện.";
+
+                return RedirectToAction(
+                    nameof(Index)
+                );
+            }
+
+            if (avatarFile.Length > MaxAvatarSize)
+            {
+                TempData["ErrorMessage"] =
+                    "Ảnh đại diện không được vượt quá 5 MB.";
+
+                return RedirectToAction(
+                    nameof(Index)
+                );
+            }
+
+            var extension =
+                Path.GetExtension(
+                    avatarFile.FileName
+                );
+
+            if (string.IsNullOrWhiteSpace(extension) ||
+                !AllowedAvatarExtensions.Contains(
+                    extension))
+            {
+                TempData["ErrorMessage"] =
+                    "Chỉ hỗ trợ JPG, JPEG, PNG hoặc WEBP.";
+
+                return RedirectToAction(
+                    nameof(Index)
+                );
+            }
+
+            try
+            {
+                var userExists =
+                    await _context.Users
+                        .AsNoTracking()
+                        .AnyAsync(item =>
+                            item.Id == userId.Value);
+
+                if (!userExists)
+                {
+                    HttpContext.Session.Clear();
+
+                    TempData["ErrorMessage"] =
+                        "Không tìm thấy tài khoản.";
+
+                    return RedirectToAction(
+                        "Login",
+                        "Account"
+                    );
+                }
+
+                var validSignature =
+                    await HasValidImageSignatureAsync(
+                        avatarFile,
+                        extension
+                    );
+
+                if (!validSignature)
+                {
+                    TempData["ErrorMessage"] =
+                        "Nội dung tệp không phải ảnh hợp lệ.";
+
+                    return RedirectToAction(
+                        nameof(Index)
+                    );
+                }
+
+                var avatarDirectory =
+                    GetAvatarDirectory();
+
+                Directory.CreateDirectory(
+                    avatarDirectory
+                );
+
+                var safeExtension =
+                    extension.ToLowerInvariant();
+
+                var finalFileName =
+                    $"avatar_{userId.Value}{safeExtension}";
+
+                var finalPath =
+                    Path.Combine(
+                        avatarDirectory,
+                        finalFileName
+                    );
+
+                var tempPath =
+                    Path.Combine(
+                        avatarDirectory,
+                        $"upload_{userId.Value}_{Guid.NewGuid():N}.tmp"
+                    );
+
+                try
+                {
+                    await using (
+                        var output =
+                            new FileStream(
+                                tempPath,
+                                FileMode.CreateNew,
+                                FileAccess.Write,
+                                FileShare.None,
+                                bufferSize: 81920,
+                                useAsync: true
+                            )
+                    )
+                    {
+                        await avatarFile.CopyToAsync(
+                            output
+                        );
+
+                        await output.FlushAsync();
+                    }
+
+                    // Xóa avatar cũ của chính user.
+                    foreach (
+                        var oldPath
+                        in Directory.EnumerateFiles(
+                            avatarDirectory,
+                            $"avatar_{userId.Value}.*"
+                        )
+                    )
+                    {
+                        if (!string.Equals(
+                                oldPath,
+                                finalPath,
+                                StringComparison.OrdinalIgnoreCase))
+                        {
+                            TryDeleteFile(oldPath);
+                        }
+                    }
+
+                    System.IO.File.Move(
+                        tempPath,
+                        finalPath,
+                        overwrite: true
+                    );
+                }
+                finally
+                {
+                    // Nếu Copy/Move lỗi thì dọn file tạm.
+                    TryDeleteFile(tempPath);
+                }
+
+                RefreshAvatarSession(
+                    userId.Value
+                );
+
+                TempData["SuccessMessage"] =
+                    "Cập nhật ảnh đại diện thành công.";
+
+                return RedirectToAction(
+                    nameof(Index)
+                );
+            }
+            catch (Exception exception)
+            {
+                // Bắt lỗi để request upload không làm văng người dùng
+                // ra khỏi toàn bộ hệ thống.
+                _logger.LogError(
+                    exception,
+                    "Upload avatar thất bại cho UserId {UserId}.",
+                    userId.Value
+                );
 
                 TempData["ErrorMessage"] =
-                    "Không tìm thấy tài khoản.";
+                    "Không thể tải ảnh đại diện lên. " +
+                    "Vui lòng thử lại bằng ảnh JPG/PNG/WEBP dưới 5 MB.";
 
                 return RedirectToAction(
-                    "Login",
-                    "Account");
+                    nameof(Index)
+                );
             }
-
-            if (string.IsNullOrWhiteSpace(
-                    user.AvatarUrl))
-            {
-                TempData["InfoMessage"] =
-                    "Tài khoản chưa có ảnh đại diện.";
-
-                return RedirectToAction(
-                    nameof(Index));
-            }
-
-            var oldAvatarUrl =
-                user.AvatarUrl;
-
-            user.AvatarUrl = null;
-
-            await _context.SaveChangesAsync();
-
-            DeleteAvatarFile(
-                oldAvatarUrl);
-
-            HttpContext.Session.Remove(
-                "AvatarUrl");
-
-            TempData["SuccessMessage"] =
-                "Đã xóa ảnh đại diện.";
-
-            return RedirectToAction(
-                nameof(Index));
         }
 
-        // =====================================================
-        // ĐỔI MẬT KHẨU
-        // =====================================================
+        // =========================================================
+        // TRẢ FILE AVATAR CHO TRÌNH DUYỆT
+        // GET: /Profile/Avatar?userId=1
+        // =========================================================
+        [HttpGet]
+        [ResponseCache(
+            Location = ResponseCacheLocation.None,
+            NoStore = true)]
+        public IActionResult Avatar(
+            int userId)
+        {
+            var currentUserId =
+                GetCurrentUserId();
 
+            if (currentUserId == null ||
+                currentUserId.Value != userId)
+            {
+                return NotFound();
+            }
+
+            var avatarPath =
+                FindAvatarFile(userId);
+
+            if (avatarPath == null)
+            {
+                return NotFound();
+            }
+
+            var contentType =
+                GetImageContentType(
+                    Path.GetExtension(avatarPath)
+                );
+
+            return PhysicalFile(
+                avatarPath,
+                contentType,
+                enableRangeProcessing: false
+            );
+        }
+
+        // =========================================================
+        // ĐỔI MẬT KHẨU
+        // POST: /Profile/ChangePassword
+        // =========================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ChangePassword(
             ChangePasswordViewModel model)
         {
-            var userId =
-                GetCurrentUserId();
+            var userId = GetCurrentUserId();
 
             if (userId == null)
             {
@@ -494,17 +540,20 @@ namespace VDK_BookRental.Controllers
 
                 return RedirectToAction(
                     "Login",
-                    "Account");
+                    "Account"
+                );
             }
 
             if (!ModelState.IsValid)
             {
                 TempData["ErrorMessage"] =
                     GetFirstModelError(
-                        "Thông tin đổi mật khẩu không hợp lệ.");
+                        "Thông tin đổi mật khẩu không hợp lệ."
+                    );
 
                 return RedirectToAction(
-                    nameof(Index));
+                    nameof(Index)
+                );
             }
 
             var user = await _context.Users
@@ -520,13 +569,15 @@ namespace VDK_BookRental.Controllers
 
                 return RedirectToAction(
                     "Login",
-                    "Account");
+                    "Account"
+                );
             }
 
             var currentPasswordIsValid =
                 BCrypt.Net.BCrypt.Verify(
                     model.CurrentPassword,
-                    user.PasswordHash);
+                    user.PasswordHash
+                );
 
             if (!currentPasswordIsValid)
             {
@@ -534,13 +585,15 @@ namespace VDK_BookRental.Controllers
                     "Mật khẩu hiện tại không chính xác.";
 
                 return RedirectToAction(
-                    nameof(Index));
+                    nameof(Index)
+                );
             }
 
             var sameAsCurrentPassword =
                 BCrypt.Net.BCrypt.Verify(
                     model.NewPassword,
-                    user.PasswordHash);
+                    user.PasswordHash
+                );
 
             if (sameAsCurrentPassword)
             {
@@ -548,12 +601,14 @@ namespace VDK_BookRental.Controllers
                     "Mật khẩu mới phải khác mật khẩu hiện tại.";
 
                 return RedirectToAction(
-                    nameof(Index));
+                    nameof(Index)
+                );
             }
 
             user.PasswordHash =
                 BCrypt.Net.BCrypt.HashPassword(
-                    model.NewPassword);
+                    model.NewPassword
+                );
 
             await _context.SaveChangesAsync();
 
@@ -561,63 +616,150 @@ namespace VDK_BookRental.Controllers
                 "Đổi mật khẩu thành công.";
 
             return RedirectToAction(
-                nameof(Index));
+                nameof(Index)
+            );
         }
 
-        // =====================================================
-        // KIỂM TRA ẢNH THẬT BẰNG FILE SIGNATURE
-        // =====================================================
-
-        private static async Task<AvatarValidationResult>
-            ValidateAvatarAsync(
-                IFormFile? avatarFile)
+        // =========================================================
+        // SESSION USER ID
+        // =========================================================
+        private int? GetCurrentUserId()
         {
-            if (avatarFile == null)
+            var userIdValue =
+                HttpContext.Session.GetString(
+                    "UserId"
+                );
+
+            if (string.IsNullOrWhiteSpace(
+                    userIdValue))
             {
-                return AvatarValidationResult.Fail(
-                    "Vui lòng chọn ảnh đại diện.");
+                return null;
             }
 
-            if (avatarFile.Length <= 0)
+            if (!int.TryParse(
+                    userIdValue,
+                    out var userId))
             {
-                return AvatarValidationResult.Fail(
-                    "Tệp ảnh không có dữ liệu.");
+                return null;
             }
 
-            if (avatarFile.Length >
-                MaximumAvatarFileSize)
-            {
-                return AvatarValidationResult.Fail(
-                    "Ảnh sau khi xử lý không được vượt quá 5 MB.");
-            }
-
-            string? detectedExtension;
-
-            try
-            {
-                detectedExtension =
-                    await DetectImageExtensionAsync(
-                        avatarFile);
-            }
-            catch
-            {
-                return AvatarValidationResult.Fail(
-                    "Không thể đọc nội dung tệp ảnh.");
-            }
-
-            if (detectedExtension == null)
-            {
-                return AvatarValidationResult.Fail(
-                    "Tệp không phải ảnh JPG, PNG hoặc WEBP hợp lệ.");
-            }
-
-            return AvatarValidationResult.Success(
-                detectedExtension);
+            return userId;
         }
 
-        private static async Task<string?>
-            DetectImageExtensionAsync(
-                IFormFile file)
+        // =========================================================
+        // AVATAR STORAGE
+        // =========================================================
+        private static string GetAvatarDirectory()
+        {
+            var localAppData =
+                Environment.GetFolderPath(
+                    Environment.SpecialFolder
+                        .LocalApplicationData
+                );
+
+            if (string.IsNullOrWhiteSpace(
+                    localAppData))
+            {
+                localAppData =
+                    Path.GetTempPath();
+            }
+
+            return Path.Combine(
+                localAppData,
+                "VDK_BookRental",
+                "avatars"
+            );
+        }
+
+        private static string? FindAvatarFile(
+            int userId)
+        {
+            var directory =
+                GetAvatarDirectory();
+
+            if (!Directory.Exists(directory))
+            {
+                return null;
+            }
+
+            var preferredExtensions =
+                new[]
+                {
+                    ".jpg",
+                    ".jpeg",
+                    ".png",
+                    ".webp"
+                };
+
+            foreach (
+                var extension
+                in preferredExtensions)
+            {
+                var candidate =
+                    Path.Combine(
+                        directory,
+                        $"avatar_{userId}{extension}"
+                    );
+
+                if (System.IO.File.Exists(
+                        candidate))
+                {
+                    return candidate;
+                }
+            }
+
+            return null;
+        }
+
+        private void RefreshAvatarSession(
+            int userId)
+        {
+            var avatarPath =
+                FindAvatarFile(userId);
+
+            if (avatarPath == null)
+            {
+                HttpContext.Session.Remove(
+                    "AvatarUrl"
+                );
+
+                return;
+            }
+
+            var version =
+                System.IO.File
+                    .GetLastWriteTimeUtc(
+                        avatarPath)
+                    .Ticks;
+
+            var avatarUrl =
+                Url.Action(
+                    nameof(Avatar),
+                    "Profile",
+                    new
+                    {
+                        userId,
+                        v = version
+                    }
+                );
+
+            if (!string.IsNullOrWhiteSpace(
+                    avatarUrl))
+            {
+                HttpContext.Session.SetString(
+                    "AvatarUrl",
+                    avatarUrl
+                );
+            }
+        }
+
+        // =========================================================
+        // KIỂM TRA CHỮ KÝ FILE ẢNH
+        // =========================================================
+        private static async Task<bool>
+            HasValidImageSignatureAsync(
+                IFormFile file,
+                string extension)
         {
             var header =
                 new byte[12];
@@ -629,316 +771,121 @@ namespace VDK_BookRental.Controllers
                 await stream.ReadAsync(
                     header.AsMemory(
                         0,
-                        header.Length));
+                        header.Length)
+                );
 
-            // JPEG: FF D8 FF
-            if (bytesRead >= 3 &&
-                header[0] == 0xFF &&
-                header[1] == 0xD8 &&
-                header[2] == 0xFF)
+            if (bytesRead < 4)
             {
-                return ".jpg";
+                return false;
             }
 
-            // PNG: 89 50 4E 47 0D 0A 1A 0A
-            if (bytesRead >= 8 &&
-                header[0] == 0x89 &&
-                header[1] == 0x50 &&
-                header[2] == 0x4E &&
-                header[3] == 0x47 &&
-                header[4] == 0x0D &&
-                header[5] == 0x0A &&
-                header[6] == 0x1A &&
-                header[7] == 0x0A)
+            if (extension.Equals(
+                    ".jpg",
+                    StringComparison.OrdinalIgnoreCase)
+                ||
+                extension.Equals(
+                    ".jpeg",
+                    StringComparison.OrdinalIgnoreCase))
             {
-                return ".png";
+                return
+                    header[0] == 0xFF &&
+                    header[1] == 0xD8 &&
+                    header[2] == 0xFF;
             }
 
-            // WEBP: RIFF....WEBP
-            if (bytesRead >= 12 &&
-                header[0] == 0x52 &&
-                header[1] == 0x49 &&
-                header[2] == 0x46 &&
-                header[3] == 0x46 &&
-                header[8] == 0x57 &&
-                header[9] == 0x45 &&
-                header[10] == 0x42 &&
-                header[11] == 0x50)
+            if (extension.Equals(
+                    ".png",
+                    StringComparison.OrdinalIgnoreCase))
             {
-                return ".webp";
-            }
-
-            return null;
-        }
-
-        // =====================================================
-        // LƯU ẢNH BẰNG FILE TẠM
-        // =====================================================
-
-        private async Task<string>
-            SaveAvatarSafelyAsync(
-                int userId,
-                IFormFile avatarFile,
-                string extension)
-        {
-            var avatarDirectory =
-                GetAvatarDirectory();
-
-            Directory.CreateDirectory(
-                avatarDirectory);
-
-            var uniqueName =
-                $"avatar_{userId}_" +
-                $"{DateTime.UtcNow:yyyyMMddHHmmssfff}_" +
-                $"{Guid.NewGuid():N}{extension}";
-
-            var finalPath =
-                Path.Combine(
-                    avatarDirectory,
-                    uniqueName);
-
-            var temporaryPath =
-                finalPath + ".uploading";
-
-            try
-            {
-                await using (
-                    var stream =
-                        new FileStream(
-                            temporaryPath,
-                            FileMode.CreateNew,
-                            FileAccess.Write,
-                            FileShare.None,
-                            bufferSize: 81920,
-                            useAsync: true))
+                if (bytesRead < 8)
                 {
-                    await avatarFile.CopyToAsync(
-                        stream);
-
-                    await stream.FlushAsync();
+                    return false;
                 }
-
-                System.IO.File.Move(
-                    temporaryPath,
-                    finalPath);
 
                 return
-                    $"/images/avatars/{uniqueName}";
+                    header[0] == 0x89 &&
+                    header[1] == 0x50 &&
+                    header[2] == 0x4E &&
+                    header[3] == 0x47 &&
+                    header[4] == 0x0D &&
+                    header[5] == 0x0A &&
+                    header[6] == 0x1A &&
+                    header[7] == 0x0A;
             }
-            catch
+
+            if (extension.Equals(
+                    ".webp",
+                    StringComparison.OrdinalIgnoreCase))
             {
-                if (System.IO.File.Exists(
-                        temporaryPath))
+                if (bytesRead < 12)
                 {
-                    System.IO.File.Delete(
-                        temporaryPath);
+                    return false;
                 }
 
-                throw;
-            }
-        }
-
-        // =====================================================
-        // XÓA ẢNH AN TOÀN
-        // =====================================================
-
-        private void DeleteAvatarFile(
-            string? avatarUrl)
-        {
-            if (string.IsNullOrWhiteSpace(
-                    avatarUrl))
-            {
-                return;
+                return
+                    header[0] == (byte)'R' &&
+                    header[1] == (byte)'I' &&
+                    header[2] == (byte)'F' &&
+                    header[3] == (byte)'F' &&
+                    header[8] == (byte)'W' &&
+                    header[9] == (byte)'E' &&
+                    header[10] == (byte)'B' &&
+                    header[11] == (byte)'P';
             }
 
-            try
+            return false;
+        }
+
+        private static string GetImageContentType(
+            string extension)
+        {
+            return extension
+                .ToLowerInvariant() switch
             {
-                var cleanUrl =
-                    avatarUrl.Split(
-                        new[] { '?', '#' },
-                        2)[0];
-
-                var fileName =
-                    Path.GetFileName(
-                        cleanUrl);
-
-                if (string.IsNullOrWhiteSpace(
-                        fileName))
-                {
-                    return;
-                }
-
-                var avatarDirectory =
-                    GetAvatarDirectory();
-
-                var fullDirectory =
-                    Path.GetFullPath(
-                        avatarDirectory +
-                        Path.DirectorySeparatorChar);
-
-                var fullFilePath =
-                    Path.GetFullPath(
-                        Path.Combine(
-                            avatarDirectory,
-                            fileName));
-
-                if (!fullFilePath.StartsWith(
-                        fullDirectory,
-                        StringComparison.OrdinalIgnoreCase))
-                {
-                    return;
-                }
-
-                if (System.IO.File.Exists(
-                        fullFilePath))
-                {
-                    System.IO.File.Delete(
-                        fullFilePath);
-                }
-            }
-            catch (Exception exception)
-            {
-                // Không làm sập request chỉ vì ảnh cũ
-                // không thể xóa.
-                Console.Error.WriteLine(
-                    $"Không thể xóa avatar cũ: {exception.Message}");
-            }
-        }
-
-        private string GetAvatarDirectory()
-        {
-            var webRootPath =
-                !string.IsNullOrWhiteSpace(
-                    _environment.WebRootPath)
-                    ? _environment.WebRootPath
-                    : Path.Combine(
-                        Directory.GetCurrentDirectory(),
-                        "wwwroot");
-
-            return Path.Combine(
-                webRootPath,
-                "images",
-                "avatars");
-        }
-
-        // =====================================================
-        // PHẢN HỒI AJAX HOẶC FORM THÔNG THƯỜNG
-        // =====================================================
-
-        private IActionResult CreateUploadResponse(
-            bool success,
-            string message,
-            string? avatarUrl = null,
-            int statusCode =
-                StatusCodes.Status200OK)
-        {
-            if (IsAjaxRequest())
-            {
-                Response.StatusCode =
-                    statusCode;
-
-                return Json(new
-                {
-                    success,
-                    message,
-                    avatarUrl
-                });
-            }
-
-            TempData[
-                success
-                    ? "SuccessMessage"
-                    : "ErrorMessage"
-            ] = message;
-
-            if (statusCode ==
-                StatusCodes.Status401Unauthorized)
-            {
-                return RedirectToAction(
-                    "Login",
-                    "Account");
-            }
-
-            return RedirectToAction(
-                nameof(Index));
-        }
-
-        private bool IsAjaxRequest()
-        {
-            return string.Equals(
-                Request.Headers[
-                    "X-Requested-With"],
-                "XMLHttpRequest",
-                StringComparison.OrdinalIgnoreCase);
-        }
-
-        private int? GetCurrentUserId()
-        {
-            var userIdValue =
-                HttpContext.Session.GetString(
-                    "UserId");
-
-            return int.TryParse(
-                userIdValue,
-                out var userId)
-                    ? userId
-                    : null;
-        }
-
-        private string GetFirstModelError(
-            string defaultMessage)
-        {
-            return ModelState.Values
-                .SelectMany(value =>
-                    value.Errors)
-                .Select(error =>
-                    error.ErrorMessage)
-                .FirstOrDefault(message =>
-                    !string.IsNullOrWhiteSpace(
-                        message))
-                ?? defaultMessage;
-        }
-
-        private static string? NormalizeGender(
-            string? gender)
-        {
-            return gender?.Trim() switch
-            {
-                "Nam" => "Nam",
-                "Nữ" => "Nữ",
-                "Khác" => "Khác",
-                _ => null
+                ".jpg" => "image/jpeg",
+                ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".webp" => "image/webp",
+                _ => "application/octet-stream"
             };
         }
 
-        private sealed class AvatarValidationResult
+        private static void TryDeleteFile(
+            string path)
         {
-            public bool IsValid { get; init; }
-
-            public string Message { get; init; } =
-                string.Empty;
-
-            public string? Extension { get; init; }
-
-            public static AvatarValidationResult Success(
-                string extension)
+            try
             {
-                return new AvatarValidationResult
+                if (System.IO.File.Exists(path))
                 {
-                    IsValid = true,
-                    Extension = extension
-                };
+                    System.IO.File.Delete(path);
+                }
             }
-
-            public static AvatarValidationResult Fail(
-                string message)
+            catch
             {
-                return new AvatarValidationResult
-                {
-                    IsValid = false,
-                    Message = message
-                };
+                // Không để lỗi dọn file phụ
+                // làm hỏng request chính.
             }
+        }
+
+        // =========================================================
+        // LỖI VALIDATION ĐẦU TIÊN
+        // =========================================================
+        private string GetFirstModelError(
+            string defaultMessage)
+        {
+            var error =
+                ModelState.Values
+                    .SelectMany(value =>
+                        value.Errors)
+                    .Select(item =>
+                        item.ErrorMessage)
+                    .FirstOrDefault(message =>
+                        !string.IsNullOrWhiteSpace(
+                            message));
+
+            return
+                error ??
+                defaultMessage;
         }
     }
 }

@@ -246,36 +246,33 @@ namespace VDK_BookRental.Controllers
                         "Đơn thuê này đã được thanh toán.";
 
                     return RedirectToAction(
-     "Details",
-     "Contract",
-     new
-     {
-         rentalId = rental.Id
-     }
- );
+                        "Details",
+                        "Contract",
+                        new
+                        {
+                            rentalId
+                        }
+                    );
                 }
 
-                return RedirectToAction(
-     "Details",
-     "Contract",
-     new
-     {
-         rentalId
-     }
- );
+                if (payment != null &&
+                    string.Equals(
+                        payment.Status,
+                        "AwaitingConfirmation",
+                        StringComparison.OrdinalIgnoreCase))
                 {
                     TempData["InfoMessage"] =
                         "Yêu cầu thanh toán đã được gửi trước đó. " +
                         "Vui lòng chờ nhân viên xác nhận.";
 
                     return RedirectToAction(
-    "Details",
-    "Contract",
-    new
-    {
-        rentalId
-    }
-);
+                        "Details",
+                        "Contract",
+                        new
+                        {
+                            rentalId
+                        }
+                    );
                 }
 
                 if (payment != null &&
@@ -350,8 +347,8 @@ namespace VDK_BookRental.Controllers
                     payment.Amount);
 
                 TempData["SuccessMessage"] =
-    "Đã xác nhận chuyển khoản. " +
-    "Hợp đồng thuê sách đã được tạo.";
+                    "Đã xác nhận chuyển khoản. " +
+                    "Hợp đồng thuê sách đã được tạo.";
 
                 return RedirectToAction(
                     "Details",

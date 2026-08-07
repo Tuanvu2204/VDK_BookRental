@@ -22,8 +22,25 @@
     var userRole =
         Context.Session.GetString("UserRole");
 
-    var avatarUrl =
-        Context.Session.GetString("AvatarUrl");
+    // Avatar được lấy trực tiếp theo UserId thay vì phụ thuộc
+    // Session["AvatarUrl"], nhờ đó ảnh mới đồng bộ ở mọi trang.
+    string? avatarUrl = null;
+
+    if (int.TryParse(
+        userId,
+        out var parsedUserId) &&
+        parsedUserId > 0)
+    {
+        avatarUrl =
+            Url.Action(
+                "Avatar",
+                "Profile",
+                new
+                {
+                    userId = parsedUserId
+                }
+            );
+    }
 
     var isLoggedIn =
         !string.IsNullOrWhiteSpace(userId);
@@ -334,6 +351,7 @@
         }
 
         .vdk-user-avatar {
+            position: relative;
             width: 36px;
             height: 36px;
             flex: 0 0 36px;
@@ -354,6 +372,8 @@
         }
 
         .vdk-user-avatar img {
+            position: absolute;
+            inset: 0;
             width: 100%;
             height: 100%;
             object-fit: cover;
@@ -893,15 +913,14 @@
                                     aria-expanded="false">
 
                                 <span class="vdk-user-avatar">
-                                    @if (!string.IsNullOrWhiteSpace(avatarUrl))
+                                    <span>@initials</span>
+
+                                    @if (!string.IsNullOrWhiteSpace(
+                                        avatarUrl))
                                     {
-                                        <img src="@Url.Content(avatarUrl)"
+                                        <img src="@avatarUrl"
                                              alt="Ảnh đại diện"
                                              onerror="this.style.display='none';" />
-                                    }
-                                    else
-                                    {
-                                        @initials
                                     }
                                 </span>
 
@@ -1249,7 +1268,7 @@
                 const isToast =
                     options.toast === true;
 
-                const swalOptions = {
+                return await window.Swal.fire({
                     icon,
                     title,
                     text: message,
@@ -1269,7 +1288,6 @@
                         !isToast,
 
                     showCancelButton:
-                        !isToast &&
                         options.showCancelButton === true,
 
                     confirmButtonText:
@@ -1281,6 +1299,14 @@
                         "Đóng",
 
                     buttonsStyling: false,
+
+                    allowOutsideClick:
+                        options.allowOutsideClick ??
+                        isToast,
+
+                    allowEscapeKey:
+                        options.allowEscapeKey ??
+                        true,
 
                     timer:
                         options.timer ??
@@ -1294,8 +1320,8 @@
                         options.showCloseButton ??
                         !isToast,
 
-                    reverseButtons:
-                        !isToast,
+                    reverseButtons: true,
+                    focusConfirm: true,
 
                     customClass:
                         customClass(isToast),
@@ -1315,28 +1341,7 @@
                             window.Swal.resumeTimer
                         );
                     }
-                };
-
-                /*
-                 * Các thiết lập này chỉ dùng cho hộp thoại
-                 * ở giữa màn hình, không truyền vào Toast.
-                 */
-                if (!isToast) {
-                    swalOptions.allowOutsideClick =
-                        options.allowOutsideClick ??
-                        false;
-
-                    swalOptions.allowEscapeKey =
-                        options.allowEscapeKey ??
-                        true;
-
-                    swalOptions.focusConfirm =
-                        true;
-                }
-
-                return await window.Swal.fire(
-                    swalOptions
-                );
+                });
             }
 
             async function success(

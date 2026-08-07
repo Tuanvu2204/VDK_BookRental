@@ -1,97 +1,402 @@
 ﻿@model VDK_BookRental.ViewModels.ProfilePageViewModel
 
 @{
-    ViewData["Title"] =
-        Model.IsCustomer
-            ? "Hồ sơ khách hàng"
-            : "Hồ sơ cá nhân";
+    ViewData["Title"] = "Hồ sơ cá nhân";
 
-    var initials = string.Join(
-        "",
-        Model.FullName
-            .Split(
-                ' ',
-                StringSplitOptions.RemoveEmptyEntries)
-            .TakeLast(2)
-            .Select(word =>
-                char.ToUpperInvariant(word[0]))
-    );
+    // Không phụ thuộc Session AvatarUrl nữa.
+    // URL ảnh được tạo trực tiếp từ UserId nên cập nhật
+    // avatar sẽ đồng bộ trên mọi trang sau khi reload.
+    var avatarUrl =
+        Url.Action(
+            "Avatar",
+            "Profile",
+            new
+            {
+                userId = Model.UserId
+            }
+        );
 
-    if (string.IsNullOrWhiteSpace(initials))
+    var fullNameForInitials =
+        string.IsNullOrWhiteSpace(
+            Model.FullName)
+            ? Model.UserName
+            : Model.FullName;
+
+    var initials =
+        string.Join(
+            "",
+            fullNameForInitials
+                .Split(
+                    ' ',
+                    StringSplitOptions
+                        .RemoveEmptyEntries
+                )
+                .TakeLast(2)
+                .Select(word =>
+                    char.ToUpperInvariant(
+                        word[0]))
+        );
+
+    if (string.IsNullOrWhiteSpace(
+        initials))
     {
         initials = "U";
     }
 
-    var hasAvatar =
-        !string.IsNullOrWhiteSpace(
-            Model.AvatarUrl);
-
-    var backController =
-        Model.Role switch
-        {
-            "Admin" => "Admin",
-            "Staff" => "Staff",
-            _ => "Books"
-        };
-
-    string GetRoleText(string? role)
+    string GetRoleText(
+        string? role)
     {
         return role switch
         {
-            "Admin" => "Quản trị viên",
-            "Staff" => "Nhân viên",
-            "Customer" => "Khách hàng",
-            _ => role ?? "Người dùng"
+            "Admin" =>
+                "Quản trị viên",
+
+            "Staff" =>
+                "Nhân viên",
+
+            "Customer" =>
+                "Khách hàng",
+
+            _ =>
+                role ??
+                "Người dùng"
         };
     }
 
-    string GetRoleClass(string? role)
+    string GetRoleClass(
+        string? role)
     {
         return role switch
         {
-            "Admin" => "profile-role-admin",
-            "Staff" => "profile-role-staff",
-            _ => "profile-role-customer"
+            "Admin" =>
+                "profile-role-admin",
+
+            "Staff" =>
+                "profile-role-staff",
+
+            _ =>
+                "profile-role-customer"
         };
     }
 }
 
-@section Styles {
-    <link rel="stylesheet"
-          href="~/css/profile.css"
-          asp-append-version="true" />
-}
+<style>
+    .profile-page {
+        min-height: 100vh;
+        padding: 34px 0 64px;
+        background: radial-gradient( circle at top right, rgba(13, 110, 253, 0.11), transparent 31% ), #f5f7fb;
+    }
+
+    .profile-heading {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 24px;
+    }
+
+        .profile-heading h1 {
+            margin: 0;
+            color: #172033;
+            font-size: clamp( 1.8rem, 3vw, 2.45rem );
+            font-weight: 900;
+        }
+
+        .profile-heading p {
+            margin: 8px 0 0;
+            color: #6c757d;
+        }
+
+    .profile-back-button {
+        min-height: 46px;
+        padding: 11px 18px;
+        border-radius: 13px;
+        font-weight: 800;
+    }
+
+    .profile-user-card {
+        overflow: hidden;
+        border: none;
+        border-radius: 24px;
+        background: #ffffff;
+        box-shadow: 0 14px 38px rgba(24, 39, 75, 0.1);
+    }
+
+    .profile-cover {
+        height: 135px;
+        background: linear-gradient( 135deg, #0d6efd, #111827 );
+    }
+
+    .profile-user-body {
+        padding: 0 24px 25px;
+        text-align: center;
+    }
+
+    .profile-avatar {
+        width: 112px;
+        height: 112px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: -56px;
+        overflow: hidden;
+        border: 6px solid #ffffff;
+        border-radius: 50%;
+        color: #ffffff;
+        background: linear-gradient( 135deg, #0d6efd, #6f42c1 );
+        box-shadow: 0 12px 28px rgba(13, 110, 253, 0.25);
+        font-size: 2rem;
+        font-weight: 900;
+    }
+
+    .profile-avatar {
+        position: relative;
+    }
+
+        .profile-avatar img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: cover;
+        }
+
+    .profile-avatar-upload {
+        margin-top: 16px;
+        padding: 14px;
+        border: 1px dashed #cbd5e1;
+        border-radius: 16px;
+        background: #f8fafc;
+        text-align: left;
+    }
+
+    .profile-avatar-upload-title {
+        margin-bottom: 8px;
+        color: #334155;
+        font-size: 0.88rem;
+        font-weight: 850;
+    }
+
+    .profile-avatar-help {
+        margin: 7px 0 0;
+        color: #7a8494;
+        font-size: 0.75rem;
+        line-height: 1.45;
+    }
+
+    .profile-avatar-button {
+        width: 100%;
+        min-height: 42px;
+        margin-top: 10px;
+        border-radius: 12px;
+        font-weight: 800;
+    }
+
+    .profile-name {
+        margin: 15px 0 4px;
+        color: #172033;
+        font-size: 1.45rem;
+        font-weight: 900;
+    }
+
+    .profile-username {
+        color: #7a8494;
+        font-size: 0.92rem;
+    }
+
+    .profile-role {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 13px;
+        padding: 7px 12px;
+        border-radius: 999px;
+        font-size: 0.83rem;
+        font-weight: 850;
+    }
+
+    .profile-role-admin {
+        color: #842029;
+        background: #f8d7da;
+    }
+
+    .profile-role-staff {
+        color: #084298;
+        background: #cfe2ff;
+    }
+
+    .profile-role-customer {
+        color: #146c43;
+        background: #d1e7dd;
+    }
+
+    .profile-account-status {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        margin-top: 12px;
+        color: #198754;
+        font-size: 0.87rem;
+        font-weight: 750;
+    }
+
+        .profile-account-status.locked {
+            color: #dc3545;
+        }
+
+    .profile-stat-grid {
+        display: grid;
+        grid-template-columns: repeat( 2, minmax(0, 1fr) );
+        gap: 11px;
+        margin-top: 23px;
+    }
+
+    .profile-stat {
+        padding: 14px 10px;
+        border: 1px solid #edf0f4;
+        border-radius: 15px;
+        background: #fbfcfe;
+    }
+
+    .profile-stat-value {
+        color: #172033;
+        font-size: 1.2rem;
+        font-weight: 900;
+    }
+
+    .profile-stat-label {
+        margin-top: 3px;
+        color: #7a8494;
+        font-size: 0.78rem;
+        font-weight: 650;
+    }
+
+    .profile-form-card {
+        height: 100%;
+        padding: 25px;
+        border: none;
+        border-radius: 22px;
+        background: #ffffff;
+        box-shadow: 0 12px 34px rgba(24, 39, 75, 0.08);
+    }
+
+    .profile-form-header {
+        margin-bottom: 21px;
+    }
+
+        .profile-form-header h2 {
+            margin: 0;
+            color: #172033;
+            font-size: 1.3rem;
+            font-weight: 900;
+        }
+
+        .profile-form-header p {
+            margin: 7px 0 0;
+            color: #6c757d;
+        }
+
+    .profile-label {
+        color: #344054;
+        font-weight: 800;
+    }
+
+    .profile-control {
+        min-height: 49px;
+        border-radius: 13px;
+    }
+
+    .profile-readonly {
+        background: #f1f3f5;
+    }
+
+    .profile-submit-button {
+        min-height: 48px;
+        border-radius: 13px;
+        font-weight: 850;
+    }
+
+    .profile-password-wrapper {
+        position: relative;
+    }
+
+        .profile-password-wrapper
+        .profile-control {
+            padding-right: 49px;
+        }
+
+    .profile-password-toggle {
+        position: absolute;
+        top: 50%;
+        right: 10px;
+        width: 36px;
+        height: 36px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        border-radius: 10px;
+        color: #6c757d;
+        background: transparent;
+        transform: translateY(-50%);
+    }
+
+    .profile-security-note {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        margin-bottom: 19px;
+        padding: 14px 15px;
+        border: 1px solid #b6effb;
+        border-radius: 14px;
+        color: #055160;
+        background: #cff4fc;
+        font-size: 0.88rem;
+    }
+
+    @@media (
+            max-width: 767.98px
+        ) {
+        .profile-page {
+            padding-top: 22px;
+        }
+
+        .profile-heading {
+            align-items: stretch;
+        }
+
+        .profile-back-button {
+            width: 100%;
+        }
+    }
+</style>
 
 <div class="profile-page">
-
     <div class="container">
 
         <div class="profile-heading">
 
             <div>
-
                 <h1>
                     <i class="bi bi-person-circle me-2 text-primary"></i>
-
-                    @(Model.IsCustomer
-                        ? "Hồ sơ khách hàng"
-                        : "Hồ sơ cá nhân")
+                    Hồ sơ cá nhân
                 </h1>
 
                 <p>
-                    Quản lý thông tin tài khoản,
-                    ảnh đại diện và bảo mật đăng nhập.
+                    Cập nhật thông tin tài khoản,
+                    ảnh đại diện và bảo vệ mật khẩu đăng nhập.
                 </p>
-
             </div>
 
-            <a asp-controller="@backController"
+            <a asp-controller="Home"
                asp-action="Index"
                class="btn btn-outline-primary profile-back-button">
 
-                <i class="bi bi-arrow-left me-2"></i>
-                Quay lại
-
+                <i class="bi bi-house-door me-2"></i>
+                Về trang chủ
             </a>
 
         </div>
@@ -109,24 +414,6 @@
                         data-bs-dismiss="alert"
                         aria-label="Đóng">
                 </button>
-
-            </div>
-        }
-
-        @if (TempData["InfoMessage"] != null)
-        {
-            <div class="alert alert-info alert-dismissible fade show shadow-sm"
-                 role="alert">
-
-                <i class="bi bi-info-circle-fill me-2"></i>
-                @TempData["InfoMessage"]
-
-                <button type="button"
-                        class="btn-close"
-                        data-bs-dismiss="alert"
-                        aria-label="Đóng">
-                </button>
-
             </div>
         }
 
@@ -143,13 +430,11 @@
                         data-bs-dismiss="alert"
                         aria-label="Đóng">
                 </button>
-
             </div>
         }
 
         <div class="row g-4">
 
-            <!-- CỘT AVATAR -->
             <div class="col-12 col-lg-4">
 
                 <div class="profile-user-card">
@@ -159,24 +444,21 @@
 
                     <div class="profile-user-body">
 
-                        <div class="profile-avatar-wrapper">
+                        <div class="profile-avatar"
+                             id="profileAvatarPreview">
 
-                            <img id="profileAvatarImage"
-                                 src="@(hasAvatar ? Model.AvatarUrl : "")"
-                                 alt="Ảnh đại diện của @Model.FullName"
-                                 class="profile-avatar-image @(hasAvatar ? "" : "d-none")"
-                                 onerror="this.classList.add('d-none');document.getElementById('profileAvatarInitials').classList.remove('d-none');" />
-
-                            <div id="profileAvatarInitials"
-                                 class="profile-avatar @(hasAvatar ? "d-none" : "")">
-
+                            <span id="profileAvatarFallback">
                                 @initials
-
-                            </div>
-
-                            <span class="profile-avatar-camera">
-                                <i class="bi bi-camera-fill"></i>
                             </span>
+
+                            @if (!string.IsNullOrWhiteSpace(
+                                avatarUrl))
+                            {
+                                <img src="@avatarUrl"
+                                     alt="Ảnh đại diện"
+                                     id="profileAvatarImage"
+                                     onerror="this.style.display='none';" />
+                            }
 
                         </div>
 
@@ -185,14 +467,15 @@
                         </div>
 
                         <div class="profile-username">
-                            @("@" + Model.UserName)
+                            @@Model.UserName
                         </div>
 
                         <span class="profile-role @GetRoleClass(Model.Role)">
 
-                            <i class="bi bi-shield-check"></i>
-                            @GetRoleText(Model.Role)
+                            <i class="bi bi-shield-check">
+                            </i>
 
+                            @GetRoleText(Model.Role)
                         </span>
 
                         <div class="profile-account-status @(Model.IsLocked ? "locked" : "")">
@@ -205,133 +488,106 @@
                             @(Model.IsLocked
                                 ? "Tài khoản đang bị khóa"
                                 : "Tài khoản đang hoạt động")
-
                         </div>
 
-                        <!-- FORM UPLOAD AVATAR -->
                         <form asp-controller="Profile"
                               asp-action="UploadAvatar"
                               method="post"
                               enctype="multipart/form-data"
-                              class="profile-avatar-form"
-                              data-loading-form="true">
+                              class="profile-avatar-upload"
+                              id="avatarUploadForm">
 
                             @Html.AntiForgeryToken()
 
-                            <label for="AvatarFile">
-                                Chọn ảnh đại diện mới
-                            </label>
+                            <div class="profile-avatar-upload-title">
 
-                            <input id="AvatarFile"
-                                   name="AvatarFile"
-                                   type="file"
+                                <i class="bi bi-camera-fill me-1">
+                                </i>
+
+                                Ảnh đại diện
+                            </div>
+
+                            <input type="file"
+                                   id="avatarFile"
+                                   name="avatarFile"
                                    accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-                                   class="form-control form-control-sm"
+                                   class="form-control"
                                    required />
 
-                            <div class="profile-avatar-hint">
-                                JPG, JPEG, PNG hoặc WEBP.
+                            <p class="profile-avatar-help">
+                                Hỗ trợ JPG, JPEG, PNG, WEBP.
                                 Dung lượng tối đa 5 MB.
-                            </div>
+                            </p>
 
-                            <div class="profile-avatar-actions">
+                            <button type="submit"
+                                    class="btn btn-primary profile-avatar-button"
+                                    id="uploadAvatarButton">
 
-                                <button type="submit"
-                                        class="btn btn-primary profile-avatar-button">
+                                <i class="bi bi-cloud-arrow-up-fill me-1">
+                                </i>
 
-                                    <i class="bi bi-cloud-arrow-up me-1"></i>
-                                    Lưu ảnh đại diện
-
-                                </button>
-
-                            </div>
+                                Cập nhật ảnh đại diện
+                            </button>
 
                         </form>
 
-                        @if (hasAvatar)
-                        {
-                            <form id="removeAvatarForm"
-                                  asp-controller="Profile"
-                                  asp-action="RemoveAvatar"
-                                  method="post"
-                                  class="mt-2">
+                        <div class="profile-stat-grid">
 
-                                @Html.AntiForgeryToken()
+                            <div class="profile-stat">
 
-                                <button type="submit"
-                                        class="btn btn-outline-danger profile-avatar-button w-100">
-
-                                    <i class="bi bi-trash3 me-1"></i>
-                                    Xóa ảnh đại diện
-
-                                </button>
-
-                            </form>
-                        }
-
-                        <!-- THỐNG KÊ CHỈ HIỆN CUSTOMER -->
-                        @if (Model.IsCustomer)
-                        {
-                            <div class="profile-stat-grid">
-
-                                <div class="profile-stat">
-
-                                    <div class="profile-stat-value">
-                                        @Model.TotalRentals
-                                    </div>
-
-                                    <div class="profile-stat-label">
-                                        Tổng đơn thuê
-                                    </div>
-
+                                <div class="profile-stat-value">
+                                    @Model.TotalRentals
                                 </div>
 
-                                <div class="profile-stat">
-
-                                    <div class="profile-stat-value">
-                                        @Model.PendingRentals
-                                    </div>
-
-                                    <div class="profile-stat-label">
-                                        Đang xử lý
-                                    </div>
-
-                                </div>
-
-                                <div class="profile-stat">
-
-                                    <div class="profile-stat-value">
-                                        @Model.BorrowingRentals
-                                    </div>
-
-                                    <div class="profile-stat-label">
-                                        Đang thuê
-                                    </div>
-
-                                </div>
-
-                                <div class="profile-stat">
-
-                                    <div class="profile-stat-value">
-                                        @Model.ReturnedRentals
-                                    </div>
-
-                                    <div class="profile-stat-label">
-                                        Đã trả
-                                    </div>
-
+                                <div class="profile-stat-label">
+                                    Tổng đơn thuê
                                 </div>
 
                             </div>
-                        }
+
+                            <div class="profile-stat">
+
+                                <div class="profile-stat-value">
+                                    @Model.BorrowingRentals
+                                </div>
+
+                                <div class="profile-stat-label">
+                                    Đang thuê
+                                </div>
+
+                            </div>
+
+                            <div class="profile-stat">
+
+                                <div class="profile-stat-value">
+                                    @Model.ReturnedRentals
+                                </div>
+
+                                <div class="profile-stat-label">
+                                    Đã trả
+                                </div>
+
+                            </div>
+
+                            <div class="profile-stat">
+
+                                <div class="profile-stat-value fs-6">
+                                    @Model.TotalSpent.ToString("N0")
+                                </div>
+
+                                <div class="profile-stat-label">
+                                    Đã thanh toán (VNĐ)
+                                </div>
+
+                            </div>
+
+                        </div>
 
                     </div>
-
                 </div>
 
             </div>
 
-            <!-- CỘT THÔNG TIN -->
             <div class="col-12 col-lg-8">
 
                 <div class="profile-form-card mb-4">
@@ -339,7 +595,9 @@
                     <div class="profile-form-header">
 
                         <h2>
-                            <i class="bi bi-person-lines-fill me-2 text-primary"></i>
+                            <i class="bi bi-person-lines-fill me-2 text-primary">
+                            </i>
+
                             Thông tin cá nhân
                         </h2>
 
@@ -352,8 +610,7 @@
 
                     <form asp-controller="Profile"
                           asp-action="Update"
-                          method="post"
-                          data-loading-form="true">
+                          method="post">
 
                         @Html.AntiForgeryToken()
 
@@ -385,14 +642,12 @@
 
                             <div class="col-12">
 
-                                <label for="FullName"
+                                <label for="fullName"
                                        class="form-label profile-label">
-
                                     Họ và tên
-
                                 </label>
 
-                                <input id="FullName"
+                                <input id="fullName"
                                        name="FullName"
                                        value="@Model.FullName"
                                        class="form-control profile-control"
@@ -404,14 +659,12 @@
 
                             <div class="col-12 col-md-6">
 
-                                <label for="Email"
+                                <label for="email"
                                        class="form-label profile-label">
-
                                     Email
-
                                 </label>
 
-                                <input id="Email"
+                                <input id="email"
                                        name="Email"
                                        type="email"
                                        value="@Model.Email"
@@ -423,190 +676,31 @@
 
                             <div class="col-12 col-md-6">
 
-                                <label for="Phone"
+                                <label for="phone"
                                        class="form-label profile-label">
-
                                     Số điện thoại
-
                                 </label>
 
-                                <input id="Phone"
+                                <input id="phone"
                                        name="Phone"
                                        type="tel"
                                        value="@Model.Phone"
                                        class="form-control profile-control"
-                                       maxlength="12"
+                                       maxlength="10"
+                                       pattern="0[0-9]{9}"
                                        placeholder="Ví dụ: 0901234567" />
 
                             </div>
 
-                            <!-- HỒ SƠ KHÁCH HÀNG -->
-                            @if (Model.IsCustomer)
-                            {
-                                <div class="col-12">
-
-                                    <div class="profile-section-title">
-
-                                        <i class="bi bi-person-vcard-fill"></i>
-                                        Hồ sơ khách hàng
-
-                                    </div>
-
-                                </div>
-
-                                <div class="col-12">
-
-                                    <div class="customer-code-box">
-
-                                        <i class="bi bi-upc-scan me-2"></i>
-
-                                        Mã khách hàng:
-                                        <strong>
-                                            @Model.CustomerCode
-                                        </strong>
-
-                                    </div>
-
-                                </div>
-
-                                <div class="col-12">
-
-                                    <label for="Address"
-                                           class="form-label profile-label">
-
-                                        Địa chỉ
-
-                                    </label>
-
-                                    <input id="Address"
-                                           name="Address"
-                                           value="@Model.Address"
-                                           class="form-control profile-control"
-                                           maxlength="250"
-                                           placeholder="Nhập địa chỉ nhận sách..." />
-
-                                </div>
-
-                                <div class="col-12 col-md-6">
-
-                                    <label for="DateOfBirth"
-                                           class="form-label profile-label">
-
-                                        Ngày sinh
-
-                                    </label>
-
-                                    <input id="DateOfBirth"
-                                           name="DateOfBirth"
-                                           type="date"
-                                           value="@(Model.DateOfBirth?.ToString("yyyy-MM-dd"))"
-                                           max="@DateTime.Today.ToString("yyyy-MM-dd")"
-                                           class="form-control profile-control" />
-
-                                </div>
-
-                                <div class="col-12 col-md-6">
-
-                                    <label for="Gender"
-                                           class="form-label profile-label">
-
-                                        Giới tính
-
-                                    </label>
-
-                                    <select id="Gender"
-                                            name="Gender"
-                                            class="form-select profile-control">
-
-                                        <option value="">
-                                            Chưa cập nhật
-                                        </option>
-
-                                        @if (Model.Gender == "Nam")
-                                        {
-                                            <option value="Nam" selected>
-                                                Nam
-                                            </option>
-                                        }
-                                        else
-                                        {
-                                            <option value="Nam">
-                                                Nam
-                                            </option>
-                                        }
-
-                                        @if (Model.Gender == "Nữ")
-                                        {
-                                            <option value="Nữ" selected>
-                                                Nữ
-                                            </option>
-                                        }
-                                        else
-                                        {
-                                            <option value="Nữ">
-                                                Nữ
-                                            </option>
-                                        }
-
-                                        @if (Model.Gender == "Khác")
-                                        {
-                                            <option value="Khác" selected>
-                                                Khác
-                                            </option>
-                                        }
-                                        else
-                                        {
-                                            <option value="Khác">
-                                                Khác
-                                            </option>
-                                        }
-
-                                    </select>
-
-                                </div>
-
-                                <div class="col-12">
-
-                                    <div class="customer-summary-box">
-
-                                        <div class="customer-summary-row">
-
-                                            <span>
-                                                Tổng tiền đã thanh toán
-                                            </span>
-
-                                            <strong class="text-danger">
-                                                @Model.TotalSpent.ToString("N0")
-                                                VNĐ
-                                            </strong>
-
-                                        </div>
-
-                                        <div class="customer-summary-row">
-
-                                            <span>
-                                                Đơn thuê đã hoàn thành
-                                            </span>
-
-                                            <strong>
-                                                @Model.ReturnedRentals
-                                            </strong>
-
-                                        </div>
-
-                                    </div>
-
-                                </div>
-                            }
-
-                            <div class="col-12 mt-4">
+                            <div class="col-12">
 
                                 <button type="submit"
                                         class="btn btn-primary profile-submit-button px-4">
 
-                                    <i class="bi bi-check-lg me-2"></i>
-                                    Lưu thông tin
+                                    <i class="bi bi-check-lg me-2">
+                                    </i>
 
+                                    Lưu thông tin
                                 </button>
 
                             </div>
@@ -617,26 +711,28 @@
 
                 </div>
 
-                <!-- ĐỔI MẬT KHẨU -->
                 <div class="profile-form-card">
 
                     <div class="profile-form-header">
 
                         <h2>
-                            <i class="bi bi-key-fill me-2 text-warning"></i>
+                            <i class="bi bi-key-fill me-2 text-warning">
+                            </i>
+
                             Đổi mật khẩu
                         </h2>
 
                         <p>
-                            Mật khẩu mới phải có ít nhất
-                            6 ký tự và khác mật khẩu hiện tại.
+                            Mật khẩu mới phải có ít nhất 6 ký tự
+                            và khác mật khẩu hiện tại.
                         </p>
 
                     </div>
 
                     <div class="profile-security-note">
 
-                        <i class="bi bi-shield-lock-fill"></i>
+                        <i class="bi bi-shield-lock-fill">
+                        </i>
 
                         <div>
                             Mật khẩu được băm bằng BCrypt
@@ -648,8 +744,7 @@
                     <form asp-controller="Profile"
                           asp-action="ChangePassword"
                           method="post"
-                          id="changePasswordForm"
-                          data-loading-form="true">
+                          id="changePasswordForm">
 
                         @Html.AntiForgeryToken()
 
@@ -659,9 +754,7 @@
 
                                 <label for="currentPassword"
                                        class="form-label profile-label">
-
                                     Mật khẩu hiện tại
-
                                 </label>
 
                                 <div class="profile-password-wrapper">
@@ -675,9 +768,11 @@
 
                                     <button type="button"
                                             class="profile-password-toggle"
-                                            data-password-target="currentPassword">
+                                            data-password-target="currentPassword"
+                                            aria-label="Hiện hoặc ẩn mật khẩu">
 
-                                        <i class="bi bi-eye"></i>
+                                        <i class="bi bi-eye">
+                                        </i>
 
                                     </button>
 
@@ -689,9 +784,7 @@
 
                                 <label for="newPassword"
                                        class="form-label profile-label">
-
                                     Mật khẩu mới
-
                                 </label>
 
                                 <div class="profile-password-wrapper">
@@ -706,9 +799,11 @@
 
                                     <button type="button"
                                             class="profile-password-toggle"
-                                            data-password-target="newPassword">
+                                            data-password-target="newPassword"
+                                            aria-label="Hiện hoặc ẩn mật khẩu">
 
-                                        <i class="bi bi-eye"></i>
+                                        <i class="bi bi-eye">
+                                        </i>
 
                                     </button>
 
@@ -720,9 +815,7 @@
 
                                 <label for="confirmPassword"
                                        class="form-label profile-label">
-
                                     Xác nhận mật khẩu mới
-
                                 </label>
 
                                 <div class="profile-password-wrapper">
@@ -737,9 +830,11 @@
 
                                     <button type="button"
                                             class="profile-password-toggle"
-                                            data-password-target="confirmPassword">
+                                            data-password-target="confirmPassword"
+                                            aria-label="Hiện hoặc ẩn mật khẩu">
 
-                                        <i class="bi bi-eye"></i>
+                                        <i class="bi bi-eye">
+                                        </i>
 
                                     </button>
 
@@ -752,9 +847,10 @@
                                 <button type="submit"
                                         class="btn btn-warning profile-submit-button px-4">
 
-                                    <i class="bi bi-key me-2"></i>
-                                    Đổi mật khẩu
+                                    <i class="bi bi-key me-2">
+                                    </i>
 
+                                    Đổi mật khẩu
                                 </button>
 
                             </div>
@@ -770,11 +866,262 @@
         </div>
 
     </div>
-
 </div>
 
 @section Scripts {
-    <script src="~/js/profile.js"
-            asp-append-version="true">
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        document
+        .querySelectorAll(
+        "[data-password-target]"
+        )
+        .forEach(function (button) {
+
+        button.addEventListener(
+        "click",
+        function () {
+
+        const targetId =
+        button.getAttribute(
+        "data-password-target"
+        );
+
+        const input =
+        document.getElementById(
+        targetId
+        );
+
+        const icon =
+        button.querySelector(
+        "i"
+        );
+
+        if (!input) {
+        return;
+        }
+
+        const shouldShow =
+        input.type ===
+        "password";
+
+        input.type =
+        shouldShow
+        ? "text"
+        : "password";
+
+        if (icon) {
+        icon.className =
+        shouldShow
+        ? "bi bi-eye-slash"
+        : "bi bi-eye";
+        }
+        }
+        );
+        });
+
+        const changePasswordForm =
+        document.getElementById(
+        "changePasswordForm"
+        );
+
+        changePasswordForm
+        ?.addEventListener(
+        "submit",
+        function (event) {
+
+        const newPassword =
+        document
+        .getElementById(
+        "newPassword"
+        )
+        ?.value ?? "";
+
+        const confirmPassword =
+        document
+        .getElementById(
+        "confirmPassword"
+        )
+        ?.value ?? "";
+
+        if (
+        newPassword !==
+        confirmPassword
+        ) {
+        event.preventDefault();
+
+        if (
+        typeof Swal !==
+        "undefined"
+        ) {
+        Swal.fire({
+        title:
+        "Mật khẩu không khớp",
+        text:
+        "Vui lòng nhập lại phần xác nhận mật khẩu.",
+        icon:
+        "warning",
+        confirmButtonText:
+        "Đã hiểu"
+        });
+        }
+        }
+        }
+        );
+
+        const avatarInput =
+        document.getElementById(
+        "avatarFile"
+        );
+
+        const avatarPreview =
+        document.getElementById(
+        "profileAvatarPreview"
+        );
+
+        avatarInput
+        ?.addEventListener(
+        "change",
+        function () {
+
+        const file =
+        avatarInput
+        .files?.[0];
+
+        if (
+        !file ||
+        !avatarPreview
+        ) {
+        return;
+        }
+
+        const allowedTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/webp"
+        ];
+
+        const maxSize =
+        5 * 1024 * 1024;
+
+        if (
+        !allowedTypes
+        .includes(
+        file.type)
+        ) {
+        avatarInput.value =
+        "";
+
+        if (
+        typeof Swal !==
+        "undefined"
+        ) {
+        Swal.fire({
+        title:
+        "Ảnh không hợp lệ",
+        text:
+        "Chỉ chấp nhận JPG, JPEG, PNG hoặc WEBP.",
+        icon:
+        "warning",
+        confirmButtonText:
+        "Đã hiểu"
+        });
+        }
+
+        return;
+        }
+
+        if (
+        file.size >
+        maxSize
+        ) {
+        avatarInput.value =
+        "";
+
+        if (
+        typeof Swal !==
+        "undefined"
+        ) {
+        Swal.fire({
+        title:
+        "Ảnh quá lớn",
+        text:
+        "Dung lượng ảnh tối đa là 5 MB.",
+        icon:
+        "warning",
+        confirmButtonText:
+        "Đã hiểu"
+        });
+        }
+
+        return;
+        }
+
+        const objectUrl =
+        URL.createObjectURL(
+        file
+        );
+
+        avatarPreview
+        .innerHTML =
+        "";
+
+        const image =
+        document
+        .createElement(
+        "img"
+        );
+
+        image.src =
+        objectUrl;
+
+        image.alt =
+        "Xem trước ảnh đại diện";
+
+        image.onload =
+        function () {
+        URL.revokeObjectURL(
+        objectUrl
+        );
+        };
+
+        avatarPreview
+        .appendChild(
+        image
+        );
+        }
+        );
+
+        const avatarUploadForm =
+        document.getElementById(
+        "avatarUploadForm"
+        );
+
+        const uploadAvatarButton =
+        document.getElementById(
+        "uploadAvatarButton"
+        );
+
+        avatarUploadForm
+        ?.addEventListener(
+        "submit",
+        function () {
+
+        if (
+        !uploadAvatarButton
+        ) {
+        return;
+        }
+
+        uploadAvatarButton
+        .disabled =
+        true;
+
+        uploadAvatarButton
+        .innerHTML =
+        '<span class="spinner-border spinner-border-sm me-2"></span>Đang tải ảnh...';
+        }
+        );
     </script>
 }
