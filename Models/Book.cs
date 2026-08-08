@@ -1,10 +1,22 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace VDK_BookRental.Models
 {
     public class Book
     {
+        // =====================================================
+        // CONSTANT STATUS
+        // =====================================================
+
+        public const string AvailableStatus = "Available";
+        public const string UnavailableStatus = "Unavailable";
+
+        // =====================================================
+        // ID
+        // =====================================================
+
         public int Id { get; set; }
 
         // =====================================================
@@ -60,7 +72,8 @@ namespace VDK_BookRental.Models
             typeof(decimal),
             "0",
             "100000000",
-            ErrorMessage = "Giá thuê phải từ 0 đến 100.000.000 VNĐ.")]
+            ErrorMessage =
+                "Giá thuê phải từ 0 đến 100.000.000 VNĐ.")]
         [Column(TypeName = "decimal(18,2)")]
         [Display(Name = "Giá thuê mỗi ngày")]
         public decimal RentalPrice { get; set; }
@@ -72,7 +85,8 @@ namespace VDK_BookRental.Models
         [Range(
             0,
             1000000,
-            ErrorMessage = "Số lượng phải từ 0 đến 1.000.000.")]
+            ErrorMessage =
+                "Số lượng phải từ 0 đến 1.000.000.")]
         [Display(Name = "Số lượng trong kho")]
         public int Quantity { get; set; }
 
@@ -82,7 +96,8 @@ namespace VDK_BookRental.Models
 
         [StringLength(
             500,
-            ErrorMessage = "Đường dẫn ảnh không được vượt quá 500 ký tự.")]
+            ErrorMessage =
+                "Đường dẫn ảnh không được vượt quá 500 ký tự.")]
         [Display(Name = "Ảnh bìa")]
         public string? ImageUrl { get; set; }
 
@@ -93,39 +108,53 @@ namespace VDK_BookRental.Models
         [Required]
         [StringLength(
             30,
-            ErrorMessage = "Trạng thái không được vượt quá 30 ký tự.")]
+            ErrorMessage =
+                "Trạng thái không được vượt quá 30 ký tự.")]
         [Display(Name = "Trạng thái")]
-        public string Status { get; set; } = "Available";
+        public string Status { get; set; } = AvailableStatus;
 
         // =====================================================
-        // QUAN HỆ VỚI CATEGORY
+        // QUAN HỆ CATEGORY
         // =====================================================
 
         public Category? Category { get; set; }
 
         // =====================================================
-        // THUỘC TÍNH HỖ TRỢ, KHÔNG LƯU DATABASE
+        // THUỘC TÍNH HỖ TRỢ
+        // KHÔNG LƯU DATABASE
         // =====================================================
 
+        /// <summary>
+        /// Sách có thể thuê hay không.
+        /// </summary>
         [NotMapped]
         public bool IsAvailable =>
             Quantity > 0 &&
             string.Equals(
                 Status,
-                "Available",
+                AvailableStatus,
                 StringComparison.OrdinalIgnoreCase);
 
+        /// <summary>
+        /// Sách sắp hết khi còn từ 1 - 3 cuốn.
+        /// </summary>
         [NotMapped]
         public bool IsLowStock =>
-            Quantity > 0 &&
-            Quantity <= 3;
+            Quantity is > 0 and <= 3;
 
+        /// <summary>
+        /// Ảnh hiển thị.
+        /// Nếu chưa có ảnh sẽ dùng ảnh mặc định.
+        /// </summary>
         [NotMapped]
         public string DisplayImageUrl =>
             string.IsNullOrWhiteSpace(ImageUrl)
                 ? "/images/books/default-book.jpg"
                 : ImageUrl;
 
+        /// <summary>
+        /// Nội dung hiển thị tình trạng kho.
+        /// </summary>
         [NotMapped]
         public string StockDisplayText
         {
@@ -143,6 +172,101 @@ namespace VDK_BookRental.Models
 
                 return "Còn sách";
             }
+        }
+
+        /// <summary>
+        /// Hiển thị trạng thái bằng tiếng Việt.
+        /// </summary>
+        [NotMapped]
+        public string StatusDisplayText
+        {
+            get
+            {
+                if (Quantity <= 0)
+                {
+                    return "Hết sách";
+                }
+
+                return string.Equals(
+                    Status,
+                    AvailableStatus,
+                    StringComparison.OrdinalIgnoreCase)
+                    ? "Đang cho thuê"
+                    : "Ngừng cho thuê";
+            }
+        }
+
+        /// <summary>
+        /// Bootstrap class dùng cho badge trạng thái.
+        /// </summary>
+        [NotMapped]
+        public string StatusBadgeClass
+        {
+            get
+            {
+                if (Quantity <= 0)
+                {
+                    return "bg-danger";
+                }
+
+                if (IsLowStock)
+                {
+                    return "bg-warning text-dark";
+                }
+
+                if (IsAvailable)
+                {
+                    return "bg-success";
+                }
+
+                return "bg-secondary";
+            }
+        }
+
+        // =====================================================
+        // HÀM HỖ TRỢ
+        // =====================================================
+
+        /// <summary>
+        /// Đồng bộ trạng thái dựa trên số lượng.
+        /// </summary>
+        public void SyncStockStatus()
+        {
+            if (Quantity <= 0)
+            {
+                Quantity = 0;
+                Status = UnavailableStatus;
+            }
+            else if (string.IsNullOrWhiteSpace(Status))
+            {
+                Status = AvailableStatus;
+            }
+        }
+
+        /// <summary>
+        /// Chuẩn hóa dữ liệu trước khi lưu.
+        /// </summary>
+        public void Normalize()
+        {
+            Title = Title.Trim();
+            Author = Author.Trim();
+
+            Description =
+                string.IsNullOrWhiteSpace(Description)
+                    ? null
+                    : Description.Trim();
+
+            ImageUrl =
+                string.IsNullOrWhiteSpace(ImageUrl)
+                    ? null
+                    : ImageUrl.Trim();
+
+            Status =
+                string.IsNullOrWhiteSpace(Status)
+                    ? AvailableStatus
+                    : Status.Trim();
+
+            SyncStockStatus();
         }
     }
 }
