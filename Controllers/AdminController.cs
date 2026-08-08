@@ -256,10 +256,33 @@ namespace VDK_BookRental.Controllers
 
             try
             {
+                var title = model.Title?.Trim() ?? string.Empty;
+                var author = model.Author?.Trim() ?? string.Empty;
+
+                // Prevent duplicate book (simple guard)
+                var exists = await _context.Books
+                    .AsNoTracking()
+                    .AnyAsync(b =>
+                        b.Title.ToLower() == title.ToLower() &&
+                        b.Author.ToLower() == author.ToLower());
+
+                if (exists)
+                {
+                    ModelState.AddModelError(string.Empty, "Sách với tên và tác giả này đã tồn tại.");
+
+                    model.Categories = (await _context.Categories
+                        .AsNoTracking()
+                        .OrderBy(c => c.Name)
+                        .ToListAsync())
+                        .Select(c => new SelectListItem(c.Name, c.Id.ToString())).ToList();
+
+                    return View("~/Views/Admin/CreateBook.cshtml", model);
+                }
+
                 var book = new Book
                 {
-                    Title = model.Title.Trim(),
-                    Author = model.Author.Trim(),
+                    Title = title,
+                    Author = author,
                     CategoryId = model.CategoryId,
                     RentalPrice = model.RentalPrice,
                     Quantity = model.Quantity,
@@ -267,14 +290,29 @@ namespace VDK_BookRental.Controllers
                     ImageUrl = model.ExistingImageUrl
                 };
 
-                // Handle uploaded image
+                // Handle uploaded image (safe extension + content type already validated)
                 if (model.ImageFile != null && model.ImageFile.Length > 0)
                 {
                     var uploads = Path.Combine(_environment.WebRootPath, "images", "books");
                     if (!Directory.Exists(uploads)) Directory.CreateDirectory(uploads);
 
-                    var ext = Path.GetExtension(model.ImageFile.FileName);
-                    var fileName = $"book_{DateTime.UtcNow:yyyyMMddHHmmssfff}{ext}";
+                    var ext = Path.GetExtension(model.ImageFile.FileName)?.ToLowerInvariant() ?? string.Empty;
+                    var allowedExt = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+
+                    if (!allowedExt.Contains(ext))
+                    {
+                        ModelState.AddModelError("ImageFile", "Định dạng tệp không hợp lệ.");
+
+                        model.Categories = (await _context.Categories
+                            .AsNoTracking()
+                            .OrderBy(c => c.Name)
+                            .ToListAsync())
+                            .Select(c => new SelectListItem(c.Name, c.Id.ToString())).ToList();
+
+                        return View("~/Views/Admin/CreateBook.cshtml", model);
+                    }
+
+                    var fileName = $"book_{Guid.NewGuid():N}{ext}";
                     var filePath = Path.Combine(uploads, fileName);
 
                     await using var stream = System.IO.File.Create(filePath);
@@ -439,6 +477,17 @@ namespace VDK_BookRental.Controllers
                 if (book == null)
                 {
                     TempData["ErrorMessage"] = "Không tìm thấy sách.";
+                    return RedirectToAction(nameof(Books));
+                }
+
+                // Check for related rental data that would prevent deletion
+                var hasRentalDetails = await _context.RentalDetails
+                    .AsNoTracking()
+                    .AnyAsync(rd => rd.BookId == id);
+
+                if (hasRentalDetails)
+                {
+                    TempData["ErrorMessage"] = "Không thể xóa sách này vì đã có giao dịch thuê liên quan.";
                     return RedirectToAction(nameof(Books));
                 }
 

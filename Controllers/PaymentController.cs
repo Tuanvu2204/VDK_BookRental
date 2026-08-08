@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using VDK_BookRental.Data;
@@ -192,172 +193,170 @@ namespace VDK_BookRental.Controllers
 
             try
             {
-                /*
-                 * Không mở transaction thủ công ở đây.
-                 * Một SaveChangesAsync là transaction nguyên tử,
-                 * đồng thời tương thích với EnableRetryOnFailure.
-                 */
-                var rental = await _context.Rentals
-                    .Include(item => item.Payment)
-                    .FirstOrDefaultAsync(item =>
-                        item.Id == rentalId &&
-                        item.UserId == userId.Value);
+                // Use execution strategy and explicit transaction to ensure
+                // atomicity and proper commit/rollback handling.
+                var executionStrategy =
+                    _context.Database.CreateExecutionStrategy();
 
-                if (rental == null)
+                return await executionStrategy.ExecuteAsync(async () =>
                 {
-                    TempData["ErrorMessage"] =
-                        "Không tìm thấy đơn thuê hoặc " +
-                        "bạn không có quyền thanh toán đơn này.";
+                    _context.ChangeTracker.Clear();
 
-                    return RedirectToAction(
-                        "Current",
-                        "Rental"
-                    );
-                }
+                    await using var transaction =
+                        await _context.Database.BeginTransactionAsync();
 
-                if (IsRentalCancelled(rental.Status))
-                {
-                    TempData["ErrorMessage"] =
-                        "Đơn thuê đã bị hủy nên không thể thanh toán.";
-
-                    return RedirectToAction(
-                        "History",
-                        "Rental"
-                    );
-                }
-
-                if (IsRentalReturned(rental.Status))
-                {
-                    TempData["ErrorMessage"] =
-                        "Đơn thuê đã hoàn tất nên không thể thanh toán lại.";
-
-                    return RedirectToAction(
-                        "History",
-                        "Rental"
-                    );
-                }
-
-                var payment = rental.Payment;
-
-                if (payment != null &&
-                    IsPaymentCompleted(payment.Status))
-                {
-                    TempData["InfoMessage"] =
-                        "Đơn thuê này đã được thanh toán.";
-
-                    return RedirectToAction(
-                        "Details",
-                        "Contract",
-                        new
-                        {
-                            rentalId
-                        }
-                    );
-                }
-
-                if (payment != null &&
-                    string.Equals(
-                        payment.Status,
-                        "AwaitingConfirmation",
-                        StringComparison.OrdinalIgnoreCase))
-                {
-                    TempData["InfoMessage"] =
-                        "Yêu cầu thanh toán đã được gửi trước đó. " +
-                        "Vui lòng chờ nhân viên xác nhận.";
-
-                    return RedirectToAction(
-                        "Details",
-                        "Contract",
-                        new
-                        {
-                            rentalId
-                        }
-                    );
-                }
-
-                if (payment != null &&
-                    string.Equals(
-                        payment.Status,
-                        "Cancelled",
-                        StringComparison.OrdinalIgnoreCase))
-                {
-                    TempData["ErrorMessage"] =
-                        "Giao dịch thanh toán đã bị hủy. " +
-                        "Vui lòng liên hệ nhân viên để được mở lại.";
-
-                    return RedirectToAction(
-                        nameof(Checkout),
-                        new
-                        {
-                            rentalId
-                        }
-                    );
-                }
-
-                if (payment == null)
-                {
-                    payment = new Payment
+                    try
                     {
-                        RentalId = rental.Id,
-                        Amount = rental.TotalAmount,
-                        PaymentMethod = normalizedPaymentMethod,
-                        QrCodeUrl =
-                            GetQrCodeUrl(normalizedPaymentMethod),
-                        TransferContent =
-                            $"RENTAL_{rental.Id}",
-                        Status = "AwaitingConfirmation",
-                        CreatedAt = DateTime.Now
-                    };
+                        var rental = await _context.Rentals
+                            .Include(item => item.Payment)
+                            .FirstOrDefaultAsync(item =>
+                                item.Id == rentalId &&
+                                item.UserId == userId.Value);
 
-                    _context.Payments.Add(payment);
-                }
-                else
-                {
-                    payment.Amount =
-                        rental.TotalAmount;
+                        if (rental == null)
+                        {
+                            await RollbackSafelyAsync(transaction);
 
-                    payment.PaymentMethod =
-                        normalizedPaymentMethod;
+                            TempData["ErrorMessage"] =
+                                "Không tìm thấy đơn thuê hoặc " +
+                                "bạn không có quyền thanh toán đơn này.";
 
-                    payment.QrCodeUrl =
-                        GetQrCodeUrl(normalizedPaymentMethod);
+                            return RedirectToAction(
+                                "Current",
+                                "Rental");
+                        }
 
-                    if (string.IsNullOrWhiteSpace(
-                        payment.TransferContent))
-                    {
-                        payment.TransferContent =
-                            $"RENTAL_{rental.Id}";
+                        if (IsRentalCancelled(rental.Status))
+                        {
+                            await RollbackSafelyAsync(transaction);
+
+                            TempData["ErrorMessage"] =
+                                "Đơn thuê đã bị hủy nên không thể thanh toán.";
+
+                            return RedirectToAction(
+                                "History",
+                                "Rental");
+                        }
+
+                        if (IsRentalReturned(rental.Status))
+                        {
+                            await RollbackSafelyAsync(transaction);
+
+                            TempData["ErrorMessage"] =
+                                "Đơn thuê đã hoàn tất nên không thể thanh toán lại.";
+
+                            return RedirectToAction(
+                                "History",
+                                "Rental");
+                        }
+
+                        var payment = rental.Payment;
+
+                        if (payment != null &&
+                            IsPaymentCompleted(payment.Status))
+                        {
+                            await RollbackSafelyAsync(transaction);
+
+                            TempData["InfoMessage"] =
+                                "Đơn thuê này đã được thanh toán.";
+
+                            return RedirectToAction(
+                                "Details",
+                                "Contract",
+                                new { rentalId });
+                        }
+
+                        if (payment != null &&
+                            string.Equals(
+                                payment.Status,
+                                "AwaitingConfirmation",
+                                StringComparison.OrdinalIgnoreCase))
+                        {
+                            await RollbackSafelyAsync(transaction);
+
+                            TempData["InfoMessage"] =
+                                "Yêu cầu thanh toán đã được gửi trước đó. Vui lòng chờ nhân viên xác nhận.";
+
+                            return RedirectToAction(
+                                "Details",
+                                "Contract",
+                                new { rentalId });
+                        }
+
+                        if (payment != null &&
+                            string.Equals(
+                                payment.Status,
+                                "Cancelled",
+                                StringComparison.OrdinalIgnoreCase))
+                        {
+                            await RollbackSafelyAsync(transaction);
+
+                            TempData["ErrorMessage"] =
+                                "Giao dịch thanh toán đã bị hủy. Vui lòng liên hệ nhân viên để được mở lại.";
+
+                            return RedirectToAction(
+                                nameof(Checkout),
+                                new { rentalId });
+                        }
+
+                        if (payment == null)
+                        {
+                            payment = new Payment
+                            {
+                                RentalId = rental.Id,
+                                Amount = rental.TotalAmount,
+                                PaymentMethod = normalizedPaymentMethod,
+                                QrCodeUrl = GetQrCodeUrl(normalizedPaymentMethod),
+                                TransferContent = $"RENTAL_{rental.Id}",
+                                Status = "AwaitingConfirmation",
+                                CreatedAt = DateTime.Now
+                            };
+
+                            _context.Payments.Add(payment);
+                        }
+                        else
+                        {
+                            payment.Amount = rental.TotalAmount;
+
+                            payment.PaymentMethod = normalizedPaymentMethod;
+
+                            payment.QrCodeUrl = GetQrCodeUrl(normalizedPaymentMethod);
+
+                            if (string.IsNullOrWhiteSpace(payment.TransferContent))
+                            {
+                                payment.TransferContent = $"RENTAL_{rental.Id}";
+                            }
+
+                            payment.Status = "AwaitingConfirmation";
+                        }
+
+                        await _context.SaveChangesAsync();
+
+                        await transaction.CommitAsync();
+
+                        _logger.LogInformation(
+                            "UserId {UserId} đã gửi xác nhận thanh toán PaymentId {PaymentId}, RentalId {RentalId}, Method {Method}, Amount {Amount}.",
+                            userId.Value,
+                            payment.Id,
+                            rental.Id,
+                            payment.PaymentMethod,
+                            payment.Amount);
+
+                        TempData["SuccessMessage"] =
+                            "Đã xác nhận chuyển khoản. Hợp đồng thuê sách đã được tạo.";
+
+                        return RedirectToAction(
+                            "Details",
+                            "Contract",
+                            new { rentalId = rental.Id });
                     }
-
-                    payment.Status =
-                        "AwaitingConfirmation";
-                }
-
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation(
-                    "UserId {UserId} đã gửi xác nhận " +
-                    "thanh toán PaymentId {PaymentId}, " +
-                    "RentalId {RentalId}, Method {Method}, " +
-                    "Amount {Amount}.",
-                    userId.Value,
-                    payment.Id,
-                    rental.Id,
-                    payment.PaymentMethod,
-                    payment.Amount);
-
-                TempData["SuccessMessage"] =
-                    "Đã xác nhận chuyển khoản. " +
-                    "Hợp đồng thuê sách đã được tạo.";
-
-                return RedirectToAction(
-                    "Details",
-                    "Contract",
-                    new
+                    catch
                     {
-                        rentalId = rental.Id
+                        await RollbackSafelyAsync(transaction);
+
+                        throw;
                     }
-                );
+                });
             }
             catch (DbUpdateConcurrencyException exception)
             {
@@ -634,6 +633,25 @@ namespace VDK_BookRental.Controllers
         // =========================================================
         // THÔNG BÁO LỖI
         // =========================================================
+
+        // =========================================================
+        // ROLLBACK TRANSACTION AN TOÀN
+        // =========================================================
+
+        private async Task RollbackSafelyAsync(
+            IDbContextTransaction transaction)
+        {
+            try
+            {
+                await transaction.RollbackAsync();
+            }
+            catch (Exception rollbackException)
+            {
+                _logger.LogError(
+                    rollbackException,
+                    "Không thể rollback transaction xác nhận thanh toán.");
+            }
+        }
 
         private string GetDatabaseErrorMessage(
             DbUpdateException exception)
