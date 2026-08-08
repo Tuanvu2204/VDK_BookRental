@@ -1,0 +1,110 @@
+@using Microsoft.AspNetCore.Http
+@{
+	var currentController =
+		ViewContext.RouteData.Values["controller"]?.ToString() ?? string.Empty;
+
+	var currentAction =
+		ViewContext.RouteData.Values["action"]?.ToString() ?? string.Empty;
+
+	var userId = Context.Session.GetString("UserId");
+	var userName = Context.Session.GetString("UserName");
+	var fullName = Context.Session.GetString("FullName");
+	var userRole = Context.Session.GetString("UserRole");
+
+	var isLoggedIn = !string.IsNullOrWhiteSpace(userId);
+
+	var displayName = !string.IsNullOrWhiteSpace(fullName)
+		? fullName
+		: !string.IsNullOrWhiteSpace(userName)
+			? userName
+			: "Người dùng";
+
+	var isAdmin = string.Equals(userRole, "Admin", StringComparison.OrdinalIgnoreCase);
+	var isStaff = string.Equals(userRole, "Staff", StringComparison.OrdinalIgnoreCase);
+
+	string ActiveClass(string controller, string? action = null)
+	{
+		var controllerMatched = string.Equals(currentController, controller, StringComparison.OrdinalIgnoreCase);
+		var actionMatched = string.IsNullOrWhiteSpace(action) || string.Equals(currentAction, action, StringComparison.OrdinalIgnoreCase);
+		return controllerMatched && actionMatched ? "active" : string.Empty;
+	}
+
+	var initials = "U";
+	if (!string.IsNullOrWhiteSpace(displayName))
+	{
+		var parts = displayName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+		initials = string.Concat(parts.Take(2).Select(p => char.ToUpperInvariant(p[0])));
+	}
+
+	string? avatarUrl = null;
+	if (int.TryParse(userId, out var parsedId) && parsedId > 0)
+	{
+		avatarUrl = Url.Action("Avatar", "Profile", new { userId = parsedId });
+	}
+}
+
+<header>
+	<nav class="navbar navbar-expand-lg vdk-navbar">
+		<div class="container-fluid px-3 px-lg-4">
+			<a class="navbar-brand" asp-controller="Books" asp-action="Index">
+				<span class="vdk-logo"><i class="bi bi-book-half"></i></span>
+				<span class="vdk-brand-text">VDK Book Rental<small>Hệ thống cho thuê sách</small></span>
+			</a>
+
+			<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#vdkMainNavbar" aria-controls="vdkMainNavbar" aria-expanded="false" aria-label="Mở menu">
+				<span class="navbar-toggler-icon"></span>
+			</button>
+
+			<div class="collapse navbar-collapse" id="vdkMainNavbar">
+				<ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-4">
+					<li class="nav-item"><a class="nav-link @ActiveClass("Books","Index")" asp-controller="Books" asp-action="Index"><i class="bi bi-house-door"></i> Trang chủ</a></li>
+					<li class="nav-item"><a class="nav-link @ActiveClass("Books")" asp-controller="Books" asp-action="Index"><i class="bi bi-book"></i> Kho sách</a></li>
+
+					@if (isLoggedIn)
+					{
+						<li class="nav-item"><a class="nav-link @ActiveClass("Rental","Current")" asp-controller="Rental" asp-action="Current"><i class="bi bi-bag-check"></i> Sách đang thuê</a></li>
+						<li class="nav-item"><a class="nav-link @ActiveClass("Rental","History")" asp-controller="Rental" asp-action="History"><i class="bi bi-clock-history"></i> Lịch sử thuê</a></li>
+					}
+
+					@if (isAdmin)
+					{
+						<li class="nav-item"><a class="nav-link @ActiveClass("Admin")" asp-controller="Admin" asp-action="Index"><i class="bi bi-speedometer2"></i> Quản trị</a></li>
+					}
+					else if (isStaff)
+					{
+						<li class="nav-item"><a class="nav-link @ActiveClass("Staff")" asp-controller="Staff" asp-action="Index"><i class="bi bi-person-workspace"></i> Nhân viên</a></li>
+					}
+				</ul>
+
+				@if (isLoggedIn)
+				{
+					<div class="dropdown">
+						<button class="btn nav-link dropdown-toggle vdk-user-dropdown" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+							<span class="vdk-user-avatar"><span>@initials</span>
+								@if (!string.IsNullOrWhiteSpace(avatarUrl)) { <img src="@avatarUrl" alt="Ảnh đại diện" onerror="this.style.display='none';" /> }
+							</span>
+							<span class="vdk-user-info"><strong>@displayName</strong><small>@(string.IsNullOrWhiteSpace(userRole)?"Khách hàng":userRole)</small></span>
+						</button>
+
+						<ul class="dropdown-menu dropdown-menu-end vdk-dropdown-menu">
+							<li><a class="dropdown-item" asp-controller="Profile" asp-action="Index"><i class="bi bi-person-circle"></i> Hồ sơ cá nhân</a></li>
+							<li><a class="dropdown-item" asp-controller="Rental" asp-action="Current"><i class="bi bi-bag-check"></i> Đơn thuê hiện tại</a></li>
+							<li><a class="dropdown-item" asp-controller="Rental" asp-action="History"><i class="bi bi-clock-history"></i> Lịch sử thuê sách</a></li>
+							@if (isAdmin) { <li><hr class="dropdown-divider" /></li><li><a class="dropdown-item" asp-controller="Admin" asp-action="Index"><i class="bi bi-shield-lock"></i> Trang quản trị</a></li> }
+							@if (isStaff) { <li><hr class="dropdown-divider" /></li><li><a class="dropdown-item" asp-controller="Staff" asp-action="Index"><i class="bi bi-person-workspace"></i> Trang nhân viên</a></li> }
+							<li><hr class="dropdown-divider" /></li>
+							<li><a class="dropdown-item text-danger" asp-controller="Account" asp-action="Logout"><i class="bi bi-box-arrow-right"></i> Đăng xuất</a></li>
+						</ul>
+					</div>
+				}
+				else
+				{
+					<div class="d-flex gap-2 vdk-auth-actions">
+						<a class="vdk-auth-button vdk-login-button" asp-controller="Account" asp-action="Login"><i class="bi bi-box-arrow-in-right"></i> Đăng nhập</a>
+						<a class="vdk-auth-button vdk-register-button" asp-controller="Account" asp-action="Register"><i class="bi bi-person-plus"></i> Đăng ký</a>
+					</div>
+				}
+			</div>
+		</div>
+	</nav>
+</header>

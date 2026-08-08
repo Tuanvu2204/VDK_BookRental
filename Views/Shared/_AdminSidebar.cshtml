@@ -1,0 +1,14 @@
+@{
+	var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? string.Empty;
+}
+<aside class="d-none d-lg-block" style="width:220px">
+	<nav class="vdk-card" style="padding:12px">
+		<ul class="nav flex-column">
+			<li class="nav-item mb-1"><a class="nav-link" asp-controller="Admin" asp-action="Index"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a></li>
+			<li class="nav-item mb-1"><a class="nav-link" asp-controller="Admin" asp-action="Books"><i class="bi bi-journal-bookmark me-2"></i>Manage Books</a></li>
+			<li class="nav-item mb-1"><a class="nav-link" asp-controller="Admin" asp-action="Users"><i class="bi bi-people me-2"></i>Manage Users</a></li>
+			<li class="nav-item mb-1"><a class="nav-link" asp-controller="Category" asp-action="Index"><i class="bi bi-tags me-2"></i>Categories</a></li>
+			<li class="nav-item mb-1"><a class="nav-link" asp-controller="Report" asp-action="Index"><i class="bi bi-bar-chart me-2"></i>Reports</a></li>
+		</ul>
+	</nav>
+</aside>

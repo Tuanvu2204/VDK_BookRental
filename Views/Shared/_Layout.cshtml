@@ -209,6 +209,10 @@
           asp-append-version="true" />
 
     <link rel="stylesheet"
+          href="~/css/site-ui.css"
+          asp-append-version="true" />
+
+    <link rel="stylesheet"
           href="~/VDK_BookRental.styles.css"
           asp-append-version="true" />
 
@@ -800,246 +804,7 @@
 </head>
 
 <body>
-    <header>
-        <nav class="navbar navbar-expand-lg vdk-navbar">
-            <div class="container-fluid px-3 px-lg-4">
-                <a class="navbar-brand"
-                   asp-controller="Books"
-                   asp-action="Index">
-
-                    <span class="vdk-logo">
-                        <i class="bi bi-book-half"></i>
-                    </span>
-
-                    <span class="vdk-brand-text">
-                        VDK Book Rental
-
-                        <small>
-                            Hệ thống cho thuê sách
-                        </small>
-                    </span>
-                </a>
-
-                <button class="navbar-toggler"
-                        type="button"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#vdkMainNavbar"
-                        aria-controls="vdkMainNavbar"
-                        aria-expanded="false"
-                        aria-label="Mở menu">
-
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-
-                <div class="collapse navbar-collapse"
-                     id="vdkMainNavbar">
-
-                    <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-4">
-                        <li class="nav-item">
-                            <a class="nav-link @ActiveClass("Books", "Index")"
-                               asp-controller="Books"
-                               asp-action="Index">
-
-                                <i class="bi bi-house-door"></i>
-                                Trang chủ
-                            </a>
-                        </li>
-
-                        <li class="nav-item">
-                            <a class="nav-link @ActiveClass("Books")"
-                               asp-controller="Books"
-                               asp-action="Index">
-
-                                <i class="bi bi-book"></i>
-                                Kho sách
-                            </a>
-                        </li>
-
-                        @if (isLoggedIn)
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link @ActiveClass("Rental", "Current")"
-                                   asp-controller="Rental"
-                                   asp-action="Current">
-
-                                    <i class="bi bi-bag-check"></i>
-                                    Sách đang thuê
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link @ActiveClass("Rental", "History")"
-                                   asp-controller="Rental"
-                                   asp-action="History">
-
-                                    <i class="bi bi-clock-history"></i>
-                                    Lịch sử thuê
-                                </a>
-                            </li>
-                        }
-
-                        @if (isAdmin)
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link @ActiveClass("Admin")"
-                                   asp-controller="Admin"
-                                   asp-action="Index">
-
-                                    <i class="bi bi-speedometer2"></i>
-                                    Quản trị
-                                </a>
-                            </li>
-                        }
-                        else if (isStaff)
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link @ActiveClass("Staff")"
-                                   asp-controller="Staff"
-                                   asp-action="Index">
-
-                                    <i class="bi bi-person-workspace"></i>
-                                    Nhân viên
-                                </a>
-                            </li>
-                        }
-                    </ul>
-
-                    @if (isLoggedIn)
-                    {
-                        <div class="dropdown">
-                            <button class="btn nav-link dropdown-toggle vdk-user-dropdown"
-                                    type="button"
-                                    data-bs-toggle="dropdown"
-                                    aria-expanded="false">
-
-                                <span class="vdk-user-avatar">
-                                    <span>@initials</span>
-
-                                    @if (!string.IsNullOrWhiteSpace(
-                                        avatarUrl))
-                                    {
-                                        <img src="@avatarUrl"
-                                             alt="Ảnh đại diện"
-                                             onerror="this.style.display='none';" />
-                                    }
-                                </span>
-
-                                <span class="vdk-user-info">
-                                    <strong>@displayName</strong>
-
-                                    <small>
-                                        @(string.IsNullOrWhiteSpace(userRole)
-                                            ? "Khách hàng"
-                                            : userRole)
-                                    </small>
-                                </span>
-                            </button>
-
-                            <ul class="dropdown-menu dropdown-menu-end vdk-dropdown-menu">
-                                <li>
-                                    <a class="dropdown-item"
-                                       asp-controller="Profile"
-                                       asp-action="Index">
-
-                                        <i class="bi bi-person-circle"></i>
-                                        Hồ sơ cá nhân
-                                    </a>
-                                </li>
-
-                                <li>
-                                    <a class="dropdown-item"
-                                       asp-controller="Rental"
-                                       asp-action="Current">
-
-                                        <i class="bi bi-bag-check"></i>
-                                        Đơn thuê hiện tại
-                                    </a>
-                                </li>
-
-                                <li>
-                                    <a class="dropdown-item"
-                                       asp-controller="Rental"
-                                       asp-action="History">
-
-                                        <i class="bi bi-clock-history"></i>
-                                        Lịch sử thuê sách
-                                    </a>
-                                </li>
-
-                                @if (isAdmin)
-                                {
-                                    <li>
-                                        <hr class="dropdown-divider" />
-                                    </li>
-
-                                    <li>
-                                        <a class="dropdown-item"
-                                           asp-controller="Admin"
-                                           asp-action="Index">
-
-                                            <i class="bi bi-shield-lock"></i>
-                                            Trang quản trị
-                                        </a>
-                                    </li>
-                                }
-
-                                @if (isStaff)
-                                {
-                                    <li>
-                                        <hr class="dropdown-divider" />
-                                    </li>
-
-                                    <li>
-                                        <a class="dropdown-item"
-                                           asp-controller="Staff"
-                                           asp-action="Index">
-
-                                            <i class="bi bi-person-workspace"></i>
-                                            Trang nhân viên
-                                        </a>
-                                    </li>
-                                }
-
-                                <li>
-                                    <hr class="dropdown-divider" />
-                                </li>
-
-                                <li>
-                                    <a class="dropdown-item text-danger"
-                                       asp-controller="Account"
-                                       asp-action="Logout">
-
-                                        <i class="bi bi-box-arrow-right"></i>
-                                        Đăng xuất
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="d-flex gap-2 vdk-auth-actions">
-                            <a class="vdk-auth-button vdk-login-button"
-                               asp-controller="Account"
-                               asp-action="Login">
-
-                                <i class="bi bi-box-arrow-in-right"></i>
-                                Đăng nhập
-                            </a>
-
-                            <a class="vdk-auth-button vdk-register-button"
-                               asp-controller="Account"
-                               asp-action="Register">
-
-                                <i class="bi bi-person-plus"></i>
-                                Đăng ký
-                            </a>
-                        </div>
-                    }
-                </div>
-            </div>
-        </nav>
-    </header>
+    @await Html.PartialAsync("_NavPartial")
 
     @if (messageBoxNotifications.Count > 0)
     {
@@ -1171,10 +936,15 @@
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+
     <script src="~/js/site.js"
             asp-append-version="true"></script>
 
     <script src="~/js/ai-chat.js"
+            asp-append-version="true"></script>
+
+    <script src="~/js/site-ui.js"
             asp-append-version="true"></script>
 
 

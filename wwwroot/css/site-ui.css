@@ -1,0 +1,27 @@
+/* VDK BookRental - Design System (site-ui.css)
+   Minimal, complements existing inline styles in _Layout. */
+
+:root{
+  --vdk-primary:#2563eb;
+  --vdk-primary-600:#1d4ed8;
+  --vdk-bg:#f4f7fb;
+  --vdk-card:#fff;
+  --vdk-text:#0f172a;
+  --vdk-muted:#64748b;
+}
+
+body{background:var(--vdk-bg);color:var(--vdk-text);font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;}
+.vdk-card{background:var(--vdk-card);border-radius:12px;box-shadow:0 6px 20px rgba(15,23,42,0.06);padding:16px}
+.vdk-btn{border-radius:10px;font-weight:700}
+.vdk-btn-primary{background:linear-gradient(135deg,var(--vdk-primary),#7c3aed);border:0;color:#fff}
+.vdk-badge{padding:.32rem .6rem;border-radius:999px;font-size:.78rem}
+.vdk-badge-available{background:#ecfeff;color:#036;}
+.vdk-badge-unavailable{background:#fff1f2;color:#7f1d1d}
+.vdk-grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.vdk-book-img{width:100%;height:240px;object-fit:cover;border-radius:8px}
+.vdk-empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px;background:linear-gradient(180deg,rgba(37,99,235,0.03),transparent);border-radius:12px}
+.vdk-footer a{color:inherit}
+
+@media (max-width:767.98px){
+  .vdk-book-img{height:180px}
+}

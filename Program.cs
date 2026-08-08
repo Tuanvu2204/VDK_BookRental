@@ -24,14 +24,13 @@ builder.Services.AddControllersWithViews();
 
 builder.Services.AddProblemDetails();
 
-// Nếu project của bạn có GlobalExceptionHandler
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 // =============================================================
 // DATABASE
 //
-// Không tự động tạo/xóa/update database.
-// Migration thực hiện thủ công bằng Package Manager Console.
+// Không tự động tạo, xóa hoặc cập nhật database.
+// Không dùng EnsureCreated, EnsureDeleted hoặc Migrate tự động.
 // =============================================================
 
 var connectionString =
@@ -67,12 +66,13 @@ builder.Services.AddDbContext<AppDbContext>(
 
 // =============================================================
 // CACHE
+//
+// MemoryCache được chatbot dùng để lưu tạm danh sách sách.
+// DistributedMemoryCache được Session sử dụng.
 // =============================================================
 
-// Chatbot / dữ liệu tạm
 builder.Services.AddMemoryCache();
 
-// Session sử dụng distributed memory cache
 builder.Services.AddDistributedMemoryCache();
 
 // =============================================================
@@ -87,7 +87,6 @@ builder.Services.AddSession(
         options.Cookie.Name = ".VDKBookRental.Session";
         options.Cookie.HttpOnly = true;
         options.Cookie.IsEssential = true;
-
         options.Cookie.SameSite = SameSiteMode.Lax;
 
         options.Cookie.SecurePolicy =
@@ -95,7 +94,10 @@ builder.Services.AddSession(
     });
 
 // =============================================================
-// GEMINI OPTIONS
+// CẤU HÌNH GEMINI
+//
+// Model, BaseUrl và thông số lấy từ appsettings.json.
+// ApiKey lấy từ User Secrets.
 // =============================================================
 
 builder.Services
@@ -103,8 +105,7 @@ builder.Services
     .Bind(
         builder.Configuration.GetSection(
             GeminiOptions.SectionName))
-    .ValidateDataAnnotations()
-    .ValidateOnStart();
+    .ValidateDataAnnotations();
 
 // =============================================================
 // GEMINI HTTP CLIENT
@@ -188,16 +189,15 @@ builder.WebHost.ConfigureKestrel(
     });
 
 // =============================================================
-// BUILD APPLICATION
+// BUILD
 // =============================================================
 
 var app = builder.Build();
 
 // =============================================================
-// LOG CẤU HÌNH GEMINI
+// HIỂN THỊ MODEL GEMINI ĐANG ĐƯỢC CẤU HÌNH
 //
-// Chỉ log Model và BaseUrl.
-// TUYỆT ĐỐI không log API Key.
+// Không ghi API key ra log.
 // =============================================================
 
 var configuredGeminiModel =
@@ -217,46 +217,29 @@ app.Logger.LogInformation(
 // XỬ LÝ LỖI
 // =============================================================
 
+// GlobalExceptionHandler xử lý lỗi API và trả ProblemDetails JSON.
 app.UseExceptionHandler();
 
 app.UseStatusCodePagesWithReExecute(
     "/Error/StatusCode",
     "?code={0}");
 
-// =============================================================
-// HTTPS
-// =============================================================
-
 if (!app.Environment.IsDevelopment())
 {
     app.UseHsts();
+    app.UseHttpsRedirection();
 }
 
-app.UseHttpsRedirection();
-
 // =============================================================
-// STATIC FILE
+// HTTP PIPELINE
 // =============================================================
 
 app.UseStaticFiles();
 
-// =============================================================
-// ROUTING
-// =============================================================
-
 app.UseRouting();
 
-// =============================================================
-// SESSION
-//
-// Phải chạy sau Routing và trước Controller.
-// =============================================================
-
+// Session phải chạy trước controller.
 app.UseSession();
-
-// =============================================================
-// AUTHORIZATION
-// =============================================================
 
 app.UseAuthorization();
 
@@ -264,39 +247,11 @@ app.UseAuthorization();
 // ROUTES
 // =============================================================
 
-// -------------------------------------------------------------
-// 1. ATTRIBUTE ROUTING
-//
-// Ví dụ:
+// Hỗ trợ Attribute Routing, ví dụ:
 // POST /api/chat
-// -------------------------------------------------------------
-
 app.MapControllers();
 
-// -------------------------------------------------------------
-// 2. ADMIN AREA
-//
-// Ví dụ:
-// /Admin
-// /Admin/Books
-// /Admin/Books/Create
-// /Admin/Books/Edit/5
-//
-// PHẢI đặt Area route trước Default route.
-// -------------------------------------------------------------
-
-app.MapControllerRoute(
-    name: "areas",
-    pattern:
-        "{area:exists}/{controller=Home}/{action=Index}/{id?}");
-
-// -------------------------------------------------------------
-// 3. MVC DEFAULT
-//
-// Trang mặc định:
-// /Books
-// -------------------------------------------------------------
-
+// Route mặc định cho các controller MVC.
 app.MapControllerRoute(
     name: "default",
     pattern:
