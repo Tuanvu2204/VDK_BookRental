@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
 using VDK_BookRental.Data;
 using VDK_BookRental.Models;
 
@@ -28,25 +27,6 @@ namespace VDK_BookRental.Controllers
         {
             _context = context;
             _logger = logger;
-        }
-
-        // =====================================================
-        // ROLLBACK TRANSACTION AN TOÀN
-        // =====================================================
-
-        private async Task RollbackSafelyAsync(
-            IDbContextTransaction transaction)
-        {
-            try
-            {
-                await transaction.RollbackAsync();
-            }
-            catch (Exception rollbackException)
-            {
-                _logger.LogError(
-                    rollbackException,
-                    "Không thể rollback transaction khi hủy đơn thuê.");
-            }
         }
 
         // =====================================================
@@ -363,111 +343,112 @@ namespace VDK_BookRental.Controllers
 
             try
             {
-                var executionStrategy =
-                    _context.Database.CreateExecutionStrategy();
+                var rental =
+                    await _context.Rentals
+                        .Include(item =>
+                            item.Payment)
+                        .Include(item =>
+                            item.RentalDetails)
+                            .ThenInclude(detail =>
+                                detail.Book)
+                        .FirstOrDefaultAsync(item =>
+                            item.Id == rentalId
+                            &&
+                            item.UserId ==
+                                userId.Value);
 
-                return await executionStrategy.ExecuteAsync(async () =>
+                if (rental == null)
                 {
-                    _context.ChangeTracker.Clear();
+                    TempData["ErrorMessage"] =
+                        "Không tìm thấy đơn thuê.";
 
-                    await using var transaction =
-                        await _context.Database.BeginTransactionAsync();
+                    return RedirectToAction(
+                        nameof(Current));
+                }
 
-                    try
+                if (!string.Equals(
+                        rental.Status,
+                        "Pending",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    TempData["ErrorMessage"] =
+                        "Chỉ có thể hủy đơn đang chờ duyệt.";
+
+                    return RedirectToAction(
+                        nameof(Current));
+                }
+
+                var paymentStatus =
+                    rental.Payment?.Status;
+
+                if (string.Equals(
+                        paymentStatus,
+                        "Paid",
+                        StringComparison.OrdinalIgnoreCase)
+                    ||
+                    string.Equals(
+                        paymentStatus,
+                        "Completed",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    TempData["ErrorMessage"] =
+                        "Không thể hủy đơn đã thanh toán.";
+
+                    return RedirectToAction(
+                        nameof(Current));
+                }
+
+                if (string.Equals(
+                        paymentStatus,
+                        "AwaitingConfirmation",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    TempData["ErrorMessage"] =
+                        "Thanh toán đang chờ xác nhận nên " +
+                        "chưa thể hủy đơn.";
+
+                    return RedirectToAction(
+                        nameof(Current));
+                }
+
+                foreach (var detail in
+                         rental.RentalDetails)
+                {
+                    if (detail.Book == null)
                     {
-                        var rental =
-                            await _context.Rentals
-                                .Include(item => item.Payment)
-                                .Include(item => item.RentalDetails)
-                                    .ThenInclude(detail => detail.Book)
-                                .FirstOrDefaultAsync(item =>
-                                    item.Id == rentalId &&
-                                    item.UserId == userId.Value);
-
-                        if (rental == null)
-                        {
-                            await RollbackSafelyAsync(transaction);
-
-                            TempData["ErrorMessage"] =
-                                "Không tìm thấy đơn thuê.";
-
-                            return RedirectToAction(nameof(Current));
-                        }
-
-                        if (!string.Equals(rental.Status, "Pending", StringComparison.OrdinalIgnoreCase))
-                        {
-                            await RollbackSafelyAsync(transaction);
-
-                            TempData["ErrorMessage"] =
-                                "Chỉ có thể hủy đơn đang chờ duyệt.";
-
-                            return RedirectToAction(nameof(Current));
-                        }
-
-                        var paymentStatus = rental.Payment?.Status;
-
-                        if (string.Equals(paymentStatus, "Paid", StringComparison.OrdinalIgnoreCase) ||
-                            string.Equals(paymentStatus, "Completed", StringComparison.OrdinalIgnoreCase))
-                        {
-                            await RollbackSafelyAsync(transaction);
-
-                            TempData["ErrorMessage"] =
-                                "Không thể hủy đơn đã thanh toán.";
-
-                            return RedirectToAction(nameof(Current));
-                        }
-
-                        if (string.Equals(paymentStatus, "AwaitingConfirmation", StringComparison.OrdinalIgnoreCase))
-                        {
-                            await RollbackSafelyAsync(transaction);
-
-                            TempData["ErrorMessage"] =
-                                "Thanh toán đang chờ xác nhận nên chưa thể hủy đơn.";
-
-                            return RedirectToAction(nameof(Current));
-                        }
-
-                        foreach (var detail in rental.RentalDetails)
-                        {
-                            if (detail.Book == null)
-                            {
-                                continue;
-                            }
-
-                            if (detail.Quantity > 0)
-                            {
-                                detail.Book.Quantity += detail.Quantity;
-                            }
-
-                            if (detail.Book.Quantity > 0)
-                            {
-                                detail.Book.Status = "Available";
-                            }
-                        }
-
-                        rental.Status = "Cancelled";
-
-                        if (rental.Payment != null)
-                        {
-                            rental.Payment.Status = "Cancelled";
-                        }
-
-                        await _context.SaveChangesAsync();
-
-                        await transaction.CommitAsync();
-
-                        TempData["SuccessMessage"] =
-                            $"Đã hủy đơn #RENT-{rental.Id:D4} và hoàn lại sách vào kho.";
-
-                        return RedirectToAction(nameof(Current));
+                        continue;
                     }
-                    catch
+
+                    if (detail.Quantity > 0)
                     {
-                        await RollbackSafelyAsync(transaction);
-
-                        throw;
+                        detail.Book.Quantity +=
+                            detail.Quantity;
                     }
-                });
+
+                    if (detail.Book.Quantity > 0)
+                    {
+                        detail.Book.Status =
+                            "Available";
+                    }
+                }
+
+                rental.Status =
+                    "Cancelled";
+
+                if (rental.Payment != null)
+                {
+                    rental.Payment.Status =
+                        "Cancelled";
+                }
+
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] =
+                    $"Đã hủy đơn #RENT-{rental.Id:D4} " +
+                    "và hoàn lại sách vào kho.";
+
+                return RedirectToAction(
+                    nameof(Current));
             }
             catch (DbUpdateConcurrencyException exception)
             {

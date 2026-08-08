@@ -169,6 +169,19 @@ namespace VDK_BookRental.Controllers
                     .OrderBy(c => c.Name)
                     .ToListAsync();
 
+                // Aggregate counts in a single query to reduce round-trips
+                var stats = await _context.Books
+                    .AsNoTracking()
+                    .GroupBy(b => 1)
+                    .Select(g => new
+                    {
+                        Total = g.Count(),
+                        Available = g.Count(b => b.Quantity > 3),
+                        Low = g.Count(b => b.Quantity > 0 && b.Quantity <= 3),
+                        Out = g.Count(b => b.Quantity <= 0)
+                    })
+                    .FirstOrDefaultAsync();
+
                 var model = new AdminBookListViewModel
                 {
                     Search = normalizedSearch,
@@ -178,10 +191,10 @@ namespace VDK_BookRental.Controllers
                     PageSize = pageSize,
                     TotalItems = totalItems,
                     TotalPages = totalPages,
-                    TotalBooks = await _context.Books.CountAsync(),
-                    AvailableBooks = await _context.Books.CountAsync(b => b.Quantity > 3),
-                    LowStockBooks = await _context.Books.CountAsync(b => b.Quantity > 0 && b.Quantity <= 3),
-                    OutOfStockBooks = await _context.Books.CountAsync(b => b.Quantity <= 0),
+                    TotalBooks = stats?.Total ?? 0,
+                    AvailableBooks = stats?.Available ?? 0,
+                    LowStockBooks = stats?.Low ?? 0,
+                    OutOfStockBooks = stats?.Out ?? 0,
                     Books = books,
                     Categories = categories
                 };
@@ -433,14 +446,39 @@ namespace VDK_BookRental.Controllers
                     var uploads = Path.Combine(_environment.WebRootPath, "images", "books");
                     if (!Directory.Exists(uploads)) Directory.CreateDirectory(uploads);
 
-                    var ext = Path.GetExtension(model.ImageFile.FileName);
-                    var fileName = $"book_{DateTime.UtcNow:yyyyMMddHHmmssfff}{ext}";
-                    var filePath = Path.Combine(uploads, fileName);
+                    var ext = Path.GetExtension(model.ImageFile.FileName)?.ToLowerInvariant() ?? string.Empty;
+                    var allowedExt = new[] { ".jpg", ".jpeg", ".png", ".webp" };
 
-                    await using var stream = System.IO.File.Create(filePath);
-                    await model.ImageFile.CopyToAsync(stream);
+                    if (!allowedExt.Contains(ext))
+                    {
+                        _logger.LogWarning("Unsupported image extension {Ext} for book id {BookId}", ext, model.Id);
+                    }
+                    else
+                    {
+                        var fileName = $"book_{Guid.NewGuid():N}{ext}";
+                        var filePath = Path.Combine(uploads, fileName);
 
-                    book.ImageUrl = $"/images/books/{fileName}";
+                        try
+                        {
+                            await using var stream = System.IO.File.Create(filePath);
+                            await model.ImageFile.CopyToAsync(stream);
+
+                            book.ImageUrl = $"/images/books/{fileName}";
+                        }
+                        catch (Exception fileEx)
+                        {
+                            _logger.LogError(fileEx, "Failed to save uploaded image for book {BookId}", model.Id);
+                            ModelState.AddModelError("ImageFile", "Không thể lưu ảnh. Vui lòng thử lại hoặc chọn ảnh khác.");
+
+                            model.Categories = (await _context.Categories
+                                .AsNoTracking()
+                                .OrderBy(c => c.Name)
+                                .ToListAsync())
+                                .Select(c => new SelectListItem(c.Name, c.Id.ToString())).ToList();
+
+                            return View("~/Views/Admin/EditBook.cshtml", model);
+                        }
+                    }
                 }
 
                 await _context.SaveChangesAsync();
